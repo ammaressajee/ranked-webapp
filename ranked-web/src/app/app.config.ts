@@ -12,7 +12,6 @@ export const appConfig: ApplicationConfig = {
     // 1. CORE ANGULAR PROVIDERS (Always first for SSR/Hydration)
     provideZoneChangeDetection({ eventCoalescing: true }), 
     provideRouter(routes), 
-    provideClientHydration(withEventReplay()), // 👈 Moved up
 
     // 2. FIREBASE PROVIDERS (After core Angular setup)
     provideFirebaseApp(() => initializeApp(environment.firebase)), 

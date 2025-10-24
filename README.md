@@ -13,5 +13,3 @@ Phase 3 — Viral features & retention: shareable rank cards, referrals, push no
 Phase 4 — Monetization tests: club/league onboarding, premium features trial, paid club subscriptions. (Goal: first $/mo revenue.)
 
 Scale & native app wrap: if traction, wrap into Capacitor or build native apps.
-
-We’ll move one step at a time: you implement the milestone → test it → tell me results → I give the next milestone.

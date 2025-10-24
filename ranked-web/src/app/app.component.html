@@ -1,3 +1,11 @@
+<main class="container">
+  <h1>Local Ladder — Austin</h1>
+  <p>Challenge local players. Track your rank. Meet people near you.</p>
 
+  <form (submit)="submitEmail($event)">
+    <input type="email" placeholder="you@example.com" required [(ngModel)]="email" name="email" />
+    <button type="submit">Get early access</button>
+  </form>
 
-<router-outlet />
+  <p *ngIf="success()" class="success">Thanks! We'll keep you updated.</p>
+</main>

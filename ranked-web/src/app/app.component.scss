@@ -1,4 +1,72 @@
-main { max-width:600px;margin:2rem auto;text-align:center; }
-    button { margin:0.5rem;padding:0.5rem 1rem; }
-    .profile { display:flex;align-items:center;gap:0.5rem;justify-content:center;margin:1rem 0; }
-    ol { text-align:left;max-width:300px;margin:0 auto; }
+$app-bg-color: #f0f2f5; 
+$content-padding: 30px;
+$sidebar-width: 250px; // Must match the width in sidebar.component.scss
+
+.app-shell {
+    // 1. Core Layout: Does NOT use Flexbox for side-by-side layout anymore.
+    // It's just a full-width container for the absolutely positioned elements.
+    min-height: 100vh;
+    width: 100%;
+    background-color: $app-bg-color;
+    position: relative;
+}
+
+/* ================================== */
+/* 2. MENU TOGGLE BUTTON STYLING      */
+/* ================================== */
+
+.menu-toggle-button {
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    z-index: 1000; /* Ensure it's above everything */
+    background: #4A90E2;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    border-radius: 4px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+/* ================================== */
+/* 3. MAIN CONTENT AREA STYLING       */
+/* ================================== */
+
+.app-content-area {
+    // Content takes up full width
+    width: 100%;
+    padding: $content-padding;
+    padding-top: 60px; /* Add padding for the toggle button */
+    transition: filter 0.3s ease;
+    min-height: 100vh;
+}
+
+/* Overlay effect for content when sidebar is open */
+.content-overlay-active {
+    filter: blur(2px) brightness(0.9);
+    pointer-events: none; /* Disable interaction with content */
+}
+
+
+/* ================================== */
+/* 4. SIDEBAR POSITIONING (OFF-CANVAS)*/
+/* ================================== */
+
+app-sidebar {
+    // Make sidebar position fixed so it covers the entire height
+    position: fixed; 
+    top: 0;
+    bottom: 0;
+    left: -$sidebar-width; /* 💡 START POSITION: Hidden off the left edge */
+    width: $sidebar-width; /* Must match the width defined in sidebar.component.scss */
+    z-index: 500; /* Below the toggle button */
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
+    transition: left 0.3s ease;
+    
+    // When the component receives the .open class
+    &.open {
+        left: 0; /* 💡 END POSITION: Slides into view */
+    }
+}

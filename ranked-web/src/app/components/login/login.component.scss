@@ -1,0 +1,203 @@
+/* Color Variables (Adjust to your brand palette) */
+$primary-color: #4A90E2; // A modern blue
+$border-color: #E0E6ED;
+$card-background: #FFFFFF;
+$text-color: #2C3E50; 
+$muted-text-color: #7F8C8D; 
+$google-red: #DB4437;
+$google-red-hover: #C33D30;
+
+.login-page-container {
+    // 1. Full viewport and centered content
+    display: flex;
+    justify-content: center; /* Center horizontally */
+    align-items: center;    /* Center vertically */
+    min-height: 100vh;
+    width: 100%;
+    
+    // 2. Background Cover Image
+    background-image: url('https://picsum.photos/1600/1200?random=3'); /* Use a high-quality, relevant image */
+    background-size: cover;
+    background-position: center;
+    position: relative;
+    
+    // Optional: Add a subtle dark/blur overlay for better form readability
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.4); /* Dark overlay */
+        backdrop-filter: blur(3px); /* Optional: slight blur effect */
+        z-index: 1;
+    }
+}
+
+.form-card-wrapper {
+    // Container for the title and the card, sitting above the overlay
+    position: relative;
+    z-index: 2; 
+    text-align: center;
+    padding: 20px;
+}
+
+.app-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: white; /* Title should contrast with the dark background */
+    margin-bottom: 20px;
+    text-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.form-card {
+    // The clean, stylish card
+    background-color: rgba($card-background, 0.95); /* Slightly transparent white for style */
+    padding: 40px;
+    border-radius: 12px; 
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); /* Stronger, deeper shadow */
+    width: 100%;
+    max-width: 420px; 
+    box-sizing: border-box;
+    transition: all 0.3s ease;
+}
+
+.form-title {
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: $text-color;
+    margin-bottom: 30px;
+}
+
+/* ============================= */
+/* Input and Button STYLING (Kept Clean and Modern) */
+/* ============================= */
+
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 18px; 
+}
+
+input {
+    padding: 14px 18px;
+    border: 1px solid $border-color;
+    border-radius: 8px; 
+    font-size: 1rem;
+    color: $text-color;
+    transition: border-color 0.3s, box-shadow 0.3s;
+    background-color: #FAFAFA; /* Light input background */
+}
+
+input:focus {
+    border-color: $primary-color;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba($primary-color, 0.15); 
+}
+
+.submit-button {
+    background-color: $primary-color;
+    color: white;
+    padding: 14px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.2s;
+    margin-top: 10px;
+    &:hover {
+        background-color: darken($primary-color, 8%);
+        transform: translateY(-1px);
+    }
+}
+
+.separator {
+    text-align: center;
+    margin: 30px 0;
+    font-size: 0.9rem;
+    color: $muted-text-color;
+    position: relative;
+    &::before, &::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        width: 35%; 
+        height: 1px;
+        background: $border-color;
+    }
+    &::before { left: 0; }
+    &::after { right: 0; }
+}
+
+.google-button {
+    // Styling the Google button for clear branding
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 12px;
+    background-color: $google-red;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.2s;
+    .google-icon {
+        width: 22px;
+        height: 22px;
+        margin-right: 12px;
+    }
+    &:hover {
+        background-color: $google-red-hover;
+        transform: translateY(-1px);
+    }
+}
+
+.toggle-mode {
+    text-align: center;
+    margin-top: 25px;
+    font-size: 0.95rem;
+    color: $muted-text-color;
+    a {
+        color: $primary-color;
+        text-decoration: none;
+        cursor: pointer;
+        font-weight: 600;
+        margin-left: 5px;
+        &:hover {
+            text-decoration: underline;
+        }
+    }
+}
+
+/* ============================= */
+/* MOBILE/RESPONSIVENESS      */
+/* ============================= */
+
+@media (max-width: 500px) {
+    .login-page-container {
+        // Remove vertical centering on small screens to let content flow naturally
+        align-items: flex-start;
+        padding-top: 20px;
+    }
+    .form-card-wrapper {
+        width: 90%;
+        max-width: 100%;
+        margin-top: 20px;
+    }
+    .form-card {
+        box-shadow: none; /* No shadow on mobile */
+        border-radius: 0; /* Full-width edges */
+    }
+    .app-title {
+        // Ensure the title is visible but not huge on mobile
+        font-size: 1.6rem;
+        position: relative;
+        text-align: center;
+        left: 0;
+    }
+}

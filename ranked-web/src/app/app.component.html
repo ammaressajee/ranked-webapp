@@ -1,28 +1,21 @@
-<main class="container">
-  <h1>Local Ladder — Austin</h1>
+<div class="app-shell">
+  
+  <button class="menu-toggle-button" (click)="toggleSidebar()">
+    ☰
+  </button>
+  
+  <app-sidebar 
+    [class.open]="isSidebarOpen()" 
+    (click)="isSidebarOpen.set(false)" 
+  >
+  </app-sidebar> 
 
-  <ng-container *ngIf="authService.profile() === null; else signedIn">
-    <button [routerLink]="['/login']" routerLinkActive="router-link-active">
-      Login / Sign Up
-    </button>
-  </ng-container>
+  <main class="app-content-area" [class.content-overlay-active]="isSidebarOpen()">
+    
+    <router-outlet></router-outlet>
+    
+    <section class="leaderboard-section" *ngIf="authService.profile() !== null">
+      </section>
 
-  <ng-template #signedIn>
-    <div class="profile">
-      <img [src]="authService.profile()?.photoURL" width="48" height="48" />
-      <span>{{ authService.profile()?.displayName }}</span>
-      <button (click)="authService.logout()">Sign out</button>
-    </div>
-
-    <button (click)="joinLadder()" [disabled]="authService.joined()">Join Ladder</button>
-
-    <section class="leaderboard" *ngIf="leaderboard().length">
-      <h2>Leaderboard</h2>
-      <ol>
-        <li *ngFor="let p of leaderboard()">{{ p.displayName }} – Rank #{{ p.rank }}</li>
-      </ol>
-    </section>
-  </ng-template>
-
-  <router-outlet></router-outlet>
-</main>
+  </main>
+</div>

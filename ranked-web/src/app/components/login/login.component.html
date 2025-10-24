@@ -1,0 +1,43 @@
+<div class="auth-box">
+  <h2>{{ isSigningUp() ? 'Sign Up' : 'Sign In' }}</h2>
+  
+  <form (submit)="handleEmailSubmission($event)" class="auth-form">
+    <input 
+        *ngIf="isSigningUp()"
+        type="text" 
+        placeholder="Display Name" 
+        [ngModel]="displayName()"
+        (ngModelChange)="displayName.set($event)"
+        name="displayName"
+        required
+    />
+
+    <input 
+        type="email" 
+        placeholder="Email" 
+        [ngModel]="email()"
+        (ngModelChange)="email.set($event)"
+        name="email"
+        required
+    />
+    <input 
+        type="password" 
+        placeholder="Password" 
+        [ngModel]="password()"
+        (ngModelChange)="password.set($event)"
+        name="password"
+        required
+    />
+
+    <button type="submit">{{ isSigningUp() ? 'Sign Up' : 'Sign In' }}</button>
+    
+    <hr />
+
+    <button type="button" (click)="authService.loginWithGoogle()">Sign in with Google</button>
+  </form>
+  
+  <p class="toggle-mode">
+    {{ isSigningUp() ? 'Already have an account?' : 'Need an account?' }}
+    <a (click)="toggleMode()">{{ isSigningUp() ? 'Sign In' : 'Sign Up' }}</a>
+  </p>
+</div>

@@ -1,11 +1,28 @@
 <main class="container">
   <h1>Local Ladder — Austin</h1>
-  <p>Challenge local players. Track your rank. Meet people near you.</p>
 
-  <form (submit)="submitEmail($event)">
-    <input type="email" placeholder="you@example.com" required [(ngModel)]="email" name="email" />
-    <button type="submit">Get early access</button>
-  </form>
+  <ng-container *ngIf="authService.profile() === null; else signedIn">
+    <button [routerLink]="['/login']" routerLinkActive="router-link-active">
+      Login / Sign Up
+    </button>
+  </ng-container>
 
-  <p *ngIf="success()" class="success">Thanks! We'll keep you updated.</p>
+  <ng-template #signedIn>
+    <div class="profile">
+      <img [src]="authService.profile()?.photoURL" width="48" height="48" />
+      <span>{{ authService.profile()?.displayName }}</span>
+      <button (click)="authService.logout()">Sign out</button>
+    </div>
+
+    <button (click)="joinLadder()" [disabled]="authService.joined()">Join Ladder</button>
+
+    <section class="leaderboard" *ngIf="leaderboard().length">
+      <h2>Leaderboard</h2>
+      <ol>
+        <li *ngFor="let p of leaderboard()">{{ p.displayName }} – Rank #{{ p.rank }}</li>
+      </ol>
+    </section>
+  </ng-template>
+
+  <router-outlet></router-outlet>
 </main>

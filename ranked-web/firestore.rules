@@ -1,9 +1,13 @@
 rules_version = '2';
 service cloud.firestore {
-  match /databases/{database}/documents {
-    match /early_signups/{docId} {
-      allow create: if true; // allow anyone to submit emails
-      allow read, update, delete: if false;
+  match /databases/{db}/documents {
+    match /users/{uid} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
+    match /ladders/{ladderId} {
+      allow read: if true;
+      allow update: if request.auth != null;
     }
   }
 }

@@ -1,8 +1,12 @@
 <aside class="sidebar-container">
     <div class="sidebar-header">
         <h2 class="sidebar-title">Local Ladder</h2>
+        
+        <button class="menu-toggle-button" (click)="toggleMenu(); $event.stopPropagation()">
+            <span [innerHTML]="isSidebarOpen ? '&larr;' : '☰'"></span>
+        </button>
     </div>
-
+    
     <nav class="sidebar-nav-main">
         <ul>
             <li *ngFor="let item of navItems()">
@@ -25,7 +29,7 @@
                 </li>
             </ul>
         </nav>
-        
+
         <div class="user-auth-section">
             <ng-container *ngIf="authService.profile() !== null; else loggedOutContent">
                 <div class="user-profile-summary">

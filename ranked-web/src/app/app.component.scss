@@ -1,72 +1,84 @@
-$app-bg-color: #f0f2f5; 
-$content-padding: 30px;
-$sidebar-width: 250px; // Must match the width in sidebar.component.scss
+@import "../styles.scss";
+
+// Assuming variables are imported here.
+$full-sidebar-width: 250px; // Full width when open
+$collapsed-sidebar-width: 80px; // Width when collapsed (icons-only)
+$mobile-sidebar-width: 85vw; 
 
 .app-shell {
-    // 1. Core Layout: Does NOT use Flexbox for side-by-side layout anymore.
-    // It's just a full-width container for the absolutely positioned elements.
+    display: flex; 
     min-height: 100vh;
     width: 100%;
-    background-color: $app-bg-color;
+    background-color: $dark-content-bg;
     position: relative;
+    color: $text-primary;
+    overflow-x: hidden;
 }
 
-/* ================================== */
-/* 2. MENU TOGGLE BUTTON STYLING      */
-/* ================================== */
-
+/* --- Menu Toggle Button (Always visible on mobile, positioned on desktop) --- */
 .menu-toggle-button {
     position: fixed;
     top: 15px;
-    left: 15px;
-    z-index: 1000; /* Ensure it's above everything */
-    background: #4A90E2;
-    color: white;
-    border: none;
-    padding: 10px 15px;
-    font-size: 1.2rem;
-    cursor: pointer;
-    border-radius: 4px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-}
-
-/* ================================== */
-/* 3. MAIN CONTENT AREA STYLING       */
-/* ================================== */
-
-.app-content-area {
-    // Content takes up full width
-    width: 100%;
-    padding: $content-padding;
-    padding-top: 60px; /* Add padding for the toggle button */
-    transition: filter 0.3s ease;
-    min-height: 100vh;
-}
-
-/* Overlay effect for content when sidebar is open */
-.content-overlay-active {
-    filter: blur(2px) brightness(0.9);
-    pointer-events: none; /* Disable interaction with content */
+    z-index: 1500; 
+    
+    // 💡 Desktop FIX: Move button to be just outside the collapsed sidebar
+    @media (min-width: 1024px) {
+        left: $collapsed-sidebar-width + 15px; /* Position next to the collapsed sidebar */
+        display: block; // Always visible on desktop for toggling
+    }
 }
 
 
-/* ================================== */
-/* 4. SIDEBAR POSITIONING (OFF-CANVAS)*/
-/* ================================== */
-
+/* --- Sidebar Positioning (Responsive) --- */
 app-sidebar {
-    // Make sidebar position fixed so it covers the entire height
     position: fixed; 
     top: 0;
     bottom: 0;
-    left: -$sidebar-width; /* 💡 START POSITION: Hidden off the left edge */
-    width: $sidebar-width; /* Must match the width defined in sidebar.component.scss */
-    z-index: 500; /* Below the toggle button */
-    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
-    transition: left 0.3s ease;
+    z-index: 1000;
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.7);
+    transition: transform 0.3s ease, width 0.3s ease; // Add width to transition
     
-    // When the component receives the .open class
+    // Mobile (< 1024px): Fully off-canvas overlay
+    width: $mobile-sidebar-width; 
+    transform: translateX(-100%); 
+    
     &.open {
-        left: 0; /* 💡 END POSITION: Slides into view */
+        transform: translateX(0); 
+    }
+
+    // 💡 Desktop (>= 1024px): Collapsed fixed state
+    @media (min-width: 1024px) {
+        position: sticky; 
+        left: 0;
+        transform: translateX(0);
+        width: $collapsed-sidebar-width; 
+        flex-shrink: 0;
+        
+        &.open {
+            width: $full-sidebar-width;
+        }
+    }
+}
+
+
+/* --- Main Content Area --- */
+.app-content-area {
+    flex-grow: 1;
+    width: 100%;
+    padding: 30px;
+    min-height: 100vh;
+    transition: margin-left 0.3s ease;
+    
+    @media (min-width: 1024px) {
+        // Content starts with a margin for the collapsed sidebar
+        margin-left: $collapsed-sidebar-width; 
+        padding-left: 30px; 
+    }
+}
+
+// 💡 PUSHED Class: Applied when sidebar is open
+.app-content-area.pushed {
+    @media (min-width: 1024px) {
+        margin-left: $full-sidebar-width; 
     }
 }

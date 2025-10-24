@@ -1,21 +1,15 @@
 <div class="app-shell">
-  
-  <button class="menu-toggle-button" (click)="toggleSidebar()">
-    ☰
-  </button>
-  
-  <app-sidebar 
-    [class.open]="isSidebarOpen()" 
-    (click)="isSidebarOpen.set(false)" 
-  >
-  </app-sidebar> 
 
-  <main class="app-content-area" [class.content-overlay-active]="isSidebarOpen()">
-    
+  <app-sidebar [class.open]="isSidebarOpen()" (click)="isSidebarOpen.set(false)" [isSidebarOpen]="isSidebarOpen()"
+    (toggleEvent)="toggleSidebar()">
+  </app-sidebar>
+
+  <main class="app-content-area" [class.content-overlay-active]="isSidebarOpen()" [class.pushed]="isSidebarOpen()">
+
+  </main>
+
+  <main class="app-content-area" [class.content-overlay-active]="isSidebarOpen()" [class.pushed]="isSidebarOpen()">
     <router-outlet></router-outlet>
-    
-    <section class="leaderboard-section" *ngIf="authService.profile() !== null">
-      </section>
-
+    <section class="leaderboard-section" *ngIf="authService.profile() === null"></section>
   </main>
 </div>

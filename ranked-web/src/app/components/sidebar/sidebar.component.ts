@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, OnInit, signal, WritableSignal } from '@angular/core';
+import { Component, EventEmitter, inject, Input, OnInit, Output, signal, WritableSignal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { NavItem } from '../../models/NavItem';
@@ -15,6 +15,16 @@ export class SidebarComponent implements OnInit {
   authService = inject(AuthService);
   private router = inject(Router);
 
+  @Input() isSidebarOpen: boolean = false;
+
+  // 💡 OUTPUT: Emit event back to parent to toggle
+  @Output() toggleEvent = new EventEmitter<void>();
+
+  // New method to call when button is clicked
+  toggleMenu() {
+    this.toggleEvent.emit();
+  }
+
   // 💡 All items set to requiresAuth: false to be visible to all users
   navItems: WritableSignal<NavItem[]> = signal([
     { icon: '🏠', label: 'Home', route: '/', requiresAuth: false },
@@ -27,7 +37,7 @@ export class SidebarComponent implements OnInit {
     { icon: '⚙️', label: 'Settings', route: '/settings', requiresAuth: false }
   ]);
 
-  ngOnInit() {}
+  ngOnInit() { }
 
   navigateToLogin() {
     this.router.navigate(['/login']);

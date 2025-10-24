@@ -1,1 +1,27 @@
-/* You can add global styles to this file, and also import other style files */
+/* --- Global Full-Screen Reset --- */
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    /* Apply a default dark background color to prevent a flash of white */
+    background-color: #1e1e1e; 
+    font-family: Arial, sans-serif;
+}
+
+
+/* --- Dark Theme Variables (Ensure these are defined here for imports) --- */
+/* If you defined these in a separate _variables.scss, import it here. */
+/* --- Updated Dark Theme Variables --- */
+$dark-background: #121212;
+$dark-content-bg: #1e1e1e;
+$text-primary: #ffffff;
+$text-secondary: #a0a0a0;
+$accent-color: #66CCFF;           
+$active-link-bg: rgba(102, 204, 255, 0.15); 
+$border-color: #2c2c2c;
+
+/* Note: Your component SCSS files must still import this file to use these variables. */

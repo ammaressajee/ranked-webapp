@@ -2,6 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { AuthService } from '../../services/auth.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-login',
@@ -12,6 +13,22 @@ import { FormsModule } from '@angular/forms';
 export class LoginComponent {
   // Inject the AuthService
   authService = inject(AuthService);
+  router = inject(Router)
+
+  constructor () {
+    // // 💡 Auth State Router Guard Logic (Crucial for this structure)
+    // this.authService.user$.subscribe(user => {
+    //   if (user) {
+    //     // Logged In: Redirect away from /login if necessary
+    //     if (this.router.url === '/login') {
+    //          this.router.navigate(['/']); 
+    //     }
+    //   } else {
+    //     // Logged Out: Redirect to login page
+    //     this.router.navigate(['/login']);
+    //   }
+    // });
+  }
 
   // Local state for the login/signup form
   email = signal('');

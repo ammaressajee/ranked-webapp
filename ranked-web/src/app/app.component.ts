@@ -16,7 +16,7 @@ export class AppComponent {
   private router = inject(Router);
 
   constructor() {
-    
+
     // // 💡 Auth State Router Guard Logic (Crucial for this structure)
     // this.authService.user$.subscribe(user => {
     //   if (user) {
@@ -33,7 +33,6 @@ export class AppComponent {
 
   isSidebarOpen = signal(false);
 
-  // 💡 NEW METHOD: Toggle the sidebar state
   toggleSidebar() {
     this.isSidebarOpen.update(current => !current);
   }

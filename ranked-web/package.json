@@ -7,7 +7,11 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "serve:ssr:ranked-web": "node dist/ranked-web/server/server.mjs"
+    "serve:ssr:ranked-web": "node dist/ranked-web/server/server.mjs",
+    "build:dev": "ng build --configuration development",
+    "deploy:dev": "npm run build:dev && firebase deploy --only hosting",
+    "serve:dev": "npm run build:dev && firebase serve --only hosting"
+
   },
   "private": true,
   "dependencies": {

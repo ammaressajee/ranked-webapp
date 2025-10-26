@@ -17,17 +17,17 @@ export class LoginComponent {
 
   constructor () {
     // // 💡 Auth State Router Guard Logic (Crucial for this structure)
-    // this.authService.user$.subscribe(user => {
-    //   if (user) {
-    //     // Logged In: Redirect away from /login if necessary
-    //     if (this.router.url === '/login') {
-    //          this.router.navigate(['/']); 
-    //     }
-    //   } else {
-    //     // Logged Out: Redirect to login page
-    //     this.router.navigate(['/login']);
-    //   }
-    // });
+    this.authService.user$.subscribe(user => {
+      if (user) {
+        // Logged In: Redirect away from /login if necessary
+        if (this.router.url === '/login') {
+             this.router.navigate(['/']); 
+        }
+      } else {
+        // Logged Out: Redirect to login page
+        this.router.navigate(['/login']);
+      }
+    });
   }
 
   // Local state for the login/signup form

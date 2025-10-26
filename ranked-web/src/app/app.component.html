@@ -1,10 +1,29 @@
 <div class="app-shell">
+  <!-- Top Bar -->
+  <mat-toolbar color="surface" class="topbar">
+    <div class="left-section">
+      <button mat-icon-button (click)="toggleSidebar()" class="menu-btn" aria-label="Toggle sidebar">
+        <mat-icon>menu</mat-icon>
+      </button>
+      <span class="app-title">MyApp</span>
+    </div>
+  </mat-toolbar>
 
-  <app-sidebar [class.open]="isSidebarOpen()" (click)="isSidebarOpen.set(false)" [isSidebarOpen]="isSidebarOpen()"
-    (toggleEvent)="toggleSidebar()">
-  </app-sidebar>
-  <main class="app-content-area" [class.content-overlay-active]="isSidebarOpen()" [class.pushed]="isSidebarOpen()">
-    <router-outlet></router-outlet>
-    <section class="leaderboard-section" *ngIf="authService.profile() === null"></section>
-  </main>
+  <!-- Main layout area -->
+  <div class="layout-container">
+    <!-- Sidebar -->
+    <app-sidebar
+      class="sidebar"
+      [class.open]="isSidebarOpen"
+      [class.collapsed]="!isSidebarOpen && !isMobile"
+      (clickOutside)="closeSidebar()"
+    ></app-sidebar>
+<div *ngIf="isSidebarOpen && isMobile" class="overlay" (click)="closeSidebar()"></div>
+
+    <!-- Main content -->
+    <main class="main-content" [class.sidebar-open]="isSidebarOpen && !isMobile">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
 </div>
+

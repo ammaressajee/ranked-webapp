@@ -1,0 +1,39 @@
+<mat-toolbar color="surface" class="topbar">
+  <div class="left-section">
+    <button mat-icon-button (click)="toggleSidebar.emit()" class="menu-btn" aria-label="Toggle sidebar">
+      <mat-icon>menu</mat-icon>
+    </button>
+    <span class="app-title">MyApp</span>
+  </div>
+
+  <div class="spacer"></div>
+
+  <div class="right-section">
+    <button mat-icon-button aria-label="Search">
+      <mat-icon>search</mat-icon>
+    </button>
+
+    <button mat-icon-button aria-label="Notifications">
+      <mat-icon>notifications</mat-icon>
+    </button>
+
+    <button mat-icon-button [matMenuTriggerFor]="userMenu" aria-label="User menu">
+      <mat-icon>account_circle</mat-icon>
+    </button>
+
+    <mat-menu #userMenu="matMenu">
+      <button mat-menu-item>
+        <mat-icon>person</mat-icon>
+        <span>Profile</span>
+      </button>
+      <button mat-menu-item>
+        <mat-icon>settings</mat-icon>
+        <span>Settings</span>
+      </button>
+      <button mat-menu-item>
+        <mat-icon>logout</mat-icon>
+        <span>Logout</span>
+      </button>
+    </mat-menu>
+  </div>
+</mat-toolbar>

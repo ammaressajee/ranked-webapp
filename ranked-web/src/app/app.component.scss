@@ -1,84 +1,77 @@
-@import "../styles.scss";
-
-// Assuming variables are imported here.
-$full-sidebar-width: 250px; // Full width when open
-$collapsed-sidebar-width: 80px; // Width when collapsed (icons-only)
-$mobile-sidebar-width: 85vw; 
-
 .app-shell {
-    display: flex; 
-    min-height: 100vh;
-    width: 100%;
-    background-color: $dark-content-bg;
-    position: relative;
-    color: $text-primary;
-    overflow-x: hidden;
-}
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
 
-/* --- Menu Toggle Button (Always visible on mobile, positioned on desktop) --- */
-.menu-toggle-button {
-    position: fixed;
-    top: 15px;
-    z-index: 1500; 
-    
-    // 💡 Desktop FIX: Move button to be just outside the collapsed sidebar
-    @media (min-width: 1024px) {
-        left: $collapsed-sidebar-width + 15px; /* Position next to the collapsed sidebar */
-        display: block; // Always visible on desktop for toggling
-    }
-}
-
-
-/* --- Sidebar Positioning (Responsive) --- */
-app-sidebar {
-    position: fixed; 
-    top: 0;
-    bottom: 0;
-    z-index: 1000;
-    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.7);
-    transition: transform 0.3s ease, width 0.3s ease; // Add width to transition
-    
-    // Mobile (< 1024px): Fully off-canvas overlay
-    width: $mobile-sidebar-width; 
-    transform: translateX(-100%); 
-    
-    &.open {
-        transform: translateX(0); 
-    }
-
-    // 💡 Desktop (>= 1024px): Collapsed fixed state
-    @media (min-width: 1024px) {
-        position: sticky; 
-        left: 0;
-        transform: translateX(0);
-        width: $collapsed-sidebar-width; 
-        flex-shrink: 0;
-        
-        &.open {
-            width: $full-sidebar-width;
-        }
-    }
-}
-
-
-/* --- Main Content Area --- */
-.app-content-area {
-    flex-grow: 1;
-    width: 100%;
-    padding: 30px;
-    min-height: 100vh;
+  .main-content {
+    flex: 1;
+    overflow-y: auto;
     transition: margin-left 0.3s ease;
-    
-    @media (min-width: 1024px) {
-        // Content starts with a margin for the collapsed sidebar
-        margin-left: $collapsed-sidebar-width; 
-        padding-left: 30px; 
-    }
-}
 
-// 💡 PUSHED Class: Applied when sidebar is open
-.app-content-area.pushed {
-    @media (min-width: 1024px) {
-        margin-left: $full-sidebar-width; 
+    @media (max-width: 768px) {
+      margin-left: 0 !important; // ignore sidebar width
+      width: 100%;
     }
+  }
+
+  .topbar {
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #1e1e2f;
+    color: #fff;
+    padding: 0 1rem;
+    z-index: 1000;
+
+    .menu-btn {
+      color: #fff;
+    }
+  }
+
+  .layout-container {
+    display: flex;
+    flex: 1;
+    height: calc(100vh - 64px);
+    overflow: hidden;
+    background: #f6f7fa;
+    transition: all 0.3s ease;
+  }
+
+  .sidebar {
+    background: #1e1e2f;
+    color: #fff;
+    width: 250px;
+    min-width: 250px;
+    transition: all 0.3s ease;
+    overflow-y: auto;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+
+    &.collapsed {
+      width: 70px;
+      min-width: 70px;
+    }
+
+    /* Mobile behavior */
+    @media (max-width: 768px) {
+      position: fixed;
+      top: 64px;
+      left: 0;
+      height: calc(100vh - 64px);
+      z-index: 1100;
+      transform: translateX(-100%);
+      width: 250px;
+      min-width: 250px;
+      border-right: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      -webkit-overflow-scrolling: touch; // smooth scrolling on iOS
+      transition: transform 0.3s ease;
+
+      &.open {
+        transform: translateX(0);
+      }
+    }
+  }
+
 }

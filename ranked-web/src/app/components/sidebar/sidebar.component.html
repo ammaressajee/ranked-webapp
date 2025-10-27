@@ -1,8 +1,4 @@
 <aside class="sidebar-container">
-    <div *ngIf="isSidebarOpen" class="sidebar-header">
-        <h2 class="sidebar-title">Local Ladder</h2>
-    </div>
-    
     <nav class="sidebar-nav-main">
         <ul>
             <li *ngFor="let item of navItems()">
@@ -13,6 +9,10 @@
             </li>
         </ul>
     </nav>
+    
+    <div *ngIf="isSidebarOpen" class="sidebar-header">
+        <h2 class="sidebar-title">Local Ladder</h2>
+    </div>
 
     <div *ngIf="isSidebarOpen" class="sidebar-footer">
         <nav class="sidebar-nav-bottom">

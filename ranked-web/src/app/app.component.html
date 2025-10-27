@@ -18,7 +18,7 @@
   <!-- Main layout area -->
   <div class="layout-container">
     <!-- Sidebar -->
-    <app-sidebar class="sidebar" [class.open]="isSidebarOpen" [class.collapsed]="!isSidebarOpen"
+    <app-sidebar class="sidebar" [class.open]="isSidebarOpen" [isSidebarOpen]="isSidebarOpen" [class.collapsed]="!isSidebarOpen"
       (clickOutside)="closeSidebar()"></app-sidebar>
 
     <!-- Main content -->

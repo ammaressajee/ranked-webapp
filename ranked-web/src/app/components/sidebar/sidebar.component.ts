@@ -17,6 +17,8 @@ import { MatIconModule } from '@angular/material/icon';
 export class SidebarComponent implements OnInit {
   authService = inject(AuthService);
   private router = inject(Router);
+
+  @Input() isSidebarOpen: boolean = true;
  
   // 💡 All items set to requiresAuth: false to be visible to all users
   navItems: WritableSignal<NavItem[]> = signal([

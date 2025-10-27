@@ -7,7 +7,7 @@ import { MatMenuModule } from '@angular/material/menu';
 
 @Component({
   selector: 'app-topbar',
-  imports: [MatToolbarModule, MatIconModule, MatButtonModule, MatMenuModule],
+  imports: [MatToolbarModule, MatIconModule, MatButtonModule, MatMenuModule, MatButtonModule],
   templateUrl: './topbar.component.html',
   styleUrl: './topbar.component.scss',
 })

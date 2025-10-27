@@ -9,26 +9,80 @@
     overflow-y: auto;
     transition: margin-left 0.3s ease;
 
-    @media (max-width: 768px) {
-      margin-left: 0 !important; // ignore sidebar width
-      width: 100%;
-    }
   }
 
-  .topbar {
-    height: 64px;
+.topbar {
+  position: sticky; // stays at top while scrolling
+  top: 0;
+  z-index: 1200;
+  height: 64px;
+  padding: 0 1rem;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  background-color: var(--mat-sys-surface-container-high, #1e1e2f);
+  color: var(--mat-sys-on-surface, #fff);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+
+  .left-section {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    background: #1e1e2f;
-    color: #fff;
-    padding: 0 1rem;
-    z-index: 1000;
+    gap: 1rem;
 
     .menu-btn {
-      color: #fff;
+      color: inherit;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 0.2s ease;
+
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.08);
+      }
+
+      mat-icon {
+        font-size: 24px;
+      }
+    }
+
+    .app-title {
+      font-weight: 600;
+      font-size: 1.25rem;
+      letter-spacing: 0.5px;
     }
   }
+
+  /* Optional: right section for user profile, notifications, etc. */
+  .right-section {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+
+    button[mat-icon-button] {
+      color: inherit;
+
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.08);
+      }
+    }
+  }
+
+  @media (max-width: 768px) {
+    height: 56px;
+    padding: 0 0.75rem;
+
+    .app-title {
+      font-size: 1.1rem;
+    }
+
+    .menu-btn mat-icon {
+      font-size: 22px;
+    }
+  }
+}
+
 
   .layout-container {
     display: flex;
@@ -49,29 +103,10 @@
     box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
 
     &.collapsed {
-      width: 70px;
-      min-width: 70px;
+      width: 59.5px;
+      min-width: 59.5px;
     }
 
-    /* Mobile behavior */
-    @media (max-width: 768px) {
-      position: fixed;
-      top: 64px;
-      left: 0;
-      height: calc(100vh - 64px);
-      z-index: 1100;
-      transform: translateX(-100%);
-      width: 250px;
-      min-width: 250px;
-      border-right: 1px solid rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(10px);
-      -webkit-overflow-scrolling: touch; // smooth scrolling on iOS
-      transition: transform 0.3s ease;
-
-      &.open {
-        transform: translateX(0);
-      }
-    }
   }
 
 }

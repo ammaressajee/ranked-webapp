@@ -17,17 +17,7 @@ import { MatIconModule } from '@angular/material/icon';
 export class SidebarComponent implements OnInit {
   authService = inject(AuthService);
   private router = inject(Router);
-
-  @Input() isSidebarOpen: boolean = false;
-
-  // 💡 OUTPUT: Emit event back to parent to toggle
-  @Output() toggleEvent = new EventEmitter<void>();
-
-  // New method to call when button is clicked
-  toggleMenu() {
-    this.toggleEvent.emit();
-  }
-
+ 
   // 💡 All items set to requiresAuth: false to be visible to all users
   navItems: WritableSignal<NavItem[]> = signal([
     { icon: '🏠', label: 'Home', route: '/', requiresAuth: false },

@@ -39,29 +39,16 @@ export class AppComponent {
 
 
   isSidebarOpen = true;
-  isMobile = false;
 
   ngOnInit() {
-    this.checkScreenSize();
+  }
+
+  closeSidebar() {
+    this.isSidebarOpen = false;
   }
 
   toggleSidebar() {
     this.isSidebarOpen = !this.isSidebarOpen;
   }
 
-  closeSidebar() {
-    if (this.isMobile) this.isSidebarOpen = false;
-  }
-
-  @HostListener('window:resize')
-  onResize() {
-    this.checkScreenSize();
-  }
-
-  private checkScreenSize() {
-    this.isMobile = window.innerWidth <= 768;
-    if (this.isMobile) {
-      this.isSidebarOpen = false; // start closed on mobile
-    }
-  }
 }

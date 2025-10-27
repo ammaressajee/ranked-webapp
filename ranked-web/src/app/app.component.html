@@ -3,27 +3,27 @@
   <mat-toolbar color="surface" class="topbar">
     <div class="left-section">
       <button mat-icon-button (click)="toggleSidebar()" class="menu-btn" aria-label="Toggle sidebar">
-        <mat-icon>menu</mat-icon>
+        <span [innerHTML]="isSidebarOpen ? 'X' : '☰'"></span>
       </button>
       <span class="app-title">MyApp</span>
     </div>
+
+    <div class="right-section">
+      <button mat-icon-button aria-label="Notifications"><mat-icon>notifications</mat-icon></button>
+      <button mat-icon-button aria-label="Account"><mat-icon>account_circle</mat-icon></button>
+    </div>
   </mat-toolbar>
+
 
   <!-- Main layout area -->
   <div class="layout-container">
     <!-- Sidebar -->
-    <app-sidebar
-      class="sidebar"
-      [class.open]="isSidebarOpen"
-      [class.collapsed]="!isSidebarOpen && !isMobile"
-      (clickOutside)="closeSidebar()"
-    ></app-sidebar>
-<div *ngIf="isSidebarOpen && isMobile" class="overlay" (click)="closeSidebar()"></div>
+    <app-sidebar class="sidebar" [class.open]="isSidebarOpen" [class.collapsed]="!isSidebarOpen"
+      (clickOutside)="closeSidebar()"></app-sidebar>
 
     <!-- Main content -->
-    <main class="main-content" [class.sidebar-open]="isSidebarOpen && !isMobile">
+    <main class="main-content" [class.sidebar-open]="isSidebarOpen">
       <router-outlet></router-outlet>
     </main>
   </div>
 </div>
-

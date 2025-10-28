@@ -1,26 +1,49 @@
 <div class="profile-container" *ngIf="player() as p">
-  <div class="profile-header">
-    <img [src]="p.photoURL || 'https://robohash.org/avatar123.png?bgset=bg1'" alt="Profile" class="profile-avatar">
-    <div class="profile-info">
-      <h2>{{ p.displayName }}</h2>
-      <p class="tier">{{ getTier(p.rank) }}</p>
-      <p class="join-date">Joined {{ p.joinedAt?.toDate ? (p.joinedAt.toDate() | date) : (p.joinedAt | date) }}</p>
+  <div class="profile-card">
+    <div class="profile-header">
+      <img [src]="p.photoURL ?? 'https://robohash.org/avatar123.png?bgset=bg1'" alt="Profile" class="profile-avatar" />
+      <div class="profile-info">
+        <h2>{{ p.displayName }}</h2>
+        <p class="tier">{{ getTier(p.rank) }}</p>
+        <p class="join-date">
+          Joined
+          {{ p.joinedAt?.toDate ? (p.joinedAt.toDate() | date) : (p.joinedAt | date) }}
+        </p>
+      </div>
+    </div>
+
+    <!-- 🧮 Integrated stats section -->
+    <div class="profile-stats">
+      <div class="stat">
+        <h3>{{ p.rank }}</h3>
+        <p>Rank</p>
+      </div>
+      <div class="stat">
+        <h3>{{ p.wins || 0 }}</h3>
+        <p>Wins</p>
+      </div>
+      <div class="stat">
+        <h3>{{ p.losses || 0 }}</h3>
+        <p>Losses</p>
+      </div>
+      <div class="stat">
+        <h3>{{ p.matchesCount || 0 }}</h3>
+        <p>Matches</p>
+      </div>
     </div>
   </div>
 
-  <div class="stats-grid">
-    <div class="stat-card"><h3>{{ p.rank }}</h3><p>Rank</p></div>
-    <div class="stat-card"><h3>{{ p.wins || 0 }}</h3><p>Wins</p></div>
-    <div class="stat-card"><h3>{{ p.losses || 0 }}</h3><p>Losses</p></div>
-    <div class="stat-card"><h3>{{ p.matchesCount || 0 }}</h3><p>Matches</p></div>
-  </div>
-
+  <!-- 🏓 Recent Matches -->
   <div class="recent-matches">
     <h3>Recent Matches</h3>
     <ul>
       <li *ngFor="let match of recentMatches()">
         <span>vs {{ match.playerB }}</span>
-        <span class="result" [class.win]="match.matchWinner === p.uid" [class.loss]="match.matchWinner !== p.uid">
+        <span
+          class="result"
+          [class.win]="match.matchWinner === p.uid"
+          [class.loss]="match.matchWinner !== p.uid"
+        >
           {{ match.matchWinner === p.uid ? '🏆 Won' : '❌ Lost' }}
         </span>
       </li>

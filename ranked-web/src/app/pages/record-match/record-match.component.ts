@@ -1,9 +1,10 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { Firestore, addDoc, collection, serverTimestamp } from '@angular/fire/firestore';
+import { Firestore, addDoc, collection, doc, getDoc, increment, serverTimestamp, updateDoc } from '@angular/fire/firestore';
 import { Auth } from '@angular/fire/auth';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { PlayerData } from '../../models/PlayerData';
 
 @Component({
   imports: [FormsModule, CommonModule],
@@ -50,6 +51,39 @@ export class RecordMatchComponent {
       matchWinner: matchWinnerUid,
       createdAt: serverTimestamp(),
     });
+
+    // Update player stats
+
+    const playerARef = doc(this.firestore, 'users', user.uid);
+    const playerBRef = doc(this.firestore, 'users', this.opponentId());
+
+    // Fetch both players’ current stats
+    const [playerASnap, playerBSnap] = await Promise.all([
+      getDoc(playerARef),
+      getDoc(playerBRef)
+    ]);
+
+    if (playerASnap.exists() && playerBSnap.exists()) {
+      const playerAData = playerASnap.data() as PlayerData;
+      const playerBData = playerBSnap.data() as PlayerData;
+
+      const playerAWon = matchWinnerUid === user.uid;
+
+      await Promise.all([
+        updateDoc(playerARef, {
+          wins: increment(playerAWon ? 1 : 0),
+          losses: increment(playerAWon ? 0 : 1),
+          matchesCount: increment(1),
+          rank: playerAData.rank + (playerAWon ? 10 : -5)
+        }),
+        updateDoc(playerBRef, {
+          wins: increment(playerAWon ? 0 : 1),
+          losses: increment(playerAWon ? 1 : 0),
+          matchesCount: increment(1),
+          rank: playerBData.rank + (playerAWon ? -5 : 10)
+        })
+      ]);
+    }
 
     alert(`✅ Match recorded. ${winsYou > winsOpponent ? 'You won!' : 'Opponent won!'}`);
     this.router.navigate(['/']);

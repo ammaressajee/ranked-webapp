@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 import { LoginComponent } from './components/login/login.component';
-import { LeaderboardComponent } from './pages/leaderboard/leaderboard.component';
+import { LeaderboardComponent } from './components/leaderboard/leaderboard.component';
 import { RecordMatchComponent } from './pages/record-match/record-match.component';
 
 export const routes: Routes = [

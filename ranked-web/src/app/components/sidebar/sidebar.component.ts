@@ -5,12 +5,13 @@ import { AuthService } from '../../services/auth.service';
 import { NavItem } from '../../models/NavItem';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { FormsModule } from '@angular/forms';
 
 
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive, MatButtonModule, MatIconModule],
+  imports: [CommonModule,FormsModule,  RouterLink, RouterLinkActive, MatButtonModule, MatIconModule],
   templateUrl: './sidebar.component.html',
   styleUrl: './sidebar.component.scss'
 })

@@ -18,7 +18,6 @@ import { MatMenuModule } from '@angular/material/menu';
 })
 export class AppComponent {
   authService = inject(AuthService);
-  private router = inject(Router);
 
   constructor() {
   }

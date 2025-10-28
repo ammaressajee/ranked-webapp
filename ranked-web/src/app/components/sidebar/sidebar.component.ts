@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, inject, Input, OnInit, Output, signal, WritableSignal } from '@angular/core';
+import { Component, computed, EventEmitter, inject, Input, OnInit, Output, Signal, signal, WritableSignal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { NavItem } from '../../models/NavItem';
@@ -11,7 +11,7 @@ import { FormsModule } from '@angular/forms';
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [CommonModule,FormsModule,  RouterLink, RouterLinkActive, MatButtonModule, MatIconModule],
+  imports: [CommonModule, FormsModule, RouterLink, RouterLinkActive, MatButtonModule, MatIconModule],
   templateUrl: './sidebar.component.html',
   styleUrl: './sidebar.component.scss'
 })
@@ -26,26 +26,36 @@ export class SidebarComponent implements OnInit {
   navItems: WritableSignal<NavItem[]> = signal([
     { icon: '🏠', label: 'Home', route: '/', requiresAuth: false },
     { icon: '📊', label: 'Record Match', route: '/record-match', requiresAuth: true },
-    { icon: '📦', label: 'Products', route: '/products', requiresAuth: false },
+    { icon: '📦', label: 'Leaderboard', route: '/leaderboard', requiresAuth: false },
     { icon: '👥', label: 'Customers', route: '/customers', requiresAuth: false },
   ]);
 
-  bottomNavItems: WritableSignal<NavItem[]> = signal([
-    { icon: '⚙️', label: 'Settings', route: '/settings', requiresAuth: false }
-  ]);
+  bottomNavItems: Signal<NavItem[]> = computed(() => {
+    const user = this.authService.profile();
+    const uid = user?.uid || '';
 
-  ngOnInit() { }
+    return [
+      {
+        icon: '⚙️',
+        label: 'Player Profile',
+        route: uid ? `/profile/${uid}` : '/login',
+        requiresAuth: false
+      }
+    ];
+  });
 
-  navigateToLogin() {
-    this.router.navigate(['/login']);
-  }
+ngOnInit() { }
+
+navigateToLogin() {
+  this.router.navigate(['/login']);
+}
 
   async logout() {
-    await this.authService.logout();
-  }
-  
-  handleNavClick() {
-    this.toggleEvent.emit(); // tells the parent to toggle sidebar
-  }
+  await this.authService.logout();
+}
+
+handleNavClick() {
+  this.toggleEvent.emit(); // tells the parent to toggle sidebar
+}
 
 }

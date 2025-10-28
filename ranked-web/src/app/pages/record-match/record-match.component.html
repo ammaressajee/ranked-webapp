@@ -1,7 +1,7 @@
 <div class="match-form-container">
   <h2>🏓 Record Pickleball Match</h2>
 
-  <form (ngSubmit)="recordMatch()" class="match-form">
+  <form (ngSubmit)="recordMatch()" class="match-form form-card">
     <label>Opponent UID</label>
     <input
       type="text"
@@ -25,14 +25,14 @@
       <input
         type="number"
         [(ngModel)]="games()[i].yourScore"
-        name="yourScore-{{i}}"
+        name="yourScore-{{ i }}"
         min="0"
       />
       <span class="vs">-</span>
       <input
         type="number"
         [(ngModel)]="games()[i].opponentScore"
-        name="opponentScore-{{i}}"
+        name="opponentScore-{{ i }}"
         min="0"
       />
     </div>

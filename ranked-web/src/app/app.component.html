@@ -3,23 +3,29 @@
   <mat-toolbar color="surface" class="topbar">
     <div class="left-section">
       <button mat-icon-button (click)="toggleSidebar()" class="menu-btn" aria-label="Toggle sidebar">
-        <span [innerHTML]="isSidebarOpen ? 'X' : '☰'"></span>
+        <span [innerHTML]="isSidebarOpen ? 'x' : '☰'"></span>
       </button>
       <span class="app-title">Ranked</span>
     </div>
 
     <div class="right-section">
-      <button mat-icon-button aria-label="Notifications"><mat-icon>notifications</mat-icon></button>
-      <button mat-icon-button aria-label="Account"><mat-icon>account_circle</mat-icon></button>
+
+      <!-- Auth buttons -->
+      <ng-container *ngIf="!authService.isLoggedIn(); else loggedInButtons">
+        <button class="auth-btn login" routerLink="/login">Login</button>
+      </ng-container>
+
+      <ng-template #loggedInButtons>
+        <button class="auth-btn logout" (click)="authService.logout()">Logout</button>
+      </ng-template>
     </div>
   </mat-toolbar>
-
 
   <!-- Main layout area -->
   <div class="layout-container">
     <!-- Sidebar -->
-    <app-sidebar class="sidebar" [class.open]="isSidebarOpen" [isSidebarOpen]="isSidebarOpen" [class.collapsed]="!isSidebarOpen"
-      (clickOutside)="closeSidebar()"></app-sidebar>
+    <app-sidebar class="sidebar" [class.open]="isSidebarOpen" [isSidebarOpen]="isSidebarOpen"
+      [class.collapsed]="!isSidebarOpen" (clickOutside)="closeSidebar()"></app-sidebar>
 
     <!-- Main content -->
     <main class="main-content" [class.sidebar-open]="isSidebarOpen">

@@ -13,21 +13,13 @@
   box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
   overflow: hidden;
   z-index: 10;
+}
 
-  &.collapsed {
-    width: 70px;
-
-    .nav-label,
-    .profile-details,
-    .sidebar-title {
-      display: none;
-    }
-
-    .menu-toggle-button {
-      span {
-        font-size: 1.3rem;
-      }
-    }
+// make sidebar full width when expanded for mobile
+@media (max-width: 768px) {
+  .sidebar-container {
+    width: 100%;
+    min-width: 100%;
   }
 }
 
@@ -176,20 +168,3 @@
     }
   }
 }
-
-// /* Responsiveness */
-// @media (max-width: 768px) {
-//   .sidebar-container {
-//     position: fixed;
-//     top: 64px;
-//     left: 0;
-//     height: calc(100vh - 64px);
-//     z-index: 1000;
-//     transform: translateX(-100%);
-//     transition: transform 0.3s ease;
-
-//     &.open {
-//       transform: translateX(0);
-//     }
-//   }
-// }

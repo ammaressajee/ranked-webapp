@@ -85,4 +85,9 @@ export class AuthService {
     await signOut(this.auth);
     // State cleanup handled in the constructor's subscription
   }
+
+  // is logged in
+  isLoggedIn(): boolean {
+    return this.auth.currentUser !== null;
+  }
 }

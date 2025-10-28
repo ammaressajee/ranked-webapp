@@ -19,7 +19,8 @@ export class SidebarComponent implements OnInit {
   private router = inject(Router);
 
   @Input() isSidebarOpen: boolean = true;
- 
+  @Output() toggleEvent = new EventEmitter<void>();
+
   // 💡 All items set to requiresAuth: false to be visible to all users
   navItems: WritableSignal<NavItem[]> = signal([
     { icon: '🏠', label: 'Home', route: '/', requiresAuth: false },
@@ -41,4 +42,9 @@ export class SidebarComponent implements OnInit {
   async logout() {
     await this.authService.logout();
   }
+  
+  handleNavClick() {
+    this.toggleEvent.emit(); // tells the parent to toggle sidebar
+  }
+
 }

@@ -2,14 +2,14 @@
     <nav class="sidebar-nav-main">
         <ul>
             <li *ngFor="let item of navItems()">
-                <a [routerLink]="item.route" routerLinkActive="active-link" class="nav-item">
+                <a [routerLink]="item.route" routerLinkActive="active-link" class="nav-item" (click)="handleNavClick()">
                     <span class="nav-icon">{{ item.icon }}</span>
                     <span class="nav-label">{{ item.label }}</span>
                 </a>
             </li>
         </ul>
     </nav>
-    
+
     <div *ngIf="isSidebarOpen" class="sidebar-header">
         <h2 class="sidebar-title">Local Ladder</h2>
     </div>
@@ -18,7 +18,8 @@
         <nav class="sidebar-nav-bottom">
             <ul>
                 <li *ngFor="let item of bottomNavItems()">
-                    <a [routerLink]="item.route" routerLinkActive="active-link" class="nav-item">
+                    <a [routerLink]="item.route" routerLinkActive="active-link" class="nav-item"
+                        (click)="handleNavClick()">
                         <span class="nav-icon">{{ item.icon }}</span>
                         <span class="nav-label">{{ item.label }}</span>
                     </a>
@@ -29,16 +30,16 @@
         <div class="user-auth-section">
             <ng-container *ngIf="authService.profile() !== null; else loggedOutContent">
                 <div class="user-profile-summary">
-                    <img [src]="authService.profile()?.photoURL" alt="User Profile" class="profile-thumb">
+                    <img [src]="authService.profile()?.photoURL" alt="User Profile" class="profile-thumb" />
                     <div class="profile-details">
                         <span class="profile-name">Hello, {{ authService.profile()?.displayName }}</span>
-                        <button (click)="logout()" class="sign-out-button">Sign Out</button>
+                        <button (click)="logout()" (click)="handleNavClick()" class="sign-out-button">Sign Out</button>
                     </div>
                 </div>
             </ng-container>
 
             <ng-template #loggedOutContent>
-                <button (click)="navigateToLogin()" class="login-prompt-button">
+                <button (click)="navigateToLogin()" (click)="handleNavClick()"  class="login-prompt-button">
                     <span class="nav-icon">👤</span> Login Here
                 </button>
             </ng-template>

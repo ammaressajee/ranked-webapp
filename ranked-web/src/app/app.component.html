@@ -25,7 +25,7 @@
   <div class="layout-container">
     <!-- Sidebar -->
     <app-sidebar class="sidebar" [class.open]="isSidebarOpen" [isSidebarOpen]="isSidebarOpen"
-      [class.collapsed]="!isSidebarOpen" (clickOutside)="closeSidebar()"></app-sidebar>
+      [class.collapsed]="!isSidebarOpen" (clickOutside)="closeSidebar()" (toggleEvent)="toggleSidebar()"></app-sidebar>
 
     <!-- Main content -->
     <main class="main-content" [class.sidebar-open]="isSidebarOpen">

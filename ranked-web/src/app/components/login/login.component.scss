@@ -208,12 +208,10 @@
     font-size: 1rem;
   }
 
-
-
 }
 
 // if heighht is less than 600px, adjust login container
-@media (max-height: 750px) {
+@media (max-height: 663px) {
   .login-page-container {
     align-items: flex-start;
     padding-top: 2vh;

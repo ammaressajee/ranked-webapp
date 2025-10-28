@@ -12,11 +12,11 @@
 
       <!-- Auth buttons -->
       <ng-container *ngIf="!authService.isLoggedIn(); else loggedInButtons">
-        <button class="auth-btn login" routerLink="/login">Login</button>
+        <button (click)="this.isSidebarOpen=false" class="auth-btn login" routerLink="/login">Login</button>
       </ng-container>
 
       <ng-template #loggedInButtons>
-        <button class="auth-btn logout" (click)="authService.logout()">Logout</button>
+        <button (click)="this.isSidebarOpen=false" class="auth-btn logout" (click)="authService.logout()">Logout</button>
       </ng-template>
     </div>
   </mat-toolbar>

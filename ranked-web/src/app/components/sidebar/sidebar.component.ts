@@ -24,7 +24,7 @@ export class SidebarComponent implements OnInit {
   // 💡 All items set to requiresAuth: false to be visible to all users
   navItems: WritableSignal<NavItem[]> = signal([
     { icon: '🏠', label: 'Home', route: '/', requiresAuth: false },
-    { icon: '📊', label: 'Dashboard', route: '/dashboard', requiresAuth: false },
+    { icon: '📊', label: 'Record Match', route: '/record-match', requiresAuth: true },
     { icon: '📦', label: 'Products', route: '/products', requiresAuth: false },
     { icon: '👥', label: 'Customers', route: '/customers', requiresAuth: false },
   ]);

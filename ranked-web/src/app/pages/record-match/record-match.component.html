@@ -1,0 +1,42 @@
+<div class="match-form-container">
+  <h2>🏓 Record Pickleball Match</h2>
+
+  <form (ngSubmit)="recordMatch()" class="match-form">
+    <label>Opponent UID</label>
+    <input
+      type="text"
+      [(ngModel)]="opponentId"
+      name="opponentId"
+      placeholder="Enter opponent UID"
+      required
+    />
+
+    <h3>Game Scores</h3>
+
+    <div class="score-header">
+      <span>Game</span>
+      <span class="you-col">You</span>
+      <span class="vs">vs</span>
+      <span class="opp-col">Opponent</span>
+    </div>
+
+    <div *ngFor="let game of games(); let i = index" class="game-row">
+      <div class="game-label">Game {{ game.game }}</div>
+      <input
+        type="number"
+        [(ngModel)]="games()[i].yourScore"
+        name="yourScore-{{i}}"
+        min="0"
+      />
+      <span class="vs">-</span>
+      <input
+        type="number"
+        [(ngModel)]="games()[i].opponentScore"
+        name="opponentScore-{{i}}"
+        min="0"
+      />
+    </div>
+
+    <button type="submit">Submit Match</button>
+  </form>
+</div>

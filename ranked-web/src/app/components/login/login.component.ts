@@ -17,7 +17,7 @@ export class LoginComponent {
 
   constructor () {
     // // 💡 Auth State Router Guard Logic (Crucial for this structure)
-    this.authService.user$.subscribe(user => {
+    this.authService.user$.subscribe(async (user) => {
       if (user) {
         // Logged In: Redirect away from /login if necessary
         if (this.router.url === '/login') {

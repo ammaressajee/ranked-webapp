@@ -1,11 +1,9 @@
 import { inject, Injectable, signal } from '@angular/core';
-import { doc, Firestore, setDoc } from '@angular/fire/firestore';
 import { 
   Auth, GoogleAuthProvider, signInWithPopup, signOut, User, user,
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword,     
-  updateProfile                     
+  createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile
 } from '@angular/fire/auth';
+import { doc, Firestore, getDoc, serverTimestamp, setDoc } from '@angular/fire/firestore';
 
 @Injectable({
   providedIn: 'root'
@@ -14,25 +12,25 @@ export class AuthService {
   auth = inject(Auth);
   private firestore = inject(Firestore);
 
-  // Expose the Firebase user state as an Observable
   user$ = user(this.auth);
-
-  // Local state for profile and user-specific data
   profile = signal<any>(null);
   joined = signal(false);
-  
-  // You might move the leaderboard here as well, but we'll leave it in the component for now.
 
   constructor() {
-    // Subscribe to the auth state to keep the local 'profile' signal updated
-    this.user$.subscribe(u => {
+    this.user$.subscribe(async (u) => {
       if (u) {
-        this.profile.set({ 
-            uid: u.uid, 
-            displayName: u.displayName, 
-            email: u.email, 
-            photoURL: u.photoURL ?? '' // Ensure it's not null/undefined
+        this.profile.set({
+          uid: u.uid,
+          displayName: u.displayName,
+          email: u.email,
+          photoURL: u.photoURL ?? '',
+          rank: 1000,
+          wins: 0,
+          losses: 0,
+          matchesCount: 0,
+          joinedAt: serverTimestamp(),
         });
+        await this.ensureUserProfile(u); // ensures user doc consistency
       } else {
         this.profile.set(null);
         this.joined.set(false);
@@ -40,53 +38,53 @@ export class AuthService {
     });
   }
 
+  // ✅ Centralized profile setup
+  private async ensureUserProfile(user: User) {
+    const userRef = doc(this.firestore, `users/${user.uid}`);
+    const snap = await getDoc(userRef);
+
+    if (!snap.exists()) {
+      await setDoc(userRef, {
+        uid: user.uid,
+        displayName: user.displayName,
+        email: user.email,
+        photoURL: user.photoURL || '',
+        rank: 1000,
+        wins: 0,
+        losses: 0,
+        matchesCount: 0,
+        joinedAt: serverTimestamp(),
+      });
+    }
+  }
+
+  // Google Auth
   async loginWithGoogle() {
     const provider = new GoogleAuthProvider();
     const cred = await signInWithPopup(this.auth, provider);
-    const { uid, displayName, email, photoURL } = cred.user as User;
-    
-    // Write/update user document in Firestore
-    await setDoc(doc(this.firestore, 'users', uid), {
-      uid, 
-      displayName, 
-      email, 
-      photoURL: photoURL ?? '', // ensure Firestore record has a non-null photoURL
-      joinedAt: new Date(), 
-      rank: 1000
-    }, { merge: true });
-    
-    // The profile signal will be updated immediately via the constructor's subscription.
+    await this.ensureUserProfile(cred.user);
   }
+
+  // Email Sign Up
   async signUpWithEmail(email: string, password: string, displayName: string) {
     const cred = await createUserWithEmailAndPassword(this.auth, email, password);
     const u = cred.user;
 
-    // Set the display name right after creation
-    await updateProfile(u, { displayName: displayName });
-
-    // Write/update user document in Firestore
-    await setDoc(doc(this.firestore, 'users', u.uid), {
-      uid: u.uid,
-      displayName: displayName, // Use the provided display name
-      email: u.email,
-      photoURL: u.photoURL ?? '',
-      joinedAt: new Date(),
-      rank: 1000
-    }, { merge: true });
+    // Update display name
+    await updateProfile(u, { displayName });
+    await this.ensureUserProfile(u);
   }
 
-
+  // Email Sign In
   async signInWithEmail(email: string, password: string) {
-    await signInWithEmailAndPassword(this.auth, email, password);
-    // State update handled by the constructor's subscription
+    const cred = await signInWithEmailAndPassword(this.auth, email, password);
+    await this.ensureUserProfile(cred.user); // in case user doc missing
   }
 
   async logout() {
     await signOut(this.auth);
-    // State cleanup handled in the constructor's subscription
   }
 
-  // is logged in
   isLoggedIn(): boolean {
     return this.auth.currentUser !== null;
   }

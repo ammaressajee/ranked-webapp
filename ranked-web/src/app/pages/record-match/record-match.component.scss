@@ -1,0 +1,79 @@
+.match-form-container {
+  max-width: 520px;
+  margin: 3rem auto;
+  padding: 2rem;
+  background: linear-gradient(145deg, #ffffff, #f5f7fa);
+  border-radius: 1rem;
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.1);
+
+  h2 {
+    text-align: center;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+  }
+
+  .match-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+
+    .score-header,
+    .game-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr auto 1fr;
+      align-items: center;
+      text-align: center;
+      gap: 0.3rem;
+    }
+
+    .score-header {
+      font-weight: 600;
+      color: #444;
+    }
+
+    input {
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 0.6rem;
+      font-size: 1rem;
+      text-align: center;
+
+      &:focus {
+        outline: none;
+        border-color: #00695c;
+        box-shadow: 0 0 0 2px rgba(0, 105, 92, 0.2);
+      }
+    }
+
+    .winner-preview {
+      text-align: center;
+      font-weight: 600;
+      font-size: 1.1rem;
+      margin-top: 1rem;
+
+      &.you {
+        color: #2e7d32;
+      }
+
+      &.opponent {
+        color: #c62828;
+      }
+    }
+
+    button {
+      margin-top: 1rem;
+      background: #00695c;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 0.8rem;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.3s ease;
+
+      &:hover {
+        background: #004d40;
+      }
+    }
+  }
+}

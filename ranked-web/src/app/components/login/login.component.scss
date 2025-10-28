@@ -194,16 +194,17 @@
 /* Responsive */
 @media (max-width: 768px) {
   .login-page-container {
-    align-items: center;
+    //align-items: center;
     width: 100%;
     height:94%
   }
 
   .form-card {
     padding: 1.5rem;
+    width: 80%;
   }
 
   .app-title {
-    font-size: 1.6rem;
+    font-size: 1rem;
   }
 }

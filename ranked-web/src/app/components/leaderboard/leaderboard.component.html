@@ -1,23 +1,24 @@
 <div class="leaderboard-container">
   <h2>🏆 Top Players</h2>
-  <table class="leaderboard-table">
-    <thead>
-      <tr>
-        <th>#</th>
-        <th>Player</th>
-        <th>Rank</th>
-        <th>Tier</th>
-        <th>W</th>
-        <th>L</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let player of players(); let i = index">
-        <td>{{ i + 1 }}</td>
-        <td>{{ player.displayName }}</td>
-        <td>{{ player.rank }}</td>
-        <td>
-  <span [ngClass]="{
+  <div class="table-wrapper">
+    <table class="leaderboard-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Player</th>
+          <th>Rank</th>
+          <th>Tier</th>
+          <th>W</th>
+          <th>L</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let player of players(); let i = index">
+          <td>{{ i + 1 }}</td>
+          <td>{{ player.displayName }}</td>
+          <td>{{ player.rank }}</td>
+          <td>
+            <span [ngClass]="{
       'rank-tier': true,
       'bronze': player.rank < 1000,
       'silver': player.rank >= 1000 && player.rank < 1300,
@@ -26,13 +27,14 @@
       'diamond': player.rank >= 1900 && player.rank < 2200,
       'champion': player.rank >= 2200
   }">
-    {{ getTier(player.rank) }}
-  </span>
-</td>
+              {{ getTier(player.rank) }}
+            </span>
+          </td>
 
-        <td>{{ player.wins || 0 }}</td>
-        <td>{{ player.losses || 0 }}</td>
-      </tr>
-    </tbody>
-  </table>
+          <td>{{ player.wins || 0 }}</td>
+          <td>{{ player.losses || 0 }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>

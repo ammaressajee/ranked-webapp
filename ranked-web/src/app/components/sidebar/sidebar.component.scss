@@ -168,3 +168,27 @@
     }
   }
 }
+
+
+.nav-icon {
+    display: inline-flex;
+    margin-right: 1rem;
+    font-size: 20px;
+
+    /* Inactive: Thin line icon (Material Symbols settings) */
+    font-family: 'Material Symbols Outlined';
+    font-variation-settings: 
+      'wght' 300, 
+      'FILL' 0;
+    
+    transition: all 0.2s ease-in-out;
+}
+
+.active-link .nav-icon {
+    color: #13889cc7; /* Primary color when active */
+    
+    /* Active: Bold, Filled icon */
+    font-variation-settings: 
+      'wght' 600, /* Make it bolder */
+      'FILL' 1;   /* Make it solid */
+}

@@ -22,40 +22,42 @@ export class SidebarComponent implements OnInit {
   @Input() isSidebarOpen: boolean = true;
   @Output() toggleEvent = new EventEmitter<void>();
 
-  // 💡 All items set to requiresAuth: false to be visible to all users
+
+  // --- TOP NAVIGATION ITEMS ---
   navItems: WritableSignal<NavItem[]> = signal([
-    { icon: '🏠', label: 'Home', route: '/', requiresAuth: false },
-    { icon: '📊', label: 'Record Match', route: '/record-match', requiresAuth: true },
-    { icon: '📦', label: 'Leaderboard', route: '/leaderboard', requiresAuth: false },
-    { icon: '👥', label: 'Customers', route: '/customers', requiresAuth: false },
+    { icon: 'home', label: 'Home', route: '/', requiresAuth: false },
+    { icon: 'sports_score', label: 'Record Match', route: '/record-match', requiresAuth: true },
+    { icon: 'leaderboard', label: 'Rankings', route: '/leaderboard', requiresAuth: false },
+    { icon: 'group', label: 'Players', route: '/customers', requiresAuth: false },
   ]);
 
+  // --- BOTTOM NAVIGATION ITEM (Profile) ---
   bottomNavItems: Signal<NavItem[]> = computed(() => {
     const user = this.authService.profile();
     const uid = user?.uid || '';
 
     return [
       {
-        icon: '⚙️',
-        label: 'Player Profile',
+        icon: 'account_circle',
+        label: 'My Profile',
         route: uid ? `/profile/${uid}` : '/login',
         requiresAuth: false
       }
     ];
   });
 
-ngOnInit() { }
+  ngOnInit() { }
 
-navigateToLogin() {
-  this.router.navigate(['/login']);
-}
+  navigateToLogin() {
+    this.router.navigate(['/login']);
+  }
 
   async logout() {
-  await this.authService.logout();
-}
+    await this.authService.logout();
+  }
 
-handleNavClick() {
-  this.toggleEvent.emit(); // tells the parent to toggle sidebar
-}
+  handleNavClick() {
+    this.toggleEvent.emit(); // tells the parent to toggle sidebar
+  }
 
 }

@@ -23,7 +23,7 @@ export class AuthService {
           uid: u.uid,
           displayName: u.displayName,
           email: u.email,
-          photoURL: u.photoURL ??  `https://ui-avatars.com/api/?name=${encodeURIComponent(u.displayName || u.uid)}`,
+          photoURL: u.photoURL ?? 'https://robohash.org/avatar123.png?bgset=bg1',
           rank: 1000,
           wins: 0,
           losses: 0,
@@ -48,7 +48,7 @@ export class AuthService {
         uid: user.uid,
         displayName: user.displayName,
         email: user.email,
-        photoURL: user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || user.uid)}`,
+        hotoURL: user.photoURL ?? 'https://robohash.org/avatar123.png?bgset=bg1',
         rank: 1000,
         wins: 0,
         losses: 0,
@@ -66,14 +66,14 @@ export class AuthService {
   }
 
   // Email Sign Up
-  async signUpWithEmail(email: string, password: string, displayName: string) {
-    const cred = await createUserWithEmailAndPassword(this.auth, email, password);
-    const u = cred.user;
+ async signUpWithEmail(email: string, password: string, displayName: string) {
+  const cred = await createUserWithEmailAndPassword(this.auth, email, password);
+  const u = cred.user;
 
-    // Update display name
-    await updateProfile(u, { displayName });
-    await this.ensureUserProfile(u);
-  }
+  // Update display name
+  await updateProfile(u, { displayName });
+}
+
 
   // Email Sign In
   async signInWithEmail(email: string, password: string) {

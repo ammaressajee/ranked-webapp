@@ -1,6 +1,6 @@
 <div class="profile-container" *ngIf="player() as p">
   <div class="profile-header">
-    <img [src]="p.photoURL || 'assets/default-avatar.png'" alt="Profile" class="profile-avatar">
+    <img [src]="p.photoURL || 'https://robohash.org/avatar123.png?bgset=bg1'" alt="Profile" class="profile-avatar">
     <div class="profile-info">
       <h2>{{ p.displayName }}</h2>
       <p class="tier">{{ getTier(p.rank) }}</p>

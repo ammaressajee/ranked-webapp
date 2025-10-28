@@ -1,43 +1,62 @@
 .leaderboard-container {
-  max-width: 600px;
-  margin: 2rem auto;
-  padding: 1.5rem;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 2px 14px rgba(0,0,0,0.08);
+    // make widht responsive 
+    max-width: 900px;
+    margin: 2rem auto;
+    padding: 1.5rem;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 14px rgba(0, 0, 0, 0.08);
 
-  h2 {
-    text-align: center;
-    margin-bottom: 1rem;
-    font-weight: 600;
-  }
-
-  .leaderboard-table {
-    width: 100%;
-    border-collapse: collapse;
-    text-align: center;
-
-    th, td {
-      padding: 0.75rem;
-      border-bottom: 1px solid #eee;
+    h2 {
+        text-align: center;
+        margin-bottom: 1rem;
+        font-weight: 600;
     }
 
-    tr:hover {
-      background: #f7f9fa;
+    .leaderboard-table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: center;
+
+        th,
+        td {
+            padding: 0.75rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        tr:hover {
+            background: #f7f9fa;
+        }
     }
-  }
 }
 
 .rank-tier {
-  font-weight: 600;
-  padding: 0.25rem 0.5rem;
-  border-radius: 8px;
-  color: white;
+    font-weight: 600;
+    padding: 0.25rem 0.5rem;
+    border-radius: 8px;
+    color: white;
 
-  &.bronze { background: #cd7f32; }
-  &.silver { background: #c0c0c0; }
-  &.gold { background: #ffd700; }
-  &.platinum { background: #00b8d4; }
-  &.diamond { background: #6a5acd; }
-  &.champion { background: #ff4081; }
+    &.bronze {
+        background: #cd7f32;
+    }
+
+    &.silver {
+        background: #c0c0c0;
+    }
+
+    &.gold {
+        background: #ffd700;
+    }
+
+    &.platinum {
+        background: #00b8d4;
+    }
+
+    &.diamond {
+        background: #6a5acd;
+    }
+
+    &.champion {
+        background: #ff4081;
+    }
 }

@@ -45,7 +45,7 @@ export class RecordMatchComponent {
   currentUserName = computed(() => this.auth.currentUser?.displayName || 'You');
   
   // Computed property for the current user's photo URL (Auth profile or RoboHash fallback)
-  currentUserPhotoUrl = computed(() => this.auth.currentUser?.photoURL || this.generateRoboHash(this.currentUserUid()));
+  currentUserPhotoUrl = computed(() => this.auth.currentUser?.photoURL || '');
 
   // Computed property for the opponent's photo URL (Firestore data or RoboHash fallback)
   opponentAvatarUrl = computed(() => 

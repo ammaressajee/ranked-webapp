@@ -23,6 +23,60 @@
   }
 }
 
+/* If you have existing .google-icon styles for the old image, replace them with the above */
+.google-signin-button {
+  /* Button Base */
+  background-color: #db4437;
+  /* Google Red */
+  color: #ffffff;
+  /* White text */
+  border: none;
+  border-radius: 4px;
+  padding: 0 16px 0 12px;
+  /* Adjusted padding to accommodate the icon */
+  height: 40px;
+  min-width: 180px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  font-family: 'Poppins', Roboto, sans-serif;
+  /* Using Poppins for modern touch */
+  font-size: 14px;
+  font-weight: 500;
+  text-transform: none;
+  transition: background-color 0.15s, box-shadow 0.15s;
+
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  /* Subtle shadow for depth */
+}
+
+/* Hover and Focus Effects */
+.google-signin-button:hover {
+  background-color: #c0392b;
+  /* Slightly darker red on hover */
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.25);
+}
+
+.google-signin-button:active {
+  background-color: #a53226;
+  /* Even darker red on click */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Material Icon Styling */
+.google-icon-mat {
+  /* Set the font settings for the Material Symbols icon */
+  font-variation-settings: 'wght' 500, 'FILL' 1;
+  font-size: 20px;
+  /* Slightly larger icon */
+  margin-right: 8px;
+  /* Space between icon and text */
+  color: #ffffff;
+  /* Icon color matches text */
+}
+
 /* Center wrapper */
 .form-card-wrapper {
   position: relative;

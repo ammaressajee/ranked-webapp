@@ -1,49 +1,32 @@
 <div class="login-page-container">
     <div class="form-card-wrapper">
         <h1 class="app-title">Local Ladder — Austin</h1>
-        
+
         <div class="form-card">
             <h2 class="form-title">{{ isSigningUp() ? 'Create Account' : 'Welcome Back' }}</h2>
-            
-            <form (submit)="handleEmailSubmission($event)" class="auth-form">
-                
-                <input 
-                    *ngIf="isSigningUp()"
-                    type="text" 
-                    placeholder="Display Name" 
-                    [ngModel]="displayName()"
-                    (ngModelChange)="displayName.set($event)"
-                    name="displayName"
-                    required
-                />
 
-                <input 
-                    type="email" 
-                    placeholder="Email" 
-                    [ngModel]="email()"
-                    (ngModelChange)="email.set($event)"
-                    name="email"
-                    required
-                />
-                <input 
-                    type="password" 
-                    placeholder="Password" 
-                    [ngModel]="password()"
-                    (ngModelChange)="password.set($event)"
-                    name="password"
-                    required
-                />
+            <form (submit)="handleEmailSubmission($event)" class="auth-form">
+
+                <input *ngIf="isSigningUp()" type="text" placeholder="Display Name" [ngModel]="displayName()"
+                    (ngModelChange)="displayName.set($event)" name="displayName" required />
+
+                <input type="email" placeholder="Email" [ngModel]="email()" (ngModelChange)="email.set($event)"
+                    name="email" required />
+                <input type="password" placeholder="Password" [ngModel]="password()"
+                    (ngModelChange)="password.set($event)" name="password" required />
 
                 <button type="submit" class="submit-button">{{ isSigningUp() ? 'Sign Up' : 'Sign In' }}</button>
             </form>
-            
+
             <div class="separator">OR</div>
 
-            <button type="button" class="google-button" (click)="authService.loginWithGoogle()">
-                <img src="assets/google-logo.svg" alt="Google logo" class="google-icon"> 
+            <button (click)="authService.loginWithGoogle()" class="google-signin-button" type="button">
+                <span class="material-symbols-outlined google-icon-mat">
+                    hub
+                </span>
                 Sign in with Google
             </button>
-            
+
             <p class="toggle-mode">
                 {{ isSigningUp() ? 'Already have an account?' : 'Need an account?' }}
                 <a (click)="toggleMode()">{{ isSigningUp() ? 'Sign In' : 'Sign Up' }}</a>

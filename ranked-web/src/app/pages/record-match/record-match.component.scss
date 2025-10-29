@@ -15,6 +15,13 @@
   color: #fff;
 }
 
+html,
+body,
+:host {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
 .match-form-container {
   width: 100%;
   max-width: 700px;
@@ -37,7 +44,7 @@ h3 {
 .form-card {
   width: 98%;
   // Darker transparent gray background
-  background: rgba(57, 54, 54, 0.696);
+  background: rgba(77, 74, 74, 0.575);
   backdrop-filter: blur(15px);
   -webkit-backdrop-filter: blur(15px);
   border-radius: 20px;
@@ -235,52 +242,13 @@ h3 {
   box-shadow: 0 6px 20px rgba(72, 191, 227, 0.6);
 }
 
-// --- 💻 TABLET + SMALL DESKTOP (≤980px) --- 
-// @media (max-width: 980px) {
-//   :host {
-//     background: none !important;
-//     /* Remove blue gradient */
-//     padding: 0;
-//     justify-content: stretch;
-//     align-items: stretch;
-//   }
-
-//   .match-form-container {
-//     width: 100%;
-//     height: 100vh;
-//     padding: 0;
-//     display: flex;
-//   }
-
-//   .form-card {
-//     width: 100%;
-//     height: 100%;
-//     border-radius: 0;
-//     box-shadow: none;
-//     border: none;
-//     background: rgba(25, 25, 25, 0.95);
-//     /* Deep dark tone */
-//     backdrop-filter: blur(10px);
-//     -webkit-backdrop-filter: blur(10px);
-//     display: flex;
-//     flex-direction: column;
-//     justify-content: flex-start;
-//     align-items: center;
-//     overflow-y: auto;
-//     padding: 2rem 1rem;
-//   }
-
-//   /* Adjust the layout spacing for medium screens */
-//   .player-vs-player {
-//     flex-direction: column;
-//     gap: 1.2rem;
-//   }
-// }
-
 // --- 📱 MOBILE OPTIMIZATION (≤600px) FIXES ---
 @media (max-width: 980px) {
   :host {
-    background: rgb(25, 25, 25);
+    background: linear-gradient(135deg,
+        rgba(90, 95, 110, 1),
+        rgba(55, 60, 75, 1));
+
     /* removes blue gradient on very small screens */
     padding: 0;
   }
@@ -299,7 +267,7 @@ h3 {
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
     padding: 1rem 0.5rem;
-    background: rgba(25, 25, 25, 0.95);
+    background: rgba(77, 74, 74, 0);
     /* solid dark for clarity */
   }
 
@@ -335,7 +303,7 @@ h3 {
     grid-template-columns: 0.7fr 1fr 1fr;
     gap: 0.5rem 0.3rem;
     width: 100%;
-    padding: 0 3rem;
+    padding: 0 0.8rem;
     /* adds side padding for breathing room */
     box-sizing: border-box;
   }

@@ -13,17 +13,78 @@ import { PlayerData } from '../../models/PlayerData';
   styleUrls: ['./record-match.component.scss'],
 })
 export class RecordMatchComponent {
-  private firestore = inject(Firestore);
+ private firestore = inject(Firestore);
   private auth = inject(Auth);
   private router = inject(Router);
 
   opponentId = signal('');
+  // Property to hold fetched opponent data for display purposes
+  opponentData = signal<PlayerData | null>(null); 
+
   games = signal([
     { game: 1, yourScore: 0, opponentScore: 0 },
     { game: 2, yourScore: 0, opponentScore: 0 },
     { game: 3, yourScore: 0, opponentScore: 0 },
   ]);
 
+  // ------------------------------------------------------------------
+  // ✨ UI/UX ADDITIONS: Avatar Properties and Methods
+  // ------------------------------------------------------------------
+
+  /** Generates a fallback RoboHash URL (used if real photoURL isn't available). */
+  generateRoboHash(seed: string): string {
+    const safeSeed = seed && seed.trim() !== '' ? seed : 'default_fallback';
+    // Using set=set4 for a consistent robot style
+    return `https://robohash.org/${safeSeed}.png?set=set4`;
+  }
+  
+  // Computed property for the current user's UID (used for their RoboHash fallback)
+  currentUserUid = computed(() => this.auth.currentUser?.uid || 'current_user_fallback');
+  
+  // Computed property for the current user's display name
+  currentUserName = computed(() => this.auth.currentUser?.displayName || 'You');
+  
+  // Computed property for the current user's photo URL (Auth profile or RoboHash fallback)
+  currentUserPhotoUrl = computed(() => this.auth.currentUser?.photoURL || this.generateRoboHash(this.currentUserUid()));
+
+  // Computed property for the opponent's photo URL (Firestore data or RoboHash fallback)
+  opponentAvatarUrl = computed(() => 
+    this.opponentData()?.photoURL || this.generateRoboHash(this.opponentId())
+  );
+  
+  // Computed property for the opponent's display name
+  opponentNameDisplay = computed(() => 
+    this.opponentData()?.displayName || (this.opponentId() ? 'Loading...' : 'Opponent Name')
+  );
+
+  /**
+   * Fetches the opponent's profile data whenever the ID input changes.
+   */
+  async fetchOpponentData(): Promise<void> {
+    const id = this.opponentId();
+    if (id && id.length > 5) { // Only fetch if ID looks valid
+      this.opponentData.set(null); // Clear previous data
+      try {
+        const docRef = doc(this.firestore, 'users', id);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          this.opponentData.set(docSnap.data() as PlayerData);
+        } else {
+          this.opponentData.set(null); // No user found
+        }
+      } catch (error) {
+        console.error("Error fetching opponent data:", error);
+        this.opponentData.set(null);
+      }
+    } else {
+      this.opponentData.set(null); // Clear data if input is empty/short
+    }
+  }
+
+  // ----------------------------------------------------
+  // 💾 ORIGINAL recordMatch FUNCTION (Functionality UNCHANGED)
+  // ----------------------------------------------------
   async recordMatch() {
     const user = this.auth.currentUser;
     if (!user) {

@@ -1,42 +1,37 @@
 <div class="match-form-container">
-  <h2>🏓 Record Pickleball Match</h2>
-
   <form (ngSubmit)="recordMatch()" class="match-form form-card">
-    <label>Opponent UID</label>
-    <input
-      type="text"
-      [(ngModel)]="opponentId"
-      name="opponentId"
-      placeholder="Enter opponent UID"
-      required
-    />
+
+    <div class="player-vs-player">
+      <div class="player-display you">
+        <img [src]="currentUserPhotoUrl()" alt="Your Avatar" class="player-avatar" />
+        <span class="player-name">{{ currentUserName() }}</span>
+      </div>
+
+      <div class="player-display opponent">
+        <input type="text" [(ngModel)]="opponentId" name="opponentId" placeholder="Opponent ID (e.g., UUID)" required
+          class="opponent-id-input" (ngModelChange)="fetchOpponentData()" />
+        <img [src]="opponentAvatarUrl()" alt="Opponent Avatar" class="player-avatar" />
+        <span class="player-name opponent-name-placeholder">{{ opponentNameDisplay() }}</span>
+      </div>
+    </div>
 
     <h3>Game Scores</h3>
 
-    <div class="score-header">
-      <span>Game</span>
-      <span class="you-col">You</span>
-      <span class="vs">vs</span>
-      <span class="opp-col">Opponent</span>
+    <div class="score-input-grid">
+      <div class="grid-header">
+        <span>Game</span>
+        <span class="you-col">You</span>
+        <span class="opp-col">Opponent</span>
+      </div>
+
+      <ng-container *ngFor="let game of games(); let i = index">
+        <div class="game-label">Game {{ game.game }}</div>
+        <input type="number" [(ngModel)]="games()[i].yourScore" name="yourScore-{{ i }}" min="0" class="score-input" style="margin-left:30px; width: auto"/>
+        <input type="number" [(ngModel)]="games()[i].opponentScore" name="opponentScore-{{ i }}" min="0"
+          class="score-input" style="margin-left:30px; width: auto" />
+      </ng-container>
     </div>
 
-    <div *ngFor="let game of games(); let i = index" class="game-row">
-      <div class="game-label">Game {{ game.game }}</div>
-      <input
-        type="number"
-        [(ngModel)]="games()[i].yourScore"
-        name="yourScore-{{ i }}"
-        min="0"
-      />
-      <span class="vs">-</span>
-      <input
-        type="number"
-        [(ngModel)]="games()[i].opponentScore"
-        name="opponentScore-{{ i }}"
-        min="0"
-      />
-    </div>
-
-    <button type="submit">Submit Match</button>
+    <button type="submit" class="submit-button">Submit Match</button>
   </form>
 </div>

@@ -12,7 +12,6 @@ export const routes: Routes = [
     { path: 'record-match', component: RecordMatchComponent },
     { path: 'profile/:uid', component: PlayerProfileComponent },
 
-
     // Catch-all or redirect
     { path: '**', redirectTo: '' }
 ];

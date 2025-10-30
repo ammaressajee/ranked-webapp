@@ -2,11 +2,6 @@
   <form (ngSubmit)="recordMatch()" class="match-form form-card">
 
     <div class="player-vs-player">
-      <div class="player-display you">
-        <img [src]="currentUserPhotoUrl()" alt="Your Avatar" class="player-avatar" />
-        <span class="player-name">{{ currentUserName() }}</span>
-      </div>
-
       <div class="player-display opponent">
         <input type="text" [(ngModel)]="opponentId" name="opponentId" placeholder="Opponent ID (e.g., UUID)" required
           class="opponent-id-input" (ngModelChange)="fetchOpponentData()" />

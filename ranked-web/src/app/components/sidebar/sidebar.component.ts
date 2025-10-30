@@ -24,12 +24,39 @@ export class SidebarComponent implements OnInit {
 
 
   // --- TOP NAVIGATION ITEMS ---
-  navItems: WritableSignal<NavItem[]> = signal([
-    { icon: 'home', label: 'Home', route: '/', requiresAuth: false },
-    { icon: 'sports_score', label: 'Record Match', route: '/record-match', requiresAuth: true },
-    { icon: 'leaderboard', label: 'Rankings', route: '/leaderboard', requiresAuth: false },
-    { icon: 'group', label: 'Players', route: '/customers', requiresAuth: false },
-  ]);
+
+  navItems: Signal<NavItem[]> = computed(() => {
+    const user = this.authService.profile();
+    const uid = user?.uid || '';
+
+    return [
+      {
+        icon: 'home',
+        label: 'Home',
+        route: '/',
+        requiresAuth: false
+      },
+      {
+        icon: 'sports_score',
+        label: 'Record Match',
+        route: uid ? `/record-match` : '/login',
+        requiresAuth: true
+      },
+      {
+        icon: 'leaderboard',
+        label: 'Rankings',
+        route: '/leaderboard',
+        requiresAuth: false
+      },
+      {
+        icon: 'group',
+        label: 'Match History',
+        route: '/profile/' + uid,
+        requiresAuth: false
+      }
+    ];
+  });
+
 
   // --- BOTTOM NAVIGATION ITEM (Profile) ---
   bottomNavItems: Signal<NavItem[]> = computed(() => {

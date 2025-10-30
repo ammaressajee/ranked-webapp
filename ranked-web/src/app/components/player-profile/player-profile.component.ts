@@ -22,6 +22,7 @@ export class PlayerProfileComponent {
     const uid = this.route.snapshot.paramMap.get('uid') || this.auth.currentUser?.uid;
     if (!uid) return;
 
+    // 🧠 Load player info
     const userRef = doc(this.firestore, 'users', uid);
     const userSnap = await getDoc(userRef);
 
@@ -29,16 +30,15 @@ export class PlayerProfileComponent {
       this.player.set(userSnap.data());
     }
 
-    // Load recent matches (either as playerA or playerB)
+    // 🏓 Load recent matches involving this player (either side)
     const matchesQuery = query(
       collection(this.firestore, 'matches'),
-      where('sport', '==', 'pickleball'),
-      where('playerA', 'in', [uid]),
+      where('players', 'array-contains', uid), // ✅ simpler, works both ways
       orderBy('createdAt', 'desc'),
       limit(5)
     );
 
-    collectionData(matchesQuery, { idField: 'id' })
+    collectionData(matchesQuery, { idField: 'matchId' })
       .subscribe(data => this.recentMatches.set(data));
   }
 
@@ -50,5 +50,4 @@ export class PlayerProfileComponent {
     if (rank >= 1000) return 'Silver 🥈';
     return 'Bronze 🥉';
   }
-
 }

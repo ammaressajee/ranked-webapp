@@ -13,13 +13,13 @@ import { PlayerData } from '../../models/PlayerData';
   styleUrls: ['./record-match.component.scss'],
 })
 export class RecordMatchComponent {
- private firestore = inject(Firestore);
+  private firestore = inject(Firestore);
   private auth = inject(Auth);
   private router = inject(Router);
 
   opponentId = signal('');
   // Property to hold fetched opponent data for display purposes
-  opponentData = signal<PlayerData | null>(null); 
+  opponentData = signal<PlayerData | null>(null);
 
   games = signal([
     { game: 1, yourScore: 0, opponentScore: 0 },
@@ -37,23 +37,23 @@ export class RecordMatchComponent {
     // Using set=set4 for a consistent robot style
     return `https://robohash.org/${safeSeed}.png?set=set4`;
   }
-  
+
   // Computed property for the current user's UID (used for their RoboHash fallback)
   currentUserUid = computed(() => this.auth.currentUser?.uid || 'current_user_fallback');
-  
+
   // Computed property for the current user's display name
   currentUserName = computed(() => this.auth.currentUser?.displayName || 'You');
-  
+
   // Computed property for the current user's photo URL (Auth profile or RoboHash fallback)
   currentUserPhotoUrl = computed(() => this.auth.currentUser?.photoURL || '');
 
   // Computed property for the opponent's photo URL (Firestore data or RoboHash fallback)
-  opponentAvatarUrl = computed(() => 
+  opponentAvatarUrl = computed(() =>
     this.opponentData()?.photoURL || this.generateRoboHash(this.opponentId())
   );
-  
+
   // Computed property for the opponent's display name
-  opponentNameDisplay = computed(() => 
+  opponentNameDisplay = computed(() =>
     this.opponentData()?.displayName || (this.opponentId() ? 'Loading...' : 'Opponent Name')
   );
 
@@ -101,24 +101,23 @@ export class RecordMatchComponent {
 
     const winsYou = filledGames.filter(g => g.yourScore > g.opponentScore).length;
     const winsOpponent = filledGames.filter(g => g.opponentScore > g.yourScore).length;
-
     const matchWinnerUid = winsYou > winsOpponent ? user.uid : this.opponentId();
 
+    // 🆕 include `players` array field
     await addDoc(collection(this.firestore, 'matches'), {
       sport: 'pickleball',
       playerA: user.uid,
       playerB: this.opponentId(),
+      players: [user.uid, this.opponentId()], // 👈 critical line
       games: filledGames,
       matchWinner: matchWinnerUid,
       createdAt: serverTimestamp(),
     });
 
     // Update player stats
-
     const playerARef = doc(this.firestore, 'users', user.uid);
     const playerBRef = doc(this.firestore, 'users', this.opponentId());
 
-    // Fetch both players’ current stats
     const [playerASnap, playerBSnap] = await Promise.all([
       getDoc(playerARef),
       getDoc(playerBRef)
@@ -149,4 +148,5 @@ export class RecordMatchComponent {
     alert(`✅ Match recorded. ${winsYou > winsOpponent ? 'You won!' : 'Opponent won!'}`);
     this.router.navigate(['/']);
   }
+
 }

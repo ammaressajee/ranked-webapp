@@ -48,7 +48,7 @@ export class AuthService {
         uid: user.uid,
         displayName: user.displayName,
         email: user.email,
-        hotoURL: user.photoURL ?? 'https://robohash.org/avatar123.png?bgset=bg1',
+        photoURL: user.photoURL ?? 'https://robohash.org/avatar123.png?bgset=bg1',
         rank: 1000,
         wins: 0,
         losses: 0,

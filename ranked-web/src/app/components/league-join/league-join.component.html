@@ -1,0 +1,9 @@
+<div class="league-join page">
+    <h3>Join League</h3>
+    <p>League: {{ leagueId }}</p>
+
+    <label>Location (city)</label>
+    <input [(ngModel)]="city" placeholder="e.g., Austin, TX" />
+
+    <button (click)="join()">Join League</button>
+</div>

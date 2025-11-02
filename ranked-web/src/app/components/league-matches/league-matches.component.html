@@ -1,0 +1,31 @@
+<div class="matches page">
+    <h2>League Matches</h2>
+
+    <div *ngFor="let m of myMatches$ | async" class="match-card">
+        <p>
+            <strong>{{ m.playerA }}</strong> vs <strong>{{ m.playerB || 'BYE' }}</strong>
+            <span *ngIf="m.status === 'completed'">✅ Completed</span>
+            <span *ngIf="m.status === 'reported'">⚠️ Reported, awaiting confirmation</span>
+        </p>
+        <div *ngIf="m.status === 'reported' && m.result?.reportedAt">
+            <span>⏳ Auto-finalizes in {{ timeRemaining(m.result!.reportedAt) | async }}</span>
+        </div>
+
+
+        <div *ngIf="m.status === 'pending' && m.playerB">
+            <label>Winner UID:</label>
+            <input #winner placeholder="UID of winner" />
+            <label>Score:</label>
+            <input #score placeholder="e.g. 11-8, 9-11, 11-9" />
+            <button (click)="reportScore(m, winner.value, score.value)">Report Result</button>
+        </div>
+
+        <div *ngIf="m.status === 'reported' && !m.confirmations?.[auth.currentUser?.uid || '']">
+            <button (click)="confirmResult(m)">Confirm Result</button>
+        </div>
+
+        <div *ngIf="m.status === 'completed'">
+            <p><strong>Winner:</strong> {{ m.result?.winner }} ({{ m.result?.score }})</p>
+        </div>
+    </div>
+</div>

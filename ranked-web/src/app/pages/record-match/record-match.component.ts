@@ -83,7 +83,7 @@ export class RecordMatchComponent {
   }
 
   // ----------------------------------------------------
-  // 💾 ORIGINAL recordMatch FUNCTION (Functionality UNCHANGED)
+  // recordMatch FUNCTION 
   // ----------------------------------------------------
   async recordMatch() {
     const user = this.auth.currentUser;

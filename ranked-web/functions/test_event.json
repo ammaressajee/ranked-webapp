@@ -1,0 +1,54 @@
+{
+    "type": "google.cloud.firestore.document.v1.updated",
+    "source": "projects/test-project/databases/(default)/documents/leagueMatches/testMatchId",
+    "id": "test-id",
+    "specversion": "1.0",
+    "time": "2025-10-30T15:00:00Z",
+    "datacontenttype": "application/json",
+    "data": {
+        "value": {
+            "name": "projects/test-project/databases/(default)/documents/leagueMatches/testMatchId",
+            "fields": {
+                "leagueId": {
+                    "stringValue": "nov2025"
+                },
+                "playerA": {
+                    "stringValue": "uid1"
+                },
+                "playerB": {
+                    "stringValue": "uid2"
+                },
+                "status": {
+                    "stringValue": "reported"
+                },
+                "result": {
+                    "mapValue": {
+                        "fields": {
+                            "winner": {
+                                "stringValue": "uid1"
+                            },
+                            "reportedAt": {
+                                "timestampValue": "2025-10-30T14:00:00Z"
+                            },
+                            "reportedBy": {
+                                "stringValue": "uid1"
+                            }
+                        }
+                    }
+                },
+                "confirmations": {
+                    "mapValue": {
+                        "fields": {
+                            "uid1": {
+                                "booleanValue": true
+                            },
+                            "uid2": {
+                                "booleanValue": true
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

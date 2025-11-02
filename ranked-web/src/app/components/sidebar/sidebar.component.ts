@@ -53,6 +53,19 @@ export class SidebarComponent implements OnInit {
         label: 'Match History',
         route: '/profile/' + uid,
         requiresAuth: false
+      }, 
+      {
+        icon: 'sports_soccer',
+        label: 'Join League',
+        route: '/leagues',
+        requiresAuth: false
+      },
+      // league matches if in a league
+      {
+        icon: 'event',
+        label: 'League Matches',
+        route: uid ? `/league-matches` : '/login',
+        requiresAuth: true
       }
     ];
   });

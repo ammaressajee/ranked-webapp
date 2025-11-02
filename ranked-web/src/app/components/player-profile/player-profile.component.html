@@ -1,7 +1,7 @@
 <div class="profile-container" *ngIf="player() as p">
   <div class="profile-card">
     <div class="profile-header">
-      <!-- <img src="authService" alt="Profile" class="profile-avatar" /> -->
+      <img [src]="p.photoURL" alt="Profile" class="profile-avatar" />
       <div class="profile-info">
         <h2>{{ p.displayName }}</h2>
         <p class="tier">{{ getTier(p.rank) }}</p>
@@ -39,11 +39,7 @@
     <ul>
       <li *ngFor="let match of recentMatches()">
         <span>vs {{ match.playerB }}</span>
-        <span
-          class="result"
-          [class.win]="match.matchWinner === p.uid"
-          [class.loss]="match.matchWinner !== p.uid"
-        >
+        <span class="result" [class.win]="match.matchWinner === p.uid" [class.loss]="match.matchWinner !== p.uid">
           {{ match.matchWinner === p.uid ? '🏆 Won' : '❌ Lost' }}
         </span>
       </li>

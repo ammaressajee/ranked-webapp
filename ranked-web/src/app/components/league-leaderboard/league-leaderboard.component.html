@@ -1,0 +1,27 @@
+<div class="leaderboard page">
+    <h2>Leaderboard</h2>
+    <table>
+        <tr>
+            <th>Rank</th>
+            <th>Player</th>
+            <th>Wins</th>
+            <th>Losses</th>
+            <th>Rating</th>
+        </tr>
+        <tr *ngFor="let p of participants | async; let i = index">
+            <td>
+                <span *ngIf="i === 0">🥇</span>
+                <span *ngIf="i === 1">🥈</span>
+                <span *ngIf="i === 2">🥉</span>
+                <span *ngIf="i > 2">{{ i + 1 }}</span>
+            </td>
+            <td>{{ p.displayName }}</td>
+            <td>{{ p.wins }}</td>
+            <td>{{ p.losses }}</td>
+            <td>{{ p.currentRank }}</td>
+        </tr>
+
+    </table>
+</div>
+
+<button (click)="shareLeague()">📢 Share This League</button>

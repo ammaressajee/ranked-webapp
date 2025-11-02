@@ -1,0 +1,14 @@
+<div class="leagues-list page">
+    <h2>Leagues</h2>
+    <button (click)="createTestLeague()">Create Test League (dev)</button>
+
+    <ul>
+        <li *ngFor="let l of leagues | async">
+            <a (click)="openLeague(l.id!)">{{ l.name }} — {{ l.location }}</a><br>
+            <!-- join button -->
+            <button (click)="joinLeague(l.id!)">Join</button>
+            <!-- view button -->
+            <button (click)="openLeague(l.id!)">View</button>
+        </li>
+    </ul>
+</div>

@@ -1,1 +1,13 @@
 *.local
+__pycache__/
+*.pyc
+env/
+venv/
+ENV/
+VENV/
+# ignore firebase stuff
+.firebase/
+# ignore node modules
+node_modules/
+# ignore logs
+logs/       

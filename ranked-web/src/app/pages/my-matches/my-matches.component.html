@@ -1,0 +1,121 @@
+<div class="page-container" *ngIf="!loading; else loadingTpl">
+
+  <!-- Error -->
+  <div class="error" *ngIf="error">{{ error }}</div>
+
+  <!-- League Selector -->
+  <div class="league-selector" *ngIf="userLeagues$ | async as leagues">
+    <label>Select League:</label>
+    <select
+      [(ngModel)]="selectedLeagueId"
+      (change)="onLeagueChange()"
+      class="league-dropdown"
+    >
+      <option *ngFor="let lg of leagues" [value]="lg.leagueId">
+        {{ lg.leagueName || lg.leagueId }}
+      </option>
+    </select>
+  </div>
+
+  <!-- Match List -->
+  <div *ngIf="matches$ | async as matches">
+
+    <h2 class="section-title">My Matches</h2>
+
+    <div *ngIf="matches.length === 0" class="empty-msg">
+      No matches yet in this league.
+    </div>
+
+    <div class="match-card" *ngFor="let m of matches">
+
+      <div class="match-header">
+        <div class="players">
+          <span [class.me]="isUser(m.playerA)">{{ m.playerA }}</span>
+          <span class="vs">vs</span>
+          <span [class.me]="isUser(m.playerB)">{{ m.playerB }}</span>
+        </div>
+
+        <div class="status-badge" [ngClass]="m.status">
+          {{ m.status }}
+        </div>
+      </div>
+
+      <!-- Winner -->
+      <div class="result" *ngIf="m.result?.winner">
+        <strong>Winner:</strong> {{ m.result?.winner }} <br />
+        <strong>Score:</strong> {{ m.result?.score }}
+      </div>
+
+      <!-- Status Logic -->
+      <div class="match-actions">
+
+        <!-- Pending Match -->
+        <button
+          *ngIf="m.status === 'pending'"
+          class="btn find-btn"
+          disabled
+        >
+          Waiting for opponent...
+        </button>
+
+        <!-- Report Score -->
+        <button
+          *ngIf="m.status === 'reported' || m.status === 'pendingConfirm'"
+          class="btn report-btn"
+          (click)="openReportDialog(m)"
+        >
+          Report Score
+        </button>
+
+        <!-- Confirm Result -->
+        <button
+          *ngIf="m.status === 'pendingConfirm' && !m.confirmations?.[auth.currentUser?.uid || '']"
+          class="btn confirm-btn"
+          (click)="confirmResult(m)"
+        >
+          Confirm Result
+        </button>
+
+        <!-- Completed -->
+        <div *ngIf="m.status === 'completed'" class="completed-label">
+          ✔ Completed
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Loading Template -->
+<ng-template #loadingTpl>
+  <div class="loading">Loading your matches...</div>
+</ng-template>
+
+<!-- REPORT SCORE MODAL -->
+<div class="modal-backdrop" *ngIf="reportDialogOpen">
+  <div class="modal">
+
+    <h3>Report Score</h3>
+
+    <p class="modal-label">Who won?</p>
+    <select [(ngModel)]="dialogWinnerUid">
+      <option [value]="dialogMatch?.playerA">{{ dialogMatch?.playerA }}</option>
+      <option [value]="dialogMatch?.playerB">{{ dialogMatch?.playerB }}</option>
+    </select>
+
+    <p class="modal-label">Enter score:</p>
+    <input
+      type="text"
+      class="score-input"
+      [(ngModel)]="dialogScore"
+      placeholder="e.g., 21-17"
+    />
+
+    <div class="modal-actions">
+      <button class="btn cancel" (click)="closeReportDialog()">Cancel</button>
+      <button class="btn submit" (click)="submitReport()">Submit</button>
+    </div>
+
+  </div>
+</div>

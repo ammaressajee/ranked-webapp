@@ -1,8 +1,10 @@
 import { inject, Injectable } from '@angular/core';
 import { addDoc, collection, collectionData, doc, Firestore, getDocs, orderBy, query, serverTimestamp, setDoc, updateDoc, where, writeBatch } from '@angular/fire/firestore';
-import { Observable } from 'rxjs';
+import { firstValueFrom, Observable } from 'rxjs';
 import { League } from '../models/League';
 import { LeagueParticipant } from '../models/LeagueParticipant';
+import { getAuth } from '@angular/fire/auth';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 
 @Injectable({
   providedIn: 'root'
@@ -10,6 +12,7 @@ import { LeagueParticipant } from '../models/LeagueParticipant';
 export class LeagueService {
 
   private fs = inject(Firestore);
+  http = inject(HttpClient);
 
   private leaguesColl() { return collection(this.fs, 'leagues'); }
   private participantsColl() { return collection(this.fs, 'leagueParticipants'); }
@@ -30,6 +33,16 @@ export class LeagueService {
   listActiveLeagues(): Observable<League[]> {
     const q = query(this.leaguesColl(), where('isActive', '==', true), orderBy('createdAt', 'desc'));
     return collectionData(q, { idField: 'id' }) as Observable<League[]>;
+  }
+
+  listUserLeagues(uid: string) {
+    return collectionData(
+      query(
+        collection(this.fs, 'leagueParticipants'),
+        where('userId', '==', uid)
+      ),
+      { idField: 'id' }
+    );
   }
 
   async joinLeague(leagueId: string, user: { uid: string; displayName: string; photoURL?: string; location?: string; rank?: number }) {
@@ -58,102 +71,27 @@ export class LeagueService {
   }
 
   // --------------------------
-  // Pairing & Scheduling
+  // Find Match (On-demand)
   // --------------------------
-  async generatePairs(
-    leagueId: string,
-    round: number,
-    location?: string,
-    maxRecentToAvoid = 4
-  ): Promise<{ pairs: Array<{ a: LeagueParticipant; b: LeagueParticipant }>; bye?: LeagueParticipant | null }> {
-    const q = location
-      ? query(this.participantsColl(), where('leagueId', '==', leagueId), where('location', '==', location))
-      : query(this.participantsColl(), where('leagueId', '==', leagueId));
+  private readonly FIND_MATCH_URL = 'https://us-central1-ranked-app-9f746.cloudfunctions.net/find_match';
+  private readonly SWEEP_MATCH_URL = 'https://us-central1-ranked-app-9f746.cloudfunctions.net/sweep_pending_matches';
 
-    const snap = await getDocs(q);
-    const docs: LeagueParticipant[] = snap.docs.map(d => ({ ...(d.data() as LeagueParticipant), id: d.id }));
+  // Call find_match
+  async findMatchOnDemand(leagueId: string, userId: string, rank = 1000, location = '') {
+    const auth = getAuth();
+    const token = await auth.currentUser?.getIdToken(true);
+    if (!token) throw new Error('Not authenticated');
 
-    docs.sort((x, y) => (y.currentRank ?? 1000) - (x.currentRank ?? 1000));
+    const headers = { Authorization: `Bearer ${token}` };
+    const body = { leagueId, userId, rank, location };
 
-    const pool = [...docs];
-    const pairs: Array<{ a: LeagueParticipant; b: LeagueParticipant }> = [];
-
-    while (pool.length >= 2) {
-      const a = pool.shift()!;
-      let foundIdx = -1;
-      for (let idx = 0; idx < pool.length; idx++) {
-        const candidate = pool[idx];
-        const mutualRecent =
-          (a.recentOpponents ?? []).slice(-maxRecentToAvoid).includes(candidate.userId) ||
-          (candidate.recentOpponents ?? []).slice(-maxRecentToAvoid).includes(a.userId);
-        if (!mutualRecent) { foundIdx = idx; break; }
-      }
-
-      if (foundIdx === -1) {
-        pairs.push({ a, b: pool.shift()! });
-      } else {
-        const b = pool.splice(foundIdx, 1)[0];
-        pairs.push({ a, b });
-      }
-    }
-
-    let bye: LeagueParticipant | null = null;
-    if (pool.length === 1) bye = pool[0];
-
-    return { pairs, bye };
+    return firstValueFrom(this.http.post(this.FIND_MATCH_URL, body, { headers })) as Promise<any>;
   }
 
-  async schedulePairs(
-    leagueId: string,
-    round: number,
-    pairs: Array<{ a: LeagueParticipant; b: LeagueParticipant }>,
-    bye?: LeagueParticipant | null
-  ): Promise<string[]> {
-    const batch = writeBatch(this.fs);
-    const createdIds: string[] = [];
-
-    function matchIdFor(aId: string, bId: string) {
-      const [x, y] = [aId, bId].sort();
-      return `${leagueId}_r${round}_${x}_${y}`;
-    }
-
-    for (const p of pairs) {
-      const matchId = matchIdFor(p.a.userId, p.b.userId);
-      const mRef = doc(this.fs, 'leagueMatches', matchId);
-      batch.set(mRef, {
-        leagueId,
-        round,
-        playerA: p.a.userId,
-        playerB: p.b.userId,
-        status: 'pending',
-        type: 'standard',
-        createdAt: serverTimestamp()
-      }, { merge: false });
-      createdIds.push(matchId);
-
-      const aRef = doc(this.fs, 'leagueParticipants', `${leagueId}_${p.a.userId}`);
-      const bRef = doc(this.fs, 'leagueParticipants', `${leagueId}_${p.b.userId}`);
-      batch.set(aRef, { recentOpponents: (p.a.recentOpponents ?? []).concat(p.b.userId).slice(-10) }, { merge: true });
-      batch.set(bRef, { recentOpponents: (p.b.recentOpponents ?? []).concat(p.a.userId).slice(-10) }, { merge: true });
-    }
-
-    if (bye) {
-      const byeMatchId = `${leagueId}_r${round}_bye_${bye.userId}`;
-      batch.set(doc(this.fs, 'leagueMatches', byeMatchId), {
-        leagueId,
-        round,
-        playerA: bye.userId,
-        playerB: null,
-        status: 'completed',
-        type: 'bye',
-        createdAt: serverTimestamp(),
-        result: { winner: bye.userId, score: 'bye' }
-      }, { merge: false });
-      createdIds.push(byeMatchId);
-    }
-
-    await batch.commit();
-    return createdIds;
+  // Call sweep_pending_matches
+  async sweepPendingMatches() {
+    const headers = { 'Content-Type': 'application/json' };
+    return firstValueFrom(this.http.post(this.SWEEP_MATCH_URL, {}, { headers })) as Promise<any>;
   }
 
   // --------------------------
@@ -173,6 +111,24 @@ export class LeagueService {
     await updateDoc(matchRef, { [`confirmations.${confirmerUid}`]: true });
   }
 
+  listUserMatches(leagueId: string, userId: string): Observable<any[]> {
+    const q = query(
+      collection(this.fs, 'leagueMatches'),
+      where('leagueId', '==', leagueId),
+      where('playerA', '==', userId) // will also check playerB in a second query if needed
+    );
+
+    // Optional: fetch playerB matches separately or use Firestore OR workaround
+    const q2 = query(
+      collection(this.fs, 'leagueMatches'),
+      where('leagueId', '==', leagueId),
+      where('playerB', '==', userId)
+    );
+
+    // Combine both queries (for simplicity, just return collectionData for q, you can merge in component)
+    return collectionData(q, { idField: 'id' }) as Observable<any[]>;
+  }
+
   // Optional helper: report & confirm in one click
   async reportAndConfirm(matchId: string, leagueId: string, winnerUid: string, userId: string) {
     await this.reportMatchResult(matchId, leagueId, userId, winnerUid);
@@ -180,11 +136,11 @@ export class LeagueService {
   }
 
   collectionDataWithId<T>(collectionName: string, field: string, value: any, orderField?: string): Observable<T[]> {
-  let q = query(collection(this.fs, collectionName), where(field, '==', value));
-  if (orderField) {
-    q = query(q, orderBy(orderField, 'desc'));
+    let q = query(collection(this.fs, collectionName), where(field, '==', value));
+    if (orderField) {
+      q = query(q, orderBy(orderField, 'desc'));
+    }
+    return collectionData(q, { idField: 'id' }) as Observable<T[]>;
   }
-  return collectionData(q, { idField: 'id' }) as Observable<T[]>;
-}
 
 }

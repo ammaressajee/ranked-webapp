@@ -6,6 +6,7 @@ import { FormsModule } from '@angular/forms';
 import { firstValueFrom, Observable } from 'rxjs';
 import { LeagueParticipant } from '../../models/LeagueParticipant';
 import { collection, Firestore, getDocs, query, where } from '@angular/fire/firestore';
+import { getAuth } from '@angular/fire/auth';
 
 @Component({
   selector: 'app-league-detail',
@@ -26,49 +27,38 @@ export class LeagueDetailComponent {
   round = 1;
   generating = false;
   generatedIds: string[] = [];
+  auth = getAuth();
 
-  async generatePairsForRound() {
-    this.generating = true;
+  async findMatch() {
+    const user = this.auth.currentUser;
+    if (!user) { alert('Sign in first'); return; }
+
     try {
-      const { pairs, bye } = await this.ls.generatePairs(this.leagueId, this.round, this.filterCity);
-      const ids = await this.ls.schedulePairs(this.leagueId, this.round, pairs, bye);
-      this.generatedIds = ids;
-      alert(`✅ Round ${this.round} matches generated!`);
+      const resp = await this.ls.findMatchOnDemand(this.leagueId, user.uid, 1000, '');
+      if (resp.status === 'queued') {
+        alert('🔎 Looking for an opponent...');
+      } else if (resp.status === 'matched') {
+        alert(`✅ Matched! Opponent: ${resp.opponentUid}`);
+      }
     } catch (err) {
       console.error(err);
-      alert('Error generating pairs');
-    } finally {
-      this.generating = false;
+      alert('Error finding match.');
     }
   }
+
+  async sweepMatches() {
+    try {
+      const resp = await this.ls.sweepPendingMatches();
+      alert(`✅ Cancelled ${resp.count} pending matches`);
+    } catch (err) {
+      console.error(err);
+      alert('Error sweeping matches.');
+    }
+  }
+
 
   openMatches() {
     this.router.navigate(['/leagues', this.leagueId, 'matches']);
   }
 
-  async checkAndGenerateNextRound() {
-    // Get total participants count
-    const participantsSnap = await firstValueFrom(this.participants$);
-    const totalParticipants = participantsSnap.length;
-    const expectedMatchesCount = Math.floor(totalParticipants / 2);
-
-    // Get number of completed matches in this league
-    const q = query(
-      collection(this.fs, 'leagueMatches'),
-      where('leagueId', '==', this.leagueId),
-      where('status', '==', 'completed')
-    );
-    const completedMatches = (await getDocs(q)).docs.length;
-
-    console.log(`Completed matches: ${completedMatches}/${expectedMatchesCount}`);
-
-    // If all matches in current round are done → start next round
-    if (completedMatches >= expectedMatchesCount) {
-      this.round++;
-      await this.generatePairsForRound();
-      alert(`🔥 All matches completed! Round ${this.round} has started.`);
-    } else {
-      alert('⏳ Not all matches are completed yet!');
-    }
-  }
 }

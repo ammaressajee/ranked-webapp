@@ -6,16 +6,18 @@ import { environment } from '../environments/environment';
 import { provideFirebaseApp, initializeApp } from '@angular/fire/app';
 import { provideFirestore, getFirestore } from '@angular/fire/firestore';
 import { provideAuth, getAuth } from '@angular/fire/auth';
+import { provideHttpClient } from '@angular/common/http';
 
 
 export const appConfig: ApplicationConfig = {
   providers: [
     // 1. CORE ANGULAR PROVIDERS (Always first for SSR/Hydration)
-    provideZoneChangeDetection({ eventCoalescing: true }), 
-    provideRouter(routes), 
+    provideZoneChangeDetection({ eventCoalescing: true }),
+    provideRouter(routes),
 
     // 2. FIREBASE PROVIDERS (After core Angular setup)
-    provideFirebaseApp(() => initializeApp(environment.firebaseConfig)), 
+    provideFirebaseApp(() => initializeApp(environment.firebaseConfig)),
     provideAuth(() => getAuth()),
-    provideFirestore(() => getFirestore())]
+    provideFirestore(() => getFirestore()),
+    provideHttpClient(),]
 };

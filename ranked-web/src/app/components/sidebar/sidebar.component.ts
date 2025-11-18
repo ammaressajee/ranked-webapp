@@ -64,7 +64,7 @@ export class SidebarComponent implements OnInit {
       {
         icon: 'event',
         label: 'League Matches',
-        route: uid ? `/league-matches` : '/login',
+        route: uid ? `/my-matches` : '/login',
         requiresAuth: true
       }
     ];

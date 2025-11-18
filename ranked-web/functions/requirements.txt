@@ -1,3 +1,5 @@
-firebase_functions~=0.1.0
 functions-framework
 google-cloud-firestore
+firebase-admin
+Flask
+flask-cors

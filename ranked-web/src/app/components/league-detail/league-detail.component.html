@@ -15,15 +15,11 @@
     <input [(ngModel)]="filterCity" placeholder="City (optional)" />
 
     <div class="buttons">
-        <button (click)="generatePairsForRound()" [disabled]="generating">
-            🎲 Generate Round {{ round }} Matches
-        </button>
+        <button (click)="findMatch()">Find Match</button>
+        <button (click)="sweepMatches()">Sweep Pending Matches</button>
+
 
         <button (click)="openMatches()">📋 View Matches</button>
-
-        <button (click)="checkAndGenerateNextRound()">
-            ⏭️ Check & Generate Next Round
-        </button>
     </div>
 
     <div *ngIf="generatedIds.length > 0" class="mt-3">

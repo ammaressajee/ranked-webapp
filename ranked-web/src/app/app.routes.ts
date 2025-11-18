@@ -8,6 +8,7 @@ import { LeagueJoinComponent } from './components/league-join/league-join.compon
 import { LeagueDetailComponent } from './components/league-detail/league-detail.component';
 import { LeagueMatchesComponent } from './components/league-matches/league-matches.component';
 import { LeagueLeaderboardComponent } from './components/league-leaderboard/league-leaderboard.component';
+import { MyMatchesComponent } from './pages/my-matches/my-matches.component';
 
 export const routes: Routes = [
     { path: '', component: LeaderboardComponent },
@@ -22,6 +23,7 @@ export const routes: Routes = [
     { path: 'leagues/:id', component: LeagueDetailComponent },
     { path: 'leagues/:id/matches', component: LeagueMatchesComponent },
     { path: 'leagues/:id/leaderboard', component: LeagueLeaderboardComponent },
+    { path: 'my-matches', component: MyMatchesComponent },
     // Catch-all or redirect
     { path: '**', redirectTo: '' }
 ];

@@ -1,0 +1,188 @@
+.league-detail.page {
+  padding: 1.5rem;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.league-header {
+  margin-bottom: 2rem;
+
+  h1 {
+    font-size: clamp(1.5rem, 4vw, 1.75rem);
+    margin: 0 0 0.5rem;
+    color: var(--text-primary);
+  }
+
+  .join-link {
+    font-size: 0.95rem;
+    color: var(--accent);
+    font-weight: 500;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+.find-hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+  color: var(--text-muted, #888);
+}
+.find-hint a {
+  color: var(--accent, #4a90d9);
+  text-decoration: underline;
+}
+
+.find-error {
+  margin: 0 0 0.75rem;
+  padding: 0.5rem;
+  background: rgba(255, 107, 107, 0.15);
+  border-radius: 8px;
+  color: #ff6b6b;
+  font-size: 0.9rem;
+}
+
+.cta-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: var(--shadow-card);
+
+  h2 {
+    font-size: 1.15rem;
+    margin: 0 0 0.25rem;
+    color: var(--text-primary);
+  }
+
+  .cta-hint {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin: 0 0 1.25rem;
+  }
+
+  .buttons {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+
+    .btn-primary {
+      flex: 1;
+      min-width: 140px;
+      padding: 0.75rem 1.25rem;
+      background: var(--gradient-accent);
+      color: #0f0f14;
+      border: none;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 16px rgba(0, 212, 170, 0.35);
+      }
+    }
+
+    .btn-secondary {
+      padding: 0.75rem 1.25rem;
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      &:hover {
+        background: var(--accent-muted);
+        color: var(--accent);
+        border-color: var(--accent);
+      }
+    }
+  }
+}
+
+.standings-section {
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+
+    h3 {
+      font-size: 1rem;
+      margin: 0;
+      color: var(--text-secondary);
+    }
+
+    .btn-link {
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      padding: 0;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+}
+
+.standings-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.standings-list li {
+  padding: 0.75rem 1rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.standings-list .pos {
+  font-weight: 700;
+  color: var(--text-muted);
+  min-width: 2rem;
+}
+
+.standings-list .name {
+  flex: 1;
+  font-weight: 500;
+}
+
+.rank-badge {
+  font-size: 0.85rem;
+  background: var(--accent-muted);
+  color: var(--accent);
+  padding: 0.25rem 0.6rem;
+  border-radius: 20px;
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .league-detail.page {
+    padding: 1rem;
+  }
+
+  .cta-section .buttons {
+    flex-direction: column;
+
+    .btn-primary, .btn-secondary {
+      width: 100%;
+    }
+  }
+}

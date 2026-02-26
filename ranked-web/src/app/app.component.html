@@ -1,25 +1,20 @@
 <div class="app-shell">
-  <!-- Top Bar -->
-  <mat-toolbar color="surface" class="topbar">
+  <header class="topbar">
     <div class="left-section">
-      <button mat-icon-button (click)="toggleSidebar()" class="menu-btn" aria-label="Toggle sidebar">
-        <span [innerHTML]="isSidebarOpen ? 'x' : '☰'"></span>
+      <button (click)="toggleSidebar()" class="menu-btn" aria-label="Toggle sidebar">
+        <span class="menu-icon">{{ isSidebarOpen ? '✕' : '☰' }}</span>
       </button>
-      <span class="app-title">Ranked</span>
+      <a routerLink="/" class="app-title">Ranked</a>
     </div>
-
     <div class="right-section">
-
-      <!-- Auth buttons -->
       <ng-container *ngIf="!authService.isLoggedIn(); else loggedInButtons">
-        <button (click)="this.isSidebarOpen=false" class="auth-btn login" routerLink="/login">Login</button>
+        <a (click)="isSidebarOpen=false" class="auth-btn login" routerLink="/login">Get Started</a>
       </ng-container>
-
       <ng-template #loggedInButtons>
-        <button (click)="this.isSidebarOpen=false" class="auth-btn logout" (click)="authService.logout()">Logout</button>
+        <button (click)="handleLogout()" class="auth-btn logout">Sign Out</button>
       </ng-template>
     </div>
-  </mat-toolbar>
+  </header>
 
   <!-- Main layout area -->
   <div class="layout-container">

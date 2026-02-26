@@ -1,14 +1,21 @@
 import { Component, inject } from '@angular/core';
-import { Observable, Subscription } from 'rxjs';
+import { combineLatest, map, Observable, of, Subscription, switchMap } from 'rxjs';
 import { LeagueService } from '../../services/league.service';
 import { Auth } from '@angular/fire/auth';
 import { LeagueMatch } from '../../models/LeagueMatch';
-import { NgIf, NgFor, NgClass, NgStyle, CommonModule } from '@angular/common';
+import { LeagueParticipant } from '../../models/LeagueParticipant';
+import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+
+/** Participant with league name resolved (from league doc if missing on participant) */
+export interface LeagueParticipantWithName extends LeagueParticipant {
+  resolvedLeagueName: string;
+}
 
 @Component({
   selector: 'app-my-matches',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './my-matches.component.html',
   styleUrl: './my-matches.component.scss',
 })
@@ -16,20 +23,26 @@ export class MyMatchesComponent {
   auth = inject(Auth);
   private ls = inject(LeagueService);
 
-  userLeagues$!: Observable<any[]>;
+  userLeagues$!: Observable<LeagueParticipant[]>;
+  /** Participants with league names resolved (fetches from leagues if leagueName missing) */
+  leaguesWithNames$!: Observable<LeagueParticipantWithName[]>;
   matches$!: Observable<LeagueMatch[]>;
+  participants$!: Observable<LeagueParticipant[]>;
+  matchesWithNames$!: Observable<{ matches: LeagueMatch[]; nameMap: Record<string, string> }>;
 
   loading = true;
   error: string | null = null;
 
   selectedLeagueId: string | null = null;
   private sub = new Subscription();
+  private nameMapSub = new Subscription();
 
   // Report dialog state
   reportDialogOpen = false;
   dialogMatch: LeagueMatch | null = null;
   dialogWinnerUid: string | null = null;
   dialogScore = '';
+  dialogNameMap: Record<string, string> = {};
 
   // -------------------------------------
   //                INIT
@@ -42,12 +55,27 @@ export class MyMatchesComponent {
       return;
     }
 
-    // Step 1 — list leagues
+    // Step 1 — list leagues and enrich with names
     this.userLeagues$ = this.ls.listUserLeagues(user.uid);
+    this.leaguesWithNames$ = this.userLeagues$.pipe(
+      switchMap(participants => {
+        if (!participants?.length) return of([]);
+        return combineLatest(
+          participants.map(p =>
+            this.ls.getLeague(p.leagueId).pipe(
+              map(league => ({
+                ...p,
+                resolvedLeagueName: p.leagueName || league?.name || p.leagueId
+              }))
+            )
+          )
+        );
+      })
+    );
 
-    // Step 2 — subscribe to leagues
+    // Step 2 — subscribe to leagues (use leaguesWithNames$ for same leagueIds)
     this.sub.add(
-      this.userLeagues$.subscribe({
+      this.leaguesWithNames$.subscribe({
         next: (leagues) => {
           if (!leagues || leagues.length === 0) {
             this.error = 'You are not in any active leagues yet.';
@@ -80,6 +108,16 @@ export class MyMatchesComponent {
     if (!user) return;
 
     this.matches$ = this.ls.listUserMatches(leagueId, user.uid);
+    this.participants$ = this.ls.listParticipants(leagueId);
+    this.matchesWithNames$ = combineLatest([this.matches$, this.participants$]).pipe(
+      map(([matches, participants]) => {
+        const nameMap: Record<string, string> = {};
+        for (const p of participants) nameMap[p.userId] = p.displayName || 'Unknown';
+        return { matches, nameMap };
+      })
+    );
+    this.nameMapSub.unsubscribe();
+    this.nameMapSub = this.matchesWithNames$.subscribe(vm => { this.dialogNameMap = vm.nameMap; });
   }
 
   // -------------------------------------
@@ -120,6 +158,11 @@ export class MyMatchesComponent {
     return user.uid === uid;
   }
 
+  displayName(uid: string | null | undefined, nameMap: Record<string, string>): string {
+    if (!uid) return '—';
+    return nameMap[uid] ?? uid;
+  }
+
 
   // -------------------------------------
   //            ACTION HANDLERS
@@ -134,6 +177,28 @@ export class MyMatchesComponent {
     } catch (err) {
       console.error(err);
       alert('Failed to report score.');
+    }
+  }
+
+  async acceptMatch(match: LeagueMatch) {
+    if (!match.id) return;
+    try {
+      await this.ls.acceptMatch(match.id);
+      alert('Match accepted! Coordinate with your opponent and play.');
+    } catch (err) {
+      console.error(err);
+      alert('Failed to accept match.');
+    }
+  }
+
+  async declineMatch(match: LeagueMatch) {
+    if (!match.id) return;
+    try {
+      await this.ls.declineMatch(match.id);
+      alert('Match declined.');
+    } catch (err) {
+      console.error(err);
+      alert('Failed to decline match.');
     }
   }
 
@@ -155,6 +220,8 @@ export class MyMatchesComponent {
   // -------------------------------------
   getStatusClass(match: LeagueMatch): string {
     switch (match.status) {
+      case 'pending_acceptance':
+        return 'status-invite';
       case 'pending':
         return 'status-waiting';
       case 'reported':
@@ -162,6 +229,8 @@ export class MyMatchesComponent {
         return 'status-report';
       case 'completed':
         return 'status-final';
+      case 'cancelled':
+        return 'status-cancelled';
       default:
         return 'status-waiting';
     }
@@ -169,16 +238,30 @@ export class MyMatchesComponent {
 
   getMatchStatus(match: LeagueMatch): string {
     switch (match.status) {
+      case 'pending_acceptance':
+        return this.isUser(match.playerB) ? 'Match request — Accept?' : 'Waiting for opponent to accept';
       case 'pending':
-        return 'Waiting to start';
+        return 'Ready to play';
       case 'reported':
       case 'pendingConfirm':
-        return 'Awaiting confirmation';
+        return 'Awaiting your confirmation';
       case 'completed':
-        return 'Final';
+        return 'Completed';
+      case 'cancelled':
+        return 'Cancelled';
       default:
         return match.status || 'Unknown';
     }
+  }
+
+  shouldShowAccept(match: LeagueMatch): boolean {
+    const uid = this.auth.currentUser?.uid;
+    if (!uid) return false;
+    return match.status === 'pending_acceptance' && match.playerB === uid;
+  }
+
+  shouldShowDecline(match: LeagueMatch): boolean {
+    return this.shouldShowAccept(match);
   }
 
   shouldShowReport(match: LeagueMatch): boolean {
@@ -190,14 +273,13 @@ export class MyMatchesComponent {
   shouldShowConfirm(match: LeagueMatch): boolean {
     const uid = this.auth.currentUser?.uid;
     if (!uid) return false;
-
-    if (match.status !== 'pendingConfirm') return false;
-    if (!match.confirmations) return true;
-
-    return match.confirmations[uid] !== true;
+    // Opponent reported; you need to attest/confirm
+    if (match.status !== 'reported') return false;
+    return match.confirmations?.[uid] !== true;
   }
 
   ngOnDestroy() {
     this.sub.unsubscribe();
+    this.nameMapSub.unsubscribe();
   }
 }

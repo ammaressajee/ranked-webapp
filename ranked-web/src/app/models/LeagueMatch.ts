@@ -7,6 +7,7 @@ export interface LeagueMatch {
   playerB: string;
 
   status: 
+    | "pending_acceptance"
     | "pending"
     | "reported"
     | "pendingConfirm"

@@ -1,18 +1,13 @@
-import { Component, HostListener, inject, signal } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterLink, RouterOutlet } from '@angular/router';
-import { FormsModule } from '@angular/forms'
-import { CommonModule, } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { AuthService } from './services/auth.service';
 import { SidebarComponent } from './components/sidebar/sidebar.component';
-import { MatIconModule } from '@angular/material/icon';
-import { MatToolbarModule } from '@angular/material/toolbar';
-import { MatButtonModule } from '@angular/material/button';
-import { MatMenuModule } from '@angular/material/menu';
 
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, CommonModule, FormsModule, RouterLink, SidebarComponent, MatIconModule, MatToolbarModule, MatButtonModule, MatMenuModule],
+  imports: [RouterOutlet, CommonModule, RouterLink, SidebarComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss'
 })
@@ -36,5 +31,8 @@ export class AppComponent {
     this.isSidebarOpen = !this.isSidebarOpen;
   }
 
-
+  async handleLogout() {
+    this.isSidebarOpen = false;
+    await this.authService.logout();
+  }
 }

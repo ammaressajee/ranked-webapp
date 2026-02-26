@@ -4,45 +4,47 @@
       <img [src]="p.photoURL" alt="Profile" class="profile-avatar" />
       <div class="profile-info">
         <h2>{{ p.displayName }}</h2>
-        <p class="tier">{{ getTier(p.rank) }}</p>
-        <p class="join-date">
-          Joined
-          {{ p.joinedAt?.toDate ? (p.joinedAt.toDate() | date) : (p.joinedAt | date) }}
+        <p class="tier">{{ getTier(displayRank(p)) }}</p>
+        <p class="join-date" *ngIf="p.joinedAt">
+          Joined {{ p.joinedAt?.toDate ? (p.joinedAt.toDate() | date) : (p.joinedAt | date) }}
         </p>
       </div>
     </div>
 
-    <!-- 🧮 Integrated stats section -->
+    <!-- Stats: prefer league rank when in a league -->
     <div class="profile-stats">
       <div class="stat">
-        <h3>{{ p.rank }}</h3>
-        <p>Rank</p>
+        <h3>{{ displayRank(p) }}</h3>
+        <p>ELO</p>
       </div>
       <div class="stat">
-        <h3>{{ p.wins || 0 }}</h3>
+        <h3>{{ displayWins(p) }}</h3>
         <p>Wins</p>
       </div>
       <div class="stat">
-        <h3>{{ p.losses || 0 }}</h3>
+        <h3>{{ displayLosses(p) }}</h3>
         <p>Losses</p>
       </div>
       <div class="stat">
-        <h3>{{ p.matchesCount || 0 }}</h3>
+        <h3>{{ displayWins(p) + displayLosses(p) }}</h3>
         <p>Matches</p>
       </div>
     </div>
   </div>
 
-  <!-- 🏓 Recent Matches -->
+  <!-- Recent League Matches -->
   <div class="recent-matches">
     <h3>Recent Matches</h3>
-    <ul>
+    <ul *ngIf="recentMatches().length; else noMatches">
       <li *ngFor="let match of recentMatches()">
-        <span>vs {{ match.playerB }}</span>
-        <span class="result" [class.win]="match.matchWinner === p.uid" [class.loss]="match.matchWinner !== p.uid">
-          {{ match.matchWinner === p.uid ? '🏆 Won' : '❌ Lost' }}
+        <span>vs opponent</span>
+        <span class="result" [class.win]="isWinner(match, profileUid())" [class.loss]="!isWinner(match, profileUid())">
+          {{ isWinner(match, profileUid()) ? 'Won' : 'Lost' }}
         </span>
       </li>
     </ul>
+    <ng-template #noMatches>
+      <p class="no-matches">No matches yet.</p>
+    </ng-template>
   </div>
 </div>

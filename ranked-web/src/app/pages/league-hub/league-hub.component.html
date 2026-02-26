@@ -1,0 +1,10 @@
+<div class="league-hub">
+  @if (loading) {
+    <div class="hub-loading">
+      <span class="spinner"></span>
+      <p>Loading your league…</p>
+    </div>
+  } @else {
+    <app-league-list />
+  }
+</div>

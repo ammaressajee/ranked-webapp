@@ -1,5 +1,7 @@
 export const environment = {
     production: false,
+    /** Base URL for Cloud Functions. Use emulator URL when running locally. */
+    functionsUrl: 'http://127.0.0.1:5000',
     firebaseConfig: {
         apiKey: "AIzaSyC65O61DInPiqg0TprXmKB5-esyrSY-t0k",
         authDomain: "ranked-app-9f746.firebaseapp.com",

@@ -1,31 +1,35 @@
 <div class="league-detail page">
-    <h2>League {{ leagueId }}</h2>
+    <header class="league-header">
+        <h1>🏓 {{ (league$ | async)?.name || leagueId }}</h1>
+        <a [routerLink]="['/leagues', leagueId, 'join']" class="join-link">Join this league</a>
+    </header>
 
-    <a [routerLink]="['/leagues', leagueId, 'join']">Join League</a>
+    <section class="cta-section">
+        <h2>Find a match</h2>
+        <p class="cta-hint">Get paired with an opponent in your league</p>
+        <p *ngIf="isInLeague() === false && !findingMatch" class="find-hint">
+            <a [routerLink]="['/leagues', leagueId, 'join']">Join this league</a> first to find a match.
+        </p>
+        <p *ngIf="findMatchError" class="find-error">{{ findMatchError }}</p>
+        <div class="buttons primary">
+            <button class="btn-primary" (click)="findMatch()" [disabled]="findingMatch || isInLeague() !== true">
+                {{ findingMatch ? 'Searching…' : 'Find Match' }}
+            </button>
+            <button class="btn-secondary" (click)="openMatches()">My Matches</button>
+        </div>
+    </section>
 
-    <h3>Participants</h3>
-    <ul>
-        <li *ngFor="let p of participants$ | async">
-            {{ p.displayName }} — Rank: {{ p.currentRank }} — {{ p.location }}
-        </li>
-    </ul>
-
-    <h3>Matchmaking</h3>
-    <label>Location filter (optional)</label>
-    <input [(ngModel)]="filterCity" placeholder="City (optional)" />
-
-    <div class="buttons">
-        <button (click)="findMatch()">Find Match</button>
-        <button (click)="sweepMatches()">Sweep Pending Matches</button>
-
-
-        <button (click)="openMatches()">📋 View Matches</button>
-    </div>
-
-    <div *ngIf="generatedIds.length > 0" class="mt-3">
-        <p>✅ Generated matches:</p>
-        <ul>
-            <li *ngFor="let id of generatedIds">{{ id }}</li>
+    <section class="standings-section">
+        <div class="section-header">
+            <h3>Standings</h3>
+            <button class="btn-link" (click)="openLeaderboard()">Full leaderboard</button>
+        </div>
+        <ul class="standings-list">
+            <li *ngFor="let p of participants$ | async; let i = index">
+                <span class="pos">#{{ i + 1 }}</span>
+                <span class="name">{{ p.displayName }}</span>
+                <span class="rank-badge">ELO {{ p.currentRank }}</span>
+            </li>
         </ul>
-    </div>
+    </section>
 </div>

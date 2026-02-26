@@ -1,0 +1,61 @@
+.league-join.page {
+  padding: 2rem 1.5rem;
+  max-width: 480px;
+  margin: 0 auto;
+
+  h3 {
+    margin: 0 0 0.5rem;
+    color: var(--text-primary);
+  }
+
+  label {
+    display: block;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin: 0.75rem 0 0.25rem;
+  }
+
+  input {
+    width: 100%;
+    padding: 0.6rem 1rem;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text-primary);
+    font-size: 1rem;
+    box-sizing: border-box;
+  }
+
+  button {
+    margin-top: 1rem;
+    padding: 0.6rem 1.25rem;
+    background: var(--gradient-accent);
+    color: #0f0f14;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:hover {
+      transform: translateY(-1px);
+    }
+  }
+
+  .join-blocked {
+    padding: 1rem;
+    background: rgba(255, 107, 107, 0.15);
+    border: 1px solid rgba(255, 107, 107, 0.4);
+    border-radius: 12px;
+    margin-top: 1rem;
+
+    p {
+      margin: 0 0 0.75rem;
+      color: #ff6b6b;
+    }
+
+    a {
+      color: var(--accent);
+      font-weight: 500;
+    }
+  }
+}

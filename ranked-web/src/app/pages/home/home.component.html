@@ -1,0 +1,141 @@
+<div class="home-page">
+  @if (isLoggedIn) {
+    <!-- Logged-in dashboard -->
+    <section class="hero compact">
+      <h1>Welcome back, {{ user?.displayName || 'Player' }}</h1>
+      <p class="hero-subtitle">Find matches and climb the ranks</p>
+    </section>
+
+    <section class="dashboard-grid">
+      <!-- Primary CTA -->
+      <div class="cta-card">
+        @if (participant$ | async; as p) {
+          <div class="rank-summary">
+            <span class="rank-value">ELO {{ p.currentRank }}</span>
+            <span class="stats">{{ p.wins }}W · {{ p.losses }}L</span>
+          </div>
+          <a [routerLink]="['/my-matches']" class="btn-primary">Find Match</a>
+          <a [routerLink]="['/league']" class="btn-secondary">League</a>
+        } @else {
+          <p class="cta-hint">Join a league to start playing</p>
+          <a routerLink="/league" class="btn-primary">Join League</a>
+        }
+      </div>
+
+      <!-- Recent matches -->
+      @if (participant$ | async) {
+        <div class="recent-card">
+          <h3>Recent Matches</h3>
+          <div class="match-list">
+            @for (m of recentMatches$ | async; track m.id) {
+              <a [routerLink]="['/my-matches']" class="match-row">
+                <span class="match-status" [attr.data-status]="m.status">{{ getMatchStatus(m) }}</span>
+                <span class="match-meta">vs opponent</span>
+              </a>
+            }
+            @empty {
+              <p class="empty">No matches yet</p>
+            }
+          </div>
+          <a [routerLink]="['/my-matches']" class="link-more">View all matches</a>
+        </div>
+      }
+    </section>
+
+    <!-- Compact leaderboard -->
+    <section class="leaderboard-section">
+      <h2>Top Players</h2>
+      <div class="table-card compact">
+        <table class="leaderboard-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Player</th>
+              <th>Rank</th>
+              <th>Tier</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (player of topPlayers$ | async; track player.id; let i = $index) {
+              <tr [routerLink]="['/profile', player.id]" class="player-row">
+                <td class="rank-num">{{ i + 1 }}</td>
+                <td class="player-name">{{ player.displayName || 'Anonymous' }}</td>
+                <td>{{ player.rank }}</td>
+                <td>
+                  <span class="rank-tier" [ngClass]="{
+                    'bronze': player.rank < 1000,
+                    'silver': player.rank >= 1000 && player.rank < 1300,
+                    'gold': player.rank >= 1300 && player.rank < 1600,
+                    'platinum': player.rank >= 1600 && player.rank < 1900,
+                    'diamond': player.rank >= 1900 && player.rank < 2200,
+                    'champion': player.rank >= 2200
+                  }">{{ getTier(player.rank) }}</span>
+                </td>
+              </tr>
+            }
+            @empty {
+              <tr class="empty-row">
+                <td colspan="4">No players yet</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <a routerLink="/leaderboard" class="link-more">Full leaderboard</a>
+    </section>
+  } @else {
+    <!-- Logged-out landing -->
+    <section class="hero">
+      <h1>Climb the Ladder</h1>
+      <p class="hero-subtitle">Join local leagues. Find matches. Record wins. Rise in the ranks.</p>
+      <div class="hero-actions">
+        <a routerLink="/league" class="btn-primary">Browse Leagues</a>
+        <a routerLink="/login" class="btn-secondary">Get Started</a>
+      </div>
+    </section>
+
+    <section class="leaderboard-section">
+      <h2>Top Players</h2>
+      <div class="table-card">
+        <table class="leaderboard-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Player</th>
+              <th>Rank</th>
+              <th>Tier</th>
+              <th>W</th>
+              <th>L</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (player of topPlayers$ | async; track player.id; let i = $index) {
+              <tr [routerLink]="['/profile', player.id]" class="player-row">
+                <td class="rank-num">{{ i + 1 }}</td>
+                <td class="player-name">{{ player.displayName || 'Anonymous' }}</td>
+                <td>{{ player.rank }}</td>
+                <td>
+                  <span class="rank-tier" [ngClass]="{
+                    'bronze': player.rank < 1000,
+                    'silver': player.rank >= 1000 && player.rank < 1300,
+                    'gold': player.rank >= 1300 && player.rank < 1600,
+                    'platinum': player.rank >= 1600 && player.rank < 1900,
+                    'diamond': player.rank >= 1900 && player.rank < 2200,
+                    'champion': player.rank >= 2200
+                  }">{{ getTier(player.rank) }}</span>
+                </td>
+                <td>{{ player.wins || 0 }}</td>
+                <td>{{ player.losses || 0 }}</td>
+              </tr>
+            }
+            @empty {
+              <tr class="empty-row">
+                <td colspan="6">No players yet. Be the first to join a league!</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+</div>

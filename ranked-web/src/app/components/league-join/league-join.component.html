@@ -1,9 +1,16 @@
 <div class="league-join page">
     <h3>Join League</h3>
-    <p>League: {{ leagueId }}</p>
+    <p>League: {{ (league$ | async)?.name || leagueId }}</p>
 
-    <label>Location (city)</label>
-    <input [(ngModel)]="city" placeholder="e.g., Austin, TX" />
+    <div *ngIf="joinBlockedReason" class="join-blocked">
+        <p>{{ joinBlockedReason }}</p>
+        <a routerLink="/league">Find leagues near you</a>
+    </div>
 
-    <button (click)="join()">Join League</button>
+    <form *ngIf="!joinBlockedReason" (ngSubmit)="join()">
+        <label>Your location (city)</label>
+        <input [(ngModel)]="city" name="city" placeholder="e.g., Austin, TX" />
+
+        <button type="submit">Join League</button>
+    </form>
 </div>

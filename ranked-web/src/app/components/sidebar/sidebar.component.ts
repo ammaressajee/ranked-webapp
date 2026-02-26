@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, EventEmitter, inject, Input, OnInit, Output, Signal, signal, WritableSignal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { AdminService } from '../../services/admin.service';
 import { NavItem } from '../../models/NavItem';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -17,7 +18,10 @@ import { FormsModule } from '@angular/forms';
 })
 export class SidebarComponent implements OnInit {
   authService = inject(AuthService);
+  adminService = inject(AdminService);
   private router = inject(Router);
+
+  isAdmin$ = this.adminService.isAdmin$;
 
   @Input() isSidebarOpen: boolean = true;
   @Output() toggleEvent = new EventEmitter<void>();
@@ -37,54 +41,22 @@ export class SidebarComponent implements OnInit {
         requiresAuth: false
       },
       {
-        icon: 'sports_score',
-        label: 'Record Match',
-        route: uid ? `/record-match` : '/login',
-        requiresAuth: true
-      },
-      {
-        icon: 'leaderboard',
-        label: 'Rankings',
-        route: '/leaderboard',
-        requiresAuth: false
-      },
-      {
-        icon: 'group',
-        label: 'Match History',
-        route: '/profile/' + uid,
-        requiresAuth: false
-      }, 
-      {
         icon: 'sports_soccer',
-        label: 'Join League',
-        route: '/leagues',
+        label: 'League',
+        route: '/league',
         requiresAuth: false
       },
-      // league matches if in a league
-      {
-        icon: 'event',
-        label: 'League Matches',
-        route: uid ? `/my-matches` : '/login',
-        requiresAuth: true
-      }
-    ];
-  });
-
-
-  // --- BOTTOM NAVIGATION ITEM (Profile) ---
-  bottomNavItems: Signal<NavItem[]> = computed(() => {
-    const user = this.authService.profile();
-    const uid = user?.uid || '';
-
-    return [
       {
         icon: 'account_circle',
-        label: 'My Profile',
+        label: 'Profile',
         route: uid ? `/profile/${uid}` : '/login',
         requiresAuth: false
       }
     ];
   });
+
+
+  bottomNavItems: Signal<NavItem[]> = computed(() => []);
 
   ngOnInit() { }
 

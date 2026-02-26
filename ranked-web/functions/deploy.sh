@@ -44,6 +44,30 @@ gcloud functions deploy sweep_pending_matches \
     --trigger-http \
     --allow-unauthenticated
 
+# 4. Deploy 'accept_match' (HTTP Trigger)
 echo "--------------------------------------------------------"
-echo "✅ All three functions deployed successfully!"
+echo "Deploying accept_match (HTTP Trigger)..."
+gcloud functions deploy accept_match \
+    --gen2 \
+    --runtime=python310 \
+    --region=us-central1 \
+    --entry-point=accept_match \
+    --trigger-http \
+    --allow-unauthenticated \
+    --memory=256Mi
+
+# 5. Deploy 'decline_match' (HTTP Trigger)
+echo "--------------------------------------------------------"
+echo "Deploying decline_match (HTTP Trigger)..."
+gcloud functions deploy decline_match \
+    --gen2 \
+    --runtime=python310 \
+    --region=us-central1 \
+    --entry-point=decline_match \
+    --trigger-http \
+    --allow-unauthenticated \
+    --memory=256Mi
+
+echo "--------------------------------------------------------"
+echo "✅ All functions deployed successfully!"
 echo "--------------------------------------------------------"

@@ -21,9 +21,17 @@ MATCH_NO_SHOW_MINUTES = 10       # sweep pending matches timeout
 # environment variable if you prefer, but defining it as a list is cleaner.
 # Example includes localhost and a production URL:
 CORS_ALLOWED_ORIGINS = [
+    "http://localhost:4200",
+    "http://localhost:500",
+    "http://localhost:5000",
+    "http://localhost:5001",
     "http://localhost:5002",
-    "https://your-app-name.web.app",
-    "https://your-app-name.firebaseapp.com"
+    "http://127.0.0.1:4200",
+    "http://127.0.0.1:500",
+    "http://127.0.0.1:5000",
+    "http://127.0.0.1:5001",
+    "https://ranked-app-9f746.web.app",
+    "https://ranked-app-9f746.firebaseapp.com"
 ]
 # ------------------
 
@@ -306,13 +314,13 @@ def find_match(request: Request):
             # This is the "already matched" case
             raise RuntimeError("already matched")
             
-        # Create match and set 'seeking' to false for both
+        # Create match with pending_acceptance - playerB (opponent) must accept
         tx.set(match_ref, {
             "leagueId": league_id,
             "round": 0,
             "playerA": user_id,
             "playerB": opponent_id,
-            "status": "pending",
+            "status": "pending_acceptance",
             "type": "ondemand",
             "createdAt": firestore.SERVER_TIMESTAMP,
             "scheduledAt": firestore.SERVER_TIMESTAMP
@@ -329,6 +337,130 @@ def find_match(request: Request):
 
     resp = jsonify({"matchId": match_id, "status": "matched", "opponentUid": opponent_id})
     return resp, 200, response_headers
+
+
+# ----- ACCEPT MATCH HTTP -----
+@functions_framework.http
+def accept_match(request: Request):
+    """HTTP POST: Opponent (playerB) accepts a pending_acceptance match."""
+
+    allowed_origin = get_allowed_origin(request)
+    response_headers = {}
+    if allowed_origin:
+        response_headers['Access-Control-Allow-Origin'] = allowed_origin
+        response_headers['Access-Control-Allow-Credentials'] = 'true'
+
+    if request.method == "OPTIONS":
+        resp = make_response('', 204)
+        if allowed_origin:
+            resp.headers.set('Access-Control-Allow-Origin', allowed_origin)
+            resp.headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS')
+            resp.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+            resp.headers.set('Access-Control-Max-Age', '3600')
+            resp.headers.set('Access-Control-Allow-Credentials', 'true')
+        return resp
+
+    if not allowed_origin:
+        return jsonify({"error": "Forbidden Origin"}), 403, {'Content-Type': 'application/json'}
+
+    try:
+        decoded = _verify_id_token_from_request(request)
+    except Exception as e:
+        return jsonify({"error": "Unauthorized", "detail": str(e)}), 401, response_headers
+
+    payload = request.get_json(silent=True)
+    if not payload:
+        return jsonify({"error": "Invalid JSON"}), 400, response_headers
+
+    match_id = payload.get("matchId")
+    user_id = decoded.get("uid")
+    if not match_id or not user_id:
+        return jsonify({"error": "matchId required"}), 400, response_headers
+
+    match_ref = db.collection("leagueMatches").document(match_id)
+    match_snap = match_ref.get()
+    if not match_snap.exists:
+        return jsonify({"error": "Match not found"}), 404, response_headers
+
+    data = match_snap.to_dict()
+    if data.get("status") != "pending_acceptance":
+        return jsonify({"error": "Match is not awaiting acceptance"}), 400, response_headers
+
+    if data.get("playerB") != user_id:
+        return jsonify({"error": "Only the invited player can accept"}), 403, response_headers
+
+    match_ref.update({
+        "status": "pending",
+        "acceptedAt": firestore.SERVER_TIMESTAMP,
+        "acceptedBy": user_id
+    })
+
+    return jsonify({"status": "accepted", "matchId": match_id}), 200, response_headers
+
+
+# ----- DECLINE MATCH HTTP -----
+@functions_framework.http
+def decline_match(request: Request):
+    """HTTP POST: Opponent (playerB) declines a pending_acceptance match."""
+
+    allowed_origin = get_allowed_origin(request)
+    response_headers = {}
+    if allowed_origin:
+        response_headers['Access-Control-Allow-Origin'] = allowed_origin
+        response_headers['Access-Control-Allow-Credentials'] = 'true'
+
+    if request.method == "OPTIONS":
+        resp = make_response('', 204)
+        if allowed_origin:
+            resp.headers.set('Access-Control-Allow-Origin', allowed_origin)
+            resp.headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS')
+            resp.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+            resp.headers.set('Access-Control-Max-Age', '3600')
+            resp.headers.set('Access-Control-Allow-Credentials', 'true')
+        return resp
+
+    if not allowed_origin:
+        return jsonify({"error": "Forbidden Origin"}), 403, {'Content-Type': 'application/json'}
+
+    try:
+        decoded = _verify_id_token_from_request(request)
+    except Exception as e:
+        return jsonify({"error": "Unauthorized", "detail": str(e)}), 401, response_headers
+
+    payload = request.get_json(silent=True)
+    if not payload:
+        return jsonify({"error": "Invalid JSON"}), 400, response_headers
+
+    match_id = payload.get("matchId")
+    user_id = decoded.get("uid")
+    if not match_id or not user_id:
+        return jsonify({"error": "matchId required"}), 400, response_headers
+
+    match_ref = db.collection("leagueMatches").document(match_id)
+    match_snap = match_ref.get()
+    if not match_snap.exists:
+        return jsonify({"error": "Match not found"}), 404, response_headers
+
+    data = match_snap.to_dict()
+    if data.get("status") != "pending_acceptance":
+        return jsonify({"error": "Match is not awaiting acceptance"}), 400, response_headers
+
+    if data.get("playerB") != user_id:
+        return jsonify({"error": "Only the invited player can decline"}), 403, response_headers
+
+    # Re-enable seeking for playerA so they can search again
+    league_id = data.get("leagueId")
+    player_a = data.get("playerA")
+    sr_ref = db.collection("searchRequests").document(f"{league_id}_{player_a}")
+    match_ref.update({
+        "status": "cancelled",
+        "cancelledAt": firestore.SERVER_TIMESTAMP,
+        "cancelReason": "declined",
+        "declinedBy": user_id
+    })
+    sr_ref.set({"seeking": True}, merge=True)
+
+    return jsonify({"status": "declined", "matchId": match_id}), 200, response_headers
 
 
 # ----- SWEEP PENDING MATCHES -----
@@ -364,20 +496,28 @@ def sweep_pending_matches(request: Request):
 
     try:
         cutoff = datetime.now(timezone.utc) - timedelta(minutes=MATCH_NO_SHOW_MINUTES)
-        q = db.collection("leagueMatches").where("status", "==", "pending").where("createdAt", "<=", cutoff)
-        
         canceled = []
-        for doc_snap in q.stream():
-            try:
-                # Use a specific no_show status to differentiate from user-cancelled
-                doc_snap.reference.update({
-                    "status": "cancelled",
-                    "cancelledAt": firestore.SERVER_TIMESTAMP,
-                    "cancelReason": "no_show_sweep"
-                })
-                canceled.append(doc_snap.id)
-            except Exception as e:
-                print(f"failed cancel {doc_snap.id}: {e}")
+
+        # Cancel stale pending matches (never played)
+        for status_val in ["pending", "pending_acceptance"]:
+            q = db.collection("leagueMatches").where("status", "==", status_val).where("createdAt", "<=", cutoff)
+            for doc_snap in q.stream():
+                try:
+                    data = doc_snap.to_dict()
+                    doc_snap.reference.update({
+                        "status": "cancelled",
+                        "cancelledAt": firestore.SERVER_TIMESTAMP,
+                        "cancelReason": "no_show_sweep"
+                    })
+                    canceled.append(doc_snap.id)
+                    # Re-enable seeking for playerA so they can search again
+                    league_id = data.get("leagueId")
+                    player_a = data.get("playerA")
+                    if league_id and player_a:
+                        sr_ref = db.collection("searchRequests").document(f"{league_id}_{player_a}")
+                        sr_ref.set({"seeking": True}, merge=True)
+                except Exception as e:
+                    print(f"failed cancel {doc_snap.id}: {e}")
 
         resp = jsonify({"cancelled": canceled, "count": len(canceled), "cutoff": cutoff.isoformat()})
         return resp, 200, response_headers

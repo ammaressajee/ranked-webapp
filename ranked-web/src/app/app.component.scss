@@ -3,125 +3,148 @@
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
+  background: var(--bg-dark);
+}
 
-  .main-content {
-    flex: 1;
-    overflow-y: auto;
-    transition: margin-left 0.3s ease;
+.topbar {
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  padding: 0 1.25rem;
+  z-index: 1000;
 
-  }
-
-  .topbar {
-    height: 64px;
+  .left-section {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    background: #1e1e2f;
-    color: #fff;
-    padding: 0 1rem;
-    z-index: 1000;
+    gap: 1rem;
 
-    .left-section {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
+    .app-title {
+      font-family: var(--font-display);
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+      text-decoration: none;
 
-      .app-title {
-        font-size: 1.25rem;
-        font-weight: 600;
-        color: #ffffff;
+      &::before {
+        content: '🏓 ';
       }
 
-      .menu-btn {
-        color: #fff;
+      &:hover {
+        color: var(--accent);
       }
     }
 
-    .right-section {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
+    .menu-icon {
+      font-size: 1.1rem;
+    }
 
-      button[mat-icon-button] {
-        color: #fff;
-        transition: background 0.2s ease;
+    .menu-btn {
+      color: var(--text-secondary);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 0.5rem;
+      border-radius: 8px;
+      transition: all 0.2s;
+
+      &:hover {
+        background: var(--accent-muted);
+        color: var(--accent);
+      }
+    }
+  }
+
+  .right-section {
+    .auth-btn {
+      font-size: 0.9rem;
+      font-weight: 600;
+      padding: 0.5rem 1.25rem;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: var(--font-body);
+
+      &.login {
+        background: var(--gradient-accent);
+        color: #0f0f14;
+        box-shadow: 0 2px 12px rgba(0, 212, 170, 0.3);
 
         &:hover {
-          background: rgba(255, 255, 255, 0.1);
+          transform: translateY(-1px);
+          box-shadow: 0 4px 16px rgba(0, 212, 170, 0.4);
         }
       }
 
-      .auth-btn {
-        font-size: 0.9rem;
-        font-weight: 500;
-        padding: 0.45rem 1.1rem;
-        border-radius: 6px;
-        border: none;
-        cursor: pointer;
-        transition: all 0.25s ease;
+      &.logout {
+        background: transparent;
+        color: var(--text-secondary);
+        border: 1px solid var(--border);
 
-        &.login {
-          background: #28c76fca;
-          color: #fff;
-          border: 1px solid #9f9c9c80;
-
-          &:hover {
-            background: #22b564;
-          }
-        }
-
-        &.logout {
-          background: transparent;
-          color: #fff;
-          border: 1px solid #fff;
-
-          &:hover {
-            background: rgba(255, 255, 255, 0.1);
-          }
+        &:hover {
+          background: rgba(255, 255, 255, 0.05);
+          color: var(--text-primary);
         }
       }
     }
   }
+}
 
+.layout-container {
+  display: flex;
+  flex: 1;
+  height: calc(100vh - 60px);
+  overflow: hidden;
+  background: var(--bg-dark);
+}
 
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  transition: margin-left 0.3s ease;
 
-  .layout-container {
-    display: flex;
-    flex: 1;
-    height: calc(100vh - 64px);
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+  &::-webkit-scrollbar-track {
+    background: var(--bg-dark);
+  }
+  &::-webkit-scrollbar-thumb {
+    background: var(--bg-elevated);
+    border-radius: 4px;
+  }
+}
+
+.sidebar {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  width: 260px;
+  min-width: 260px;
+  transition: all 0.3s ease;
+  overflow-y: auto;
+  border-right: 1px solid var(--border);
+
+  &.collapsed {
+    width: 0;
+    min-width: 0;
     overflow: hidden;
-    background: #f6f7fa;
-    transition: all 0.3s ease;
   }
-
-  .sidebar {
-    background: #1e1e2f;
-    color: #fff;
-    width: 250px;
-    min-width: 250px;
-    transition: all 0.3s ease;
-    overflow-y: auto;
-    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
-
-    &.collapsed {
-      width: 59.5px;
-      min-width: 59.5px;
-    }
-
-    // if screen is mobile, make collapsed width 0
-    @media (max-width: 768px) {
-      &.collapsed {
-        width: 0;
-        min-width: 0;
-      }
-    }
-  }
-
-  // if screen is mobile, make sidebar width 100%, expanding the card with buttons to 100%
 
   @media (max-width: 768px) {
-    .sidebar {
-      width: 100%
+    position: fixed;
+    left: 0;
+    top: 60px;
+    height: calc(100vh - 60px);
+    z-index: 100;
+    box-shadow: var(--shadow-card);
+
+    &.collapsed {
+      transform: translateX(-100%);
     }
   }
 }

@@ -8,4 +8,8 @@ export interface League {
   endAt?: any;
   season?: number;
   maxPlayers?: number;
+  /** Geo fields for radius queries (optional for backward compatibility) */
+  lat?: number;
+  lng?: number;
+  geohash?: string;
 }

@@ -1,0 +1,58 @@
+.leaderboard.page {
+  padding: 2rem 1.5rem;
+  max-width: 700px;
+  margin: 0 auto;
+
+  h2 {
+    font-size: 1.35rem;
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--bg-card);
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  th, td {
+    padding: 0.75rem 1rem;
+    text-align: left;
+  }
+
+  th {
+    background: var(--bg-elevated);
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  tr {
+    border-top: 1px solid var(--border);
+  }
+
+  td {
+    color: var(--text-primary);
+  }
+
+  button {
+    margin-top: 1rem;
+    padding: 0.5rem 1rem;
+    background: var(--accent-muted);
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 10px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: 0.2s;
+
+    &:hover {
+      background: rgba(0, 212, 170, 0.25);
+    }
+  }
+}

@@ -4,7 +4,7 @@
   <div class="error" *ngIf="error">{{ error }}</div>
 
   <!-- League Selector -->
-  <div class="league-selector" *ngIf="userLeagues$ | async as leagues">
+  <div class="league-selector" *ngIf="leaguesWithNames$ | async as leagues">
     <label>Select League:</label>
     <select
       [(ngModel)]="selectedLeagueId"
@@ -12,27 +12,27 @@
       class="league-dropdown"
     >
       <option *ngFor="let lg of leagues" [value]="lg.leagueId">
-        {{ lg.leagueName || lg.leagueId }}
+        {{ lg.resolvedLeagueName }}
       </option>
     </select>
   </div>
 
   <!-- Match List -->
-  <div *ngIf="matches$ | async as matches">
+  <div *ngIf="matchesWithNames$ | async as vm; else noMatches">
 
     <h2 class="section-title">My Matches</h2>
 
-    <div *ngIf="matches.length === 0" class="empty-msg">
+    <div *ngIf="vm.matches.length === 0" class="empty-msg">
       No matches yet in this league.
     </div>
 
-    <div class="match-card" *ngFor="let m of matches">
+    <div class="match-card" *ngFor="let m of vm.matches">
 
       <div class="match-header">
         <div class="players">
-          <span [class.me]="isUser(m.playerA)">{{ m.playerA }}</span>
+          <span [class.me]="isUser(m.playerA)">{{ isUser(m.playerA) ? 'You' : displayName(m.playerA, vm.nameMap) }}</span>
           <span class="vs">vs</span>
-          <span [class.me]="isUser(m.playerB)">{{ m.playerB }}</span>
+          <span [class.me]="isUser(m.playerB)">{{ isUser(m.playerB) ? 'You' : displayName(m.playerB, vm.nameMap) }}</span>
         </div>
 
         <div class="status-badge" [ngClass]="m.status">
@@ -41,35 +41,48 @@
       </div>
 
       <!-- Winner -->
-      <div class="result" *ngIf="m.result?.winner">
-        <strong>Winner:</strong> {{ m.result?.winner }} <br />
+      <div class="result" *ngIf="m.result?.winner as winner">
+        <strong>Winner:</strong> {{ isUser(winner) ? 'You' : displayName(winner, vm.nameMap) }} <br />
         <strong>Score:</strong> {{ m.result?.score }}
       </div>
 
       <!-- Status Logic -->
       <div class="match-actions">
 
-        <!-- Pending Match -->
+        <!-- Pending Acceptance: Invited player can Accept or Decline -->
+        <ng-container *ngIf="shouldShowAccept(m)">
+          <button class="btn accept-btn" (click)="acceptMatch(m)">Accept Match</button>
+          <button class="btn decline-btn" (click)="declineMatch(m)">Decline</button>
+        </ng-container>
+
+        <!-- Pending Acceptance: Seeker waits -->
         <button
-          *ngIf="m.status === 'pending'"
+          *ngIf="m.status === 'pending_acceptance' && !shouldShowAccept(m)"
           class="btn find-btn"
           disabled
         >
-          Waiting for opponent...
+          Waiting for opponent to accept...
         </button>
 
-        <!-- Report Score -->
+        <!-- Pending: Ready to play — View opponent to coordinate -->
+        <div *ngIf="m.status === 'pending'" class="pending-actions">
+          <a [routerLink]="['/profile', isUser(m.playerA) ? m.playerB : m.playerA]" class="btn message-btn">
+            👤 View opponent
+          </a>
+        </div>
+
+        <!-- Report Score (when match is pending and you're a player) -->
         <button
-          *ngIf="m.status === 'reported' || m.status === 'pendingConfirm'"
+          *ngIf="shouldShowReport(m)"
           class="btn report-btn"
           (click)="openReportDialog(m)"
         >
           Report Score
         </button>
 
-        <!-- Confirm Result -->
+        <!-- Confirm Result (when opponent reported and you haven't confirmed) -->
         <button
-          *ngIf="m.status === 'pendingConfirm' && !m.confirmations?.[auth.currentUser?.uid || '']"
+          *ngIf="shouldShowConfirm(m)"
           class="btn confirm-btn"
           (click)="confirmResult(m)"
         >
@@ -85,6 +98,10 @@
 
     </div>
   </div>
+  <ng-template #noMatches>
+    <h2 class="section-title">My Matches</h2>
+    <div class="empty-msg">Loading…</div>
+  </ng-template>
 </div>
 
 <!-- Loading Template -->
@@ -100,8 +117,8 @@
 
     <p class="modal-label">Who won?</p>
     <select [(ngModel)]="dialogWinnerUid">
-      <option [value]="dialogMatch?.playerA">{{ dialogMatch?.playerA }}</option>
-      <option [value]="dialogMatch?.playerB">{{ dialogMatch?.playerB }}</option>
+      <option [value]="dialogMatch?.playerA">{{ isUser(dialogMatch?.playerA) ? 'You' : displayName(dialogMatch?.playerA, dialogNameMap) }}</option>
+      <option [value]="dialogMatch?.playerB">{{ isUser(dialogMatch?.playerB) ? 'You' : displayName(dialogMatch?.playerB, dialogNameMap) }}</option>
     </select>
 
     <p class="modal-label">Enter score:</p>

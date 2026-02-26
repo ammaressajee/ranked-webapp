@@ -1,11 +1,11 @@
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { Component, inject, PLATFORM_ID, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { collection, collectionData, Firestore, limit, orderBy, query } from '@angular/fire/firestore';
-import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-leaderboard',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, RouterLink],
   templateUrl: './leaderboard.component.html',
   styleUrl: './leaderboard.component.scss',
 })

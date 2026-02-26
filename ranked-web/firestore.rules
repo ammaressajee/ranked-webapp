@@ -1,10 +1,68 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{db}/documents {
+    // Config - admins list (bootstrap via Firestore Console)
+    match /config/admins {
+      allow read: if request.auth != null;
+      allow create: if false;
+      allow update: if request.auth != null &&
+        request.auth.uid in get(/databases/$(database)/documents/config/admins).data.uids;
+    }
+
+    // User profiles - read public, write own
     match /users/{uid} {
       allow read: if true;
-      allow write: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null && request.auth.uid == uid;
+      allow delete: if false;
     }
+
+    // Leagues - read public, create/update admins only
+    match /leagues/{leagueId} {
+      allow read: if true;
+      allow create: if request.auth != null &&
+        exists(/databases/$(database)/documents/config/admins) &&
+        request.auth.uid in get(/databases/$(database)/documents/config/admins).data.uids;
+      allow update: if request.auth != null &&
+        exists(/databases/$(database)/documents/config/admins) &&
+        request.auth.uid in get(/databases/$(database)/documents/config/admins).data.uids;
+    }
+
+    // League requests - users create, admins update
+    match /leagueRequests/{requestId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null &&
+        request.resource.data.requestedBy == request.auth.uid;
+      allow update: if request.auth != null &&
+        exists(/databases/$(database)/documents/config/admins) &&
+        request.auth.uid in get(/databases/$(database)/documents/config/admins).data.uids;
+    }
+
+    // League participants - read public, join/create own
+    match /leagueParticipants/{participantId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null;
+    }
+
+    // League matches - read if authenticated, create via find_match flow
+    match /leagueMatches/{matchId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null;
+    }
+
+    // Search requests - used by matchmaking; only Cloud Functions should write
+    match /searchRequests/{requestId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Legacy matches (Record Match flow)
+    match /matches/{matchId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+    }
+
+    // Legacy ladders
     match /ladders/{ladderId} {
       allow read: if true;
       allow update: if request.auth != null;

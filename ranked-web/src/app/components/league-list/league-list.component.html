@@ -1,14 +1,107 @@
-<div class="leagues-list page">
-    <h2>Leagues</h2>
-    <button (click)="createTestLeague()">Create Test League (dev)</button>
+<div class="leagues-page">
+  <section class="page-header">
+    <h1>Leagues</h1>
+    <p class="subtitle">Join a local league and start climbing the ranks</p>
+    <div class="header-actions">
+      <button (click)="showRequestForm = true" class="btn-request">Request a League</button>
+      <button *ngIf="isAdmin$ | async" (click)="showCreateForm = true" class="btn-dev">+ Create League</button>
+    </div>
+  </section>
 
-    <ul>
-        <li *ngFor="let l of leagues | async">
-            <a (click)="openLeague(l.id!)">{{ l.name }} — {{ l.location }}</a><br>
-            <!-- join button -->
-            <button (click)="joinLeague(l.id!)">Join</button>
-            <!-- view button -->
-            <button (click)="openLeague(l.id!)">View</button>
-        </li>
-    </ul>
+  <section class="location-section">
+    <div *ngIf="!(userLocation$ | async); else hasLocation" class="location-prompt">
+      <p class="location-hint">Find leagues near you (players must meet in person)</p>
+      <div class="location-actions">
+        <button (click)="useMyLocation()" class="btn-location">Use my location</button>
+        <div class="location-or">
+          <span>or enter your city</span>
+          <input [(ngModel)]="locationPromptCity" placeholder="e.g., Austin, TX" (keyup.enter)="setLocationFromCity()" />
+          <button (click)="setLocationFromCity()" class="btn-set-city">Set</button>
+        </div>
+      </div>
+      <p *ngIf="locationError" class="location-error">{{ locationError }}</p>
+      <p class="location-fallback">Showing all leagues. Set your location to see only nearby leagues.</p>
+    </div>
+    <ng-template #hasLocation>
+      <div class="location-set">
+        <span>Showing leagues within {{ DEFAULT_LEAGUE_RADIUS_KM }} km</span>
+        <button (click)="clearLocation()" class="btn-clear-location">Change location</button>
+      </div>
+    </ng-template>
+  </section>
+
+  <section class="leagues-grid">
+    <div *ngFor="let l of leagues | async" class="league-card">
+      <div class="card-content">
+        <div class="card-icon">🏓</div>
+        <h3>{{ l.name }}</h3>
+        <p class="location">{{ l.location }}</p>
+        <div class="card-actions">
+          <button (click)="openLeague(l.id!)" class="btn-view">View</button>
+          <button (click)="joinLeague(l.id!)" class="btn-join">Join</button>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="(leagues | async)?.length === 0" class="empty-state">
+      <p>No leagues in your area yet.</p>
+      <ng-container *ngIf="isAdmin$ | async; else requestBlock">
+        <button (click)="showCreateForm = true" class="btn-primary">Create League</button>
+      </ng-container>
+      <ng-template #requestBlock>
+        <button (click)="showRequestForm = true" class="btn-primary">Request a League</button>
+      </ng-template>
+    </div>
+  </section>
+</div>
+
+<!-- Request League Form (for users) -->
+<div class="modal-backdrop" *ngIf="showRequestForm" (click)="showRequestForm = false">
+  <div class="modal-card" (click)="$event.stopPropagation()">
+    <h3>Request a League</h3>
+    <p class="modal-hint">Admins will review your request and create the league.</p>
+    <form (ngSubmit)="submitRequest()" *ngIf="!requestSubmitted">
+      <label>League name</label>
+      <input [(ngModel)]="requestLeagueName" name="leagueName" placeholder="e.g., Austin Pickleball League" required />
+      <label>Location (city)</label>
+      <input [(ngModel)]="requestLocation" name="location" placeholder="e.g., Austin, TX" required />
+      <div *ngIf="(suggestedLocations$ | async)?.length" class="suggested-locations">
+        <span class="suggest-label">Others have requested:</span>
+        <div class="location-chips">
+          <button type="button" *ngFor="let loc of suggestedLocations$ | async" class="chip" (click)="requestLocation = loc">
+            {{ loc }}
+          </button>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" (click)="showRequestForm = false">Cancel</button>
+        <button type="submit" class="btn-submit">Submit Request</button>
+      </div>
+    </form>
+    <div *ngIf="requestSubmitted" class="request-success">
+      <p>Request submitted. Admins will review and create the league.</p>
+      <button (click)="showRequestForm = false; requestSubmitted = false" class="btn-close">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Create League Form (for admins) -->
+<div class="modal-backdrop" *ngIf="showCreateForm" (click)="showCreateForm = false">
+  <div class="modal-card" (click)="$event.stopPropagation()">
+    <h3>Create League</h3>
+    <form (ngSubmit)="createLeague()" *ngIf="!createSuccess">
+      <label>League name</label>
+      <input [(ngModel)]="createLeagueName" name="createName" placeholder="e.g., Austin Pickleball League" required />
+      <label>Location (city)</label>
+      <input [(ngModel)]="createLocation" name="createLocation" placeholder="e.g., Austin, TX" required />
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" (click)="showCreateForm = false">Cancel</button>
+        <button type="submit" class="btn-submit">Create</button>
+      </div>
+    </form>
+    <div *ngIf="createSuccess" class="request-success">
+      <p>League created successfully.</p>
+      <button (click)="showCreateForm = false; createSuccess = false; openLeague(createdLeagueId)" class="btn-close">View League</button>
+    </div>
+  </div>
 </div>

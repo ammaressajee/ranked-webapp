@@ -1,0 +1,66 @@
+<div class="admin-page">
+  <h1>Admin Panel</h1>
+  <p class="subtitle">Create leagues and review requests</p>
+
+  <section class="create-section">
+    <button (click)="openCreateForm()" class="btn-create">+ Create League</button>
+  </section>
+
+  <section class="demand-section" *ngIf="requestsByLocation$ | async as byLocation">
+    <h2>Demand by Location</h2>
+    <div *ngIf="byLocation.length === 0" class="empty-small">No pending requests.</div>
+    <div *ngIf="byLocation.length > 0" class="demand-list">
+      <div *ngFor="let group of byLocation" class="demand-item">
+        <span class="demand-location">{{ group.location }}</span>
+        <span class="demand-count">{{ group.count }} request(s)</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="requests-section">
+    <h2>Pending League Requests</h2>
+    <div *ngIf="pendingRequests$ | async as requests" class="requests-list">
+      <div *ngIf="requests.length === 0" class="empty">
+        No pending requests.
+      </div>
+      <div *ngFor="let req of requests" class="request-card">
+        <div class="request-info">
+          <h3>{{ req.leagueName }}</h3>
+          <p class="location">{{ req.location }}</p>
+          <p class="requester">Requested by {{ req.requestedByName }}</p>
+        </div>
+        <div class="request-actions">
+          <button (click)="approve(req)" class="btn-approve">Approve</button>
+          <button (click)="createFromRequest(req)" class="btn-create-from">Create (edit)</button>
+          <button (click)="reject(req)" class="btn-reject">Reject</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- Create League Modal -->
+<div class="modal-backdrop" *ngIf="showCreateForm" (click)="closeCreateForm()">
+  <div class="modal-card" (click)="$event.stopPropagation()">
+    <h3>Create League</h3>
+    <p *ngIf="createFromRequestId" class="modal-hint">Creating from request. Submitting will also approve that request.</p>
+
+    <form *ngIf="!createSuccess" (ngSubmit)="createLeague()">
+      <label>League name</label>
+      <input [(ngModel)]="createLeagueName" name="createName" placeholder="e.g., Austin Pickleball League" required />
+      <label>Location (city)</label>
+      <input [(ngModel)]="createLocation" name="createLocation" placeholder="e.g., Austin, TX" required />
+      <p *ngIf="createError" class="error-msg">{{ createError }}</p>
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" (click)="closeCreateForm()">Cancel</button>
+        <button type="submit" class="btn-submit">Create</button>
+      </div>
+    </form>
+
+    <div *ngIf="createSuccess" class="success-state">
+      <p>League created successfully.</p>
+      <button (click)="viewCreatedLeague()" class="btn-view">View League</button>
+      <button (click)="closeCreateForm()" class="btn-cancel">Close</button>
+    </div>
+  </div>
+</div>

@@ -1,207 +1,196 @@
-/* ------------------------------------------- */
-/* 🚀 GLOBAL BASE STYLES & CONTAINER (Desktop/Tablet) */
-/* (NO CHANGES HERE - Desktop view remains large and impactful) */
-/* ------------------------------------------- */
-.leaderboard-container {
-  min-height: 100vh;
-  width: 100%;
-  background: linear-gradient(135deg, #5e60ce 0%, #48bfe3 50%, #34977bc5 100%);
-  /* DESKTOP/TABLET: Background is fixed for the cool parallax effect */
-  background-attachment: fixed; 
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 2.5rem 2rem;
-  box-sizing: border-box;
-
-  color: #fff;
-  font-family: 'Poppins', sans-serif;
+.leaderboard-page {
+  min-height: 100%;
+  padding-bottom: 3rem;
 }
 
-.leaderboard-container h2 {
-  font-size: clamp(1.8rem, 4vw, 2.5rem);
-  font-weight: 800;
-  margin-bottom: 2.5rem;
+.hero {
+  background: var(--gradient-hero);
+  padding: 3rem 2rem 4rem;
   text-align: center;
-  color: #ffffff;
-  text-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
-}
-
-.leaderboard-table-card {
-  width: 98%;
-  max-width: 1400px;
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(15px);
-  -webkit-backdrop-filter: blur(15px);
-  border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  position: relative;
   overflow: hidden;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 200%;
+    height: 100px;
+    background: radial-gradient(ellipse at center, rgba(0, 212, 170, 0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  h1 {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 0.75rem;
+    letter-spacing: -0.03em;
+  }
+
+  .hero-subtitle {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    max-width: 480px;
+    margin: 0 auto 2rem;
+    line-height: 1.6;
+  }
+
+  .hero-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .btn-primary {
+    display: inline-block;
+    padding: 0.75rem 1.75rem;
+    background: var(--gradient-accent);
+    color: #0f0f14;
+    font-weight: 600;
+    font-size: 1rem;
+    border-radius: 12px;
+    text-decoration: none;
+    transition: all 0.2s;
+    box-shadow: 0 4px 16px rgba(0, 212, 170, 0.3);
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 24px rgba(0, 212, 170, 0.4);
+    }
+  }
+
+  .btn-secondary {
+    display: inline-block;
+    padding: 0.75rem 1.75rem;
+    background: transparent;
+    color: var(--accent);
+    font-weight: 600;
+    font-size: 1rem;
+    border-radius: 12px;
+    border: 2px solid var(--accent);
+    text-decoration: none;
+    transition: all 0.2s;
+
+    &:hover {
+      background: var(--accent-muted);
+    }
+  }
 }
 
-.leaderboard-table-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5);
+.leaderboard-section {
+  max-width: 900px;
+  margin: -2rem auto 0;
+  padding: 0 1.5rem;
+  position: relative;
+  z-index: 1;
+
+  h2 {
+    font-size: 1.5rem;
+    margin-bottom: 1.25rem;
+    color: var(--text-primary);
+  }
+}
+
+.table-card {
+  background: var(--bg-card);
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+}
+
+.table-wrapper {
+  overflow-x: auto;
 }
 
 .leaderboard-table {
   width: 100%;
   border-collapse: collapse;
-  color: #f0f0f0;
-  font-size: 1.15rem; 
+  font-size: 0.95rem;
 }
 
 .leaderboard-table thead {
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--bg-elevated);
   text-transform: uppercase;
-  font-size: 0.95rem;
-  letter-spacing: 0.1em;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
 }
 
 .leaderboard-table th {
-  padding: 1.25rem 1rem;
-  font-weight: 700;
-  color: #c5e1ff;
+  padding: 1rem 1.25rem;
+  font-weight: 600;
   text-align: left;
 }
 
 .leaderboard-table tbody tr {
+  border-top: 1px solid var(--border);
+  transition: background 0.15s;
+}
+
+.player-row {
   cursor: pointer;
-  transition: background 0.2s ease, transform 0.1s ease;
-}
 
-.leaderboard-table tbody tr:hover {
-  background: rgba(255, 255, 255, 0.1);
-  transform: scale(1.005);
-}
-
-.leaderboard-table tbody tr:nth-child(even) {
-  background: rgba(0, 0, 0, 0.1);
+  &:hover {
+    background: var(--accent-muted);
+  }
 }
 
 .leaderboard-table td {
-  padding: 1.4rem 1rem; 
-  text-align: left;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  color: #f0f0f0;
+  padding: 1rem 1.25rem;
+  color: var(--text-primary);
+}
+
+.rank-num {
+  font-weight: 700;
+  color: var(--text-muted);
+  width: 48px;
+}
+
+.player-name {
   font-weight: 500;
-}
-
-.leaderboard-table th:first-child,
-.leaderboard-table td:first-child {
-    width: 60px;
-    text-align: center;
-    font-weight: 700;
-}
-
-.leaderboard-table th:nth-child(2),
-.leaderboard-table td:nth-child(2) {
-    text-align: left;
 }
 
 .rank-tier {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  padding: 0.5rem 1rem; 
-  border-radius: 50px;
-  font-weight: 700;
-  font-size: 0.9rem;
-  letter-spacing: 0.05em;
-  text-shadow: none;
+  padding: 0.35rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
 }
-/* ... (Rank Tier colors unchanged) ... */
+
 .rank-tier.bronze { background: #a96f30; color: #ffeee0; }
 .rank-tier.silver { background: #8e9091; color: #f7f7f7; }
-.rank-tier.gold { background: #ffb300; color: #333333; }
+.rank-tier.gold { background: #ffb300; color: #333; }
 .rank-tier.platinum { background: #00bcd4; color: #111; }
 .rank-tier.diamond { background: #9c27b0; color: #f3e5f5; }
-.rank-tier.champion { background: #ffeb3b; color: #333; box-shadow: 0 0 10px #ffeb3b; }
+.rank-tier.champion { background: #ffeb3b; color: #333; box-shadow: 0 0 12px rgba(255, 235, 59, 0.4); }
 
-/* ------------------------------------------- */
-/* 📱 MOBILE OPTIMIZATION (≤768px) - FINAL VERSION WITH BACKGROUND FIX */
-/* ------------------------------------------- */
+.empty-row td {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-muted);
+}
+
 @media (max-width: 768px) {
-  .leaderboard-container {
-    padding: 0;
-    align-items: stretch;
-    
-    /* 💥 BACKGROUND FIX: Allow the container to be as wide as its content.
-       The combination of min-height: 100vh (from base) and removing width: 100% 
-       will make the container stretch with the content when it scrolls horizontally. 
-       We must also apply the fixed background to the <body>/<html> for proper behavior
-       when content exceeds viewport width, but since you want it fixed, we can 
-       instead ensure the background itself scrolls. */
-
-    /* Remove the fixed background attachment on mobile for scrolling coverage */
-    background-attachment: scroll; 
+  .hero {
+    padding: 2rem 1rem 3rem;
   }
 
-  /* 🥇 H2 BANNER STYLE */
-  .leaderboard-container h2 {
-    background: rgba(0, 0, 0, 0.4);
-    padding: 1.2rem 0; 
-    font-size: 1.5rem; 
-    margin: 0;
-    position: relative; /* Switched back to sticky for better banner behavior */
-    top: 0;
-    z-index: 100;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-  }
-  
-  .leaderboard-table-card {
-      width: 100%;
-      border-radius: 0;
-      box-shadow: none;
-      background: none;
-      backdrop-filter: none;
-      -webkit-backdrop-filter: none;
-  }
-  
-  .leaderboard-table {
-    /* REMOVED MIN-WIDTH: Let content dictate width */
-    white-space: nowrap; 
-    background: rgba(0, 0, 0, 0.15);
-    font-size: 0.85rem; 
-    /* The table content will naturally overflow, which is fine, 
-       but we need a wrapper if we want to isolate scroll. */
-  }
-
-  /* 📊 Sticky Table Header */
-  .leaderboard-table thead {
-    position: relative; 
-    left: 0;
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(5px);
-    -webkit-backdrop-filter: blur(5px);
-    z-index: 50; 
+  .leaderboard-section {
+    margin-top: -1.5rem;
+    padding: 0 1rem;
   }
 
   .leaderboard-table th,
   .leaderboard-table td {
-    padding: 0.8rem 0.5rem;
+    padding: 0.75rem 0.5rem;
     font-size: 0.85rem;
-    text-align: center;
   }
-  
-  .leaderboard-table th:nth-child(2),
-  .leaderboard-table td:nth-child(2) {
-      text-align: left;
-      padding-left: 0.8rem;
-  }
-  
-  .rank-tier {
-    padding: 0.3rem 0.6rem;
-    font-size: 0.75rem;
-  }
-
-  /* To ensure the horizontal scroll is possible, 
-     you must wrap the .leaderboard-table in a div with 
-     `overflow-x: auto;` in your HTML, as mentioned in the original request.
-     
-     <div class="table-wrapper">
-       <table class="leaderboard-table">...</table>
-     </div>
-  */
 }

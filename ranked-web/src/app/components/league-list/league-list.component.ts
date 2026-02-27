@@ -148,13 +148,12 @@ export class LeagueListComponent {
     this.locationLoading = true;
     try {
       await this.locationService.requestBrowserLocation();
-      this.cdr.detectChanges();
-      setTimeout(() => this.cdr.detectChanges(), 100);
+      // Reload so the page loads with stored location and leagues list renders correctly
+      window.location.reload();
     } catch (err) {
       this.locationError = 'Could not get your location. Enable location access or browse all leagues.';
     } finally {
       this.locationLoading = false;
-      this.cdr.detectChanges();
     }
   }
 

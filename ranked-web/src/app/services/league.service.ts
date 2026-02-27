@@ -1,4 +1,4 @@
-import { inject, Injectable } from '@angular/core';
+import { inject, Injectable, NgZone } from '@angular/core';
 import { addDoc, collection, collectionData, deleteDoc, doc, docData, endAt, Firestore, getDoc, getDocs, limit, orderBy, query, serverTimestamp, startAt, setDoc, updateDoc, where } from '@angular/fire/firestore';
 import { combineLatest, firstValueFrom, map, Observable, of } from 'rxjs';
 import { League } from '../models/League';
@@ -38,6 +38,7 @@ export class LeagueService {
   private fs = inject(Firestore);
   http = inject(HttpClient);
   private geocoding = inject(GeocodingService);
+  private ngZone = inject(NgZone);
 
   private leaguesColl() { return collection(this.fs, 'leagues'); }
   private participantsColl() { return collection(this.fs, 'leagueParticipants'); }
@@ -85,19 +86,26 @@ export class LeagueService {
     return new Observable(sub => {
       this.listLeaguesNearby(lat, lng, radiusKm).subscribe({
         next: nearby => {
+          const emit = (leagues: League[], usedFallback: boolean) => {
+            this.ngZone.run(() => {
+              sub.next({ leagues, usedFallback });
+              sub.complete();
+            });
+          };
           if (nearby.length > 0) {
-            sub.next({ leagues: nearby, usedFallback: false });
+            emit(nearby, false);
           } else {
             this.listActiveLeagues().subscribe(all => {
-              sub.next({ leagues: all ?? [], usedFallback: true });
+              emit(all ?? [], true);
             });
           }
-          sub.complete();
         },
-        error: err => {
+        error: () => {
           this.listActiveLeagues().subscribe(all => {
-            sub.next({ leagues: all ?? [], usedFallback: true });
-            sub.complete();
+            this.ngZone.run(() => {
+              sub.next({ leagues: all ?? [], usedFallback: true });
+              sub.complete();
+            });
           });
         }
       });
@@ -143,11 +151,13 @@ export class LeagueService {
             }
           }
           results.sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0));
-          sub.next(results);
-          sub.complete();
+          this.ngZone.run(() => {
+            sub.next(results);
+            sub.complete();
+          });
         })
         .catch(err => {
-          sub.error(err);
+          this.ngZone.run(() => sub.error(err));
         });
     });
   }

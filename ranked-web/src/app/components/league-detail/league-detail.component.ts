@@ -27,7 +27,10 @@ export class LeagueDetailComponent {
 
   findingMatch = false;
   findMatchError: string | null = null;
-  findMatchQueued = false;
+  /** After a successful find: 'queued' | 'matched'. Cleared when user navigates or dismisses. */
+  findMatchResult: 'queued' | 'matched' | null = null;
+  /** When matched, opponent uid for optional display. */
+  findMatchOpponentUid: string | null = null;
   leaving = false;
   deleting = false;
   /** true = in league, false = not in league, null = still loading */
@@ -62,7 +65,8 @@ export class LeagueDetailComponent {
     }
 
     this.findMatchError = null;
-    this.findMatchQueued = false;
+    this.findMatchResult = null;
+    this.findMatchOpponentUid = null;
     this.findingMatch = true;
 
     try {
@@ -77,12 +81,16 @@ export class LeagueDetailComponent {
       const resp = await this.ls.findMatchOnDemand(this.leagueId, user.uid, rank, '');
 
       if (resp?.status === 'queued') {
-        this.findMatchQueued = true;
+        this.findMatchResult = 'queued';
         this.findMatchError = null;
-        this.router.navigate(['/my-matches']);
+        // Stay on page so user sees the message; they can click "Go to My Matches"
       } else if (resp?.status === 'matched') {
+        this.findMatchResult = 'matched';
+        this.findMatchOpponentUid = resp?.opponentUid ?? null;
         this.findMatchError = null;
-        this.router.navigate(['/my-matches']);
+        // Stay on page so user sees the message; they can click "Go to My Matches"
+      } else {
+        this.findMatchError = 'Something went wrong. Try again.';
       }
     } catch (err: any) {
       const msg = err?.error?.error || err?.error?.detail || err?.message ||
@@ -95,6 +103,8 @@ export class LeagueDetailComponent {
   }
 
   openMatches() {
+    this.findMatchResult = null;
+    this.findMatchOpponentUid = null;
     this.router.navigate(['/my-matches']);
   }
 

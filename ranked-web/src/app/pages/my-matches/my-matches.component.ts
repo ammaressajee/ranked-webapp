@@ -173,7 +173,7 @@ export class MyMatchesComponent {
 
     try {
       await this.ls.reportMatchResult(match.id!, match.leagueId!, user.uid, winnerUid, score);
-      alert('Score reported! Waiting for opponent to confirm.');
+      alert('Score reported! Your opponent has 48 hours to confirm. If they don\'t respond, the score will be accepted automatically.');
     } catch (err) {
       console.error(err);
       alert('Failed to report score.');
@@ -252,6 +252,12 @@ export class MyMatchesComponent {
       default:
         return match.status || 'Unknown';
     }
+  }
+
+  /** Short hint for reported matches: confirm within 48h. */
+  getConfirmHint(match: LeagueMatch): string | null {
+    if (match.status !== 'reported' && match.status !== 'pendingConfirm') return null;
+    return 'Confirm or contest within 48 hours, or the reported score will stand.';
   }
 
   shouldShowAccept(match: LeagueMatch): boolean {

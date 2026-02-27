@@ -24,6 +24,7 @@
 
     <div *ngIf="vm.matches.length === 0" class="empty-msg">
       No matches yet in this league.
+      <span class="empty-hint">Go to your league page and click <strong>Find Match</strong> to get paired with an opponent.</span>
     </div>
 
     <div class="match-card" *ngFor="let m of vm.matches">
@@ -36,7 +37,7 @@
         </div>
 
         <div class="status-badge" [ngClass]="m.status">
-          {{ m.status }}
+          {{ getMatchStatus(m) }}
         </div>
       </div>
 
@@ -81,13 +82,12 @@
         </button>
 
         <!-- Confirm Result (when opponent reported and you haven't confirmed) -->
-        <button
-          *ngIf="shouldShowConfirm(m)"
-          class="btn confirm-btn"
-          (click)="confirmResult(m)"
-        >
-          Confirm Result
-        </button>
+        <div *ngIf="shouldShowConfirm(m)" class="confirm-block">
+          <p *ngIf="getConfirmHint(m)" class="confirm-hint">{{ getConfirmHint(m) }}</p>
+          <button class="btn confirm-btn" (click)="confirmResult(m)">
+            Confirm Result
+          </button>
+        </div>
 
         <!-- Completed -->
         <div *ngIf="m.status === 'completed'" class="completed-label">

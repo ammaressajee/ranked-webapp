@@ -25,6 +25,24 @@
   color: var(--text-muted);
 }
 
+.empty-msg .empty-hint {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.confirm-block {
+  margin-top: 0.5rem;
+
+  .confirm-hint {
+    margin: 0 0 0.5rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+  }
+}
+
 .error {
   text-align: center;
   padding: 1rem;
@@ -116,7 +134,8 @@
   color: #ffc107;
 }
 
-.status-badge.reported {
+.status-badge.reported,
+.status-badge.pendingConfirm {
   background: rgba(33, 150, 243, 0.2);
   color: #2196f3;
 }

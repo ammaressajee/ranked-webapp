@@ -21,9 +21,24 @@
             <a [routerLink]="['/leagues', leagueId, 'join']">Join this league</a> first to find a match.
         </p>
         <p *ngIf="findMatchError" class="find-error">{{ findMatchError }}</p>
-        <div class="buttons primary">
+
+        <!-- Result message after find (queued or matched) -->
+        <div *ngIf="findMatchResult && !findingMatch" class="find-result-box">
+            <p *ngIf="findMatchResult === 'queued'" class="find-result-queued">
+                No one else is searching right now. You're in the queue—when another player in this league clicks Find Match, you'll be paired. Check My Matches for updates or try again later.
+            </p>
+            <p *ngIf="findMatchResult === 'matched'" class="find-result-matched">
+                Match found! Go to My Matches to accept the match and coordinate with your opponent.
+            </p>
+            <div class="buttons primary">
+                <button class="btn-primary" (click)="openMatches()">Go to My Matches</button>
+                <button *ngIf="findMatchResult === 'queued'" class="btn-secondary" (click)="findMatchResult = null; findMatchOpponentUid = null">Dismiss</button>
+            </div>
+        </div>
+
+        <div *ngIf="!findMatchResult" class="buttons primary">
             <button class="btn-primary" (click)="findMatch()" [disabled]="findingMatch || isInLeague() !== true">
-                {{ findingMatch ? 'Searching…' : 'Find Match' }}
+                {{ findingMatch ? 'Searching for an opponent…' : 'Find Match' }}
             </button>
             <button class="btn-secondary" (click)="openMatches()">My Matches</button>
         </div>

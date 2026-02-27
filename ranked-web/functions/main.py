@@ -15,7 +15,7 @@ db = firestore.Client()
 
 # ----- CONFIG -----
 PROVISIONAL_THRESHOLD = 5
-AUTO_FINALIZE_MINUTES = 3        # for testing
+AUTO_FINALIZE_MINUTES = 48 * 60  # 48 hours: if opponent doesn't confirm, reported score stands
 MATCH_NO_SHOW_MINUTES = 10       # sweep pending matches timeout
 # Define multiple allowed origins here. You can pass this as a comma-separated
 # environment variable if you prefer, but defining it as a list is cleaner.

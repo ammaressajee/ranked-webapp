@@ -10,6 +10,7 @@
                     "serve:ssr:ranked-web":  "node dist/ranked-web/server/server.mjs",
                     "build:dev":  "ng build --configuration development",
                     "deploy:dev":  "ng build && firebase deploy --only hosting",
+                    "deploy":  "ng build --configuration=production && firebase deploy --only hosting",
                     "serve:dev":  "npm run build:dev \u0026\u0026 firebase serve --only hosting"
                 },
     "private":  true,

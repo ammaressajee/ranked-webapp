@@ -107,6 +107,26 @@
   font-size: 0.9rem;
 }
 
+.find-result-box {
+  margin: 0 0 1rem;
+  padding: 1rem;
+  background: var(--bg-elevated, rgba(0, 212, 170, 0.08));
+  border: 1px solid var(--border);
+  border-radius: 12px;
+
+  .find-result-queued,
+  .find-result-matched {
+    margin: 0 0 1rem;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    line-height: 1.45;
+  }
+  .find-result-matched {
+    color: var(--success, #22c55e);
+    font-weight: 500;
+  }
+}
+
 .cta-section {
   background: var(--bg-card);
   border: 1px solid var(--border);

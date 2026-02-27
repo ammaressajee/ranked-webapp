@@ -7,6 +7,21 @@
                     <span class="nav-label">{{ item.label }}</span>
                 </a>
             </li>
+        </ul>
+    </nav>
+
+    <div *ngIf="isSidebarOpen" class="sidebar-header">
+        <h2 class="sidebar-title">Climb the Ladder</h2>
+    </div>
+
+    <div *ngIf="isSidebarOpen" class="sidebar-nav-secondary">
+        <ul>
+            <li *ngFor="let item of secondaryNavItems()">
+                <a [routerLink]="item.route" routerLinkActive="active-link" class="nav-item" (click)="handleNavClick()">
+                    <span class="nav-icon material-symbols-outlined">{{ item.icon }}</span>
+                    <span class="nav-label">{{ item.label }}</span>
+                </a>
+            </li>
             <li *ngIf="isAdmin$ | async">
                 <a routerLink="/admin" routerLinkActive="active-link" class="nav-item" (click)="handleNavClick()">
                     <span class="nav-icon material-symbols-outlined">admin_panel_settings</span>
@@ -14,10 +29,6 @@
                 </a>
             </li>
         </ul>
-    </nav>
-
-    <div *ngIf="isSidebarOpen" class="sidebar-header">
-        <h2 class="sidebar-title">Local Ladder</h2>
     </div>
 
     <div *ngIf="isSidebarOpen" class="sidebar-footer">

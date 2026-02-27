@@ -29,32 +29,20 @@ export class SidebarComponent implements OnInit {
 
   // --- TOP NAVIGATION ITEMS ---
 
-  navItems: Signal<NavItem[]> = computed(() => {
+  navItems: Signal<NavItem[]> = computed(() => [
+    { icon: 'home', label: 'Home', route: '/', requiresAuth: false },
+    { icon: 'sports_esports', label: 'Browse Leagues', route: '/leagues', requiresAuth: false }
+  ]);
+
+  /** Profile and Admin — shown below "Climb the Ladder" section. */
+  secondaryNavItems: Signal<NavItem[]> = computed(() => {
     const user = this.authService.profile();
     const uid = user?.uid || '';
-
-    return [
-      {
-        icon: 'home',
-        label: 'Home',
-        route: '/',
-        requiresAuth: false
-      },
-      {
-        icon: 'sports_esports',
-        label: 'Browse Leagues',
-        route: '/leagues',
-        requiresAuth: false
-      },
-      {
-        icon: 'account_circle',
-        label: 'Profile',
-        route: uid ? `/profile/${uid}` : '/login',
-        requiresAuth: false
-      }
+    const items: NavItem[] = [
+      { icon: 'account_circle', label: 'Profile', route: uid ? `/profile/${uid}` : '/login', requiresAuth: false }
     ];
+    return items;
   });
-
 
   bottomNavItems: Signal<NavItem[]> = computed(() => []);
 

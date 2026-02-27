@@ -52,10 +52,6 @@
       .logo-text {
         letter-spacing: -0.03em;
       }
-      &:hover {
-        color: var(--accent);
-        .logo-icon { color: var(--text-primary); }
-      }
     }
 
     .menu-icon {
@@ -178,11 +174,22 @@
     left: 0;
     top: 60px;
     height: calc(100vh - 60px);
+    max-height: calc(100dvh - 60px);
     z-index: 100;
     box-shadow: var(--shadow-card);
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
 
     &.collapsed {
       transform: translateX(-100%);
     }
+  }
+}
+
+// When sidebar is open on mobile, lock main content scroll to avoid double-scroll / UI issues
+@media (max-width: 768px) {
+  .main-content.sidebar-open {
+    overflow: hidden;
+    touch-action: none;
   }
 }

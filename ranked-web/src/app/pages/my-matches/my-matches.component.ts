@@ -1,12 +1,13 @@
-import { Component, inject } from '@angular/core';
+import { Component, effect, inject } from '@angular/core';
 import { combineLatest, map, Observable, of, Subscription, switchMap } from 'rxjs';
 import { LeagueService } from '../../services/league.service';
 import { Auth } from '@angular/fire/auth';
 import { LeagueMatch } from '../../models/LeagueMatch';
 import { LeagueParticipant } from '../../models/LeagueParticipant';
 import { SharedContactDisplay } from '../../models/UserContactPreferences';
+import { AuthService } from '../../services/auth.service';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 
 /** Participant with league name resolved (from league doc if missing on participant) */
@@ -22,7 +23,9 @@ export interface LeagueParticipantWithName extends LeagueParticipant {
 })
 export class MyMatchesComponent {
   auth = inject(Auth);
+  private authService = inject(AuthService);
   private ls = inject(LeagueService);
+  private route = inject(ActivatedRoute);
 
   userLeagues$!: Observable<LeagueParticipant[]>;
   /** Participants with league names resolved (fetches from leagues if leagueName missing) */
@@ -42,6 +45,9 @@ export class MyMatchesComponent {
   /** True when user is in the matchmaking queue for the selected league. */
   isSeekingInLeague = false;
 
+  /** Ensure we only run init once (effect can run multiple times). */
+  private authInitDone = false;
+
   // Report dialog state
   reportDialogOpen = false;
   dialogMatch: LeagueMatch | null = null;
@@ -49,19 +55,27 @@ export class MyMatchesComponent {
   dialogScore = '';
   dialogNameMap: Record<string, string> = {};
 
-  // -------------------------------------
-  //                INIT
-  // -------------------------------------
-  ngOnInit() {
-    const user = this.auth.currentUser;
-    if (!user) {
-      this.error = 'You must be signed in.';
-      this.loading = false;
-      return;
-    }
+  constructor() {
+    // When auth is ready (after reload or on first load), init once
+    effect(() => {
+      if (this.authInitDone) return;
+      if (!this.authService.isAuthReady()) return;
+      this.authInitDone = true;
+      const profile = this.authService.profile();
+      if (!profile?.uid) {
+        this.error = 'You must be signed in.';
+        this.loading = false;
+        return;
+      }
+      this.initWithUser(profile.uid);
+    });
+  }
 
+  ngOnInit() {}
+
+  private initWithUser(uid: string) {
     // Step 1 — list leagues and enrich with names
-    this.userLeagues$ = this.ls.listUserLeagues(user.uid);
+    this.userLeagues$ = this.ls.listUserLeagues(uid);
     this.leaguesWithNames$ = this.userLeagues$.pipe(
       switchMap(participants => {
         if (!participants?.length) return of([]);
@@ -88,8 +102,12 @@ export class MyMatchesComponent {
             return;
           }
 
-          // Auto-select first league
-          this.selectedLeagueId = leagues[0].leagueId;
+          // Prefer league from query (e.g. from home page "Go to My Matches" alert)
+          const leagueFromQuery = this.route.snapshot.queryParamMap.get('league');
+          const preferredLeagueId = leagueFromQuery && leagues.some(l => l.leagueId === leagueFromQuery)
+            ? leagueFromQuery
+            : leagues[0].leagueId;
+          this.selectedLeagueId = preferredLeagueId;
 
           // Step 3 — load matches
           this.loadMatches(this.selectedLeagueId!);
@@ -109,11 +127,11 @@ export class MyMatchesComponent {
   //         LOAD MATCHES FOR LEAGUE
   // -------------------------------------
   loadMatches(leagueId: string) {
-    const user = this.auth.currentUser;
-    if (!user) return;
+    const uid = this.auth.currentUser?.uid ?? this.authService.profile()?.uid;
+    if (!uid) return;
 
     this.opponentContactCache.clear();
-    this.matches$ = this.ls.listUserMatches(leagueId, user.uid);
+    this.matches$ = this.ls.listUserMatches(leagueId, uid);
     this.participants$ = this.ls.listParticipants(leagueId);
     this.matchesWithNames$ = combineLatest([this.matches$, this.participants$]).pipe(
       map(([matches, participants]) => {
@@ -127,7 +145,7 @@ export class MyMatchesComponent {
 
     this.searchRequestSub.unsubscribe();
     this.isSeekingInLeague = false;
-    this.searchRequestSub = this.ls.getSearchRequest(leagueId, user.uid).subscribe(
+    this.searchRequestSub = this.ls.getSearchRequest(leagueId, uid).subscribe(
       r => { this.isSeekingInLeague = r?.seeking ?? false; }
     );
   }

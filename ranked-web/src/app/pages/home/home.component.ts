@@ -1,10 +1,10 @@
-import { Component, effect, inject, signal } from '@angular/core';
+import { Component, effect, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../services/auth.service';
 import { LeagueService } from '../../services/league.service';
-import { combineLatest, map, Observable, of, switchMap } from 'rxjs';
+import { combineLatest, filter, forkJoin, map, Observable, of, switchMap, take } from 'rxjs';
 import { LeagueParticipant } from '../../models/LeagueParticipant';
 import { LeagueMatch } from '../../models/LeagueMatch';
 import { League } from '../../models/League';
@@ -17,7 +17,7 @@ import { FormsModule } from '@angular/forms';
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss'
 })
-export class HomeComponent {
+export class HomeComponent implements OnInit {
   private authService = inject(AuthService);
   private leagueService = inject(LeagueService);
 
@@ -28,8 +28,40 @@ export class HomeComponent {
 
   userLeagues = toSignal(this.userLeagues$, { initialValue: [] as LeagueParticipant[] });
 
-  /** User-selected league id; defaults to first league when leagues load. */
+  /** User-selected league id; defaults to a league with an alert when possible, else first league. */
   selectedLeagueId = signal<string | null>(null);
+
+  /** League ID to show by default: first league that has an alert, otherwise first league. */
+  private preferredLeagueId$ = combineLatest([
+    this.userLeagues$,
+    toObservable(this.authService.profile)
+  ]).pipe(
+    filter(([leagues, profile]) => (leagues?.length ?? 0) > 0 && !!profile?.uid),
+    take(1),
+    switchMap(([leagues, profile]) => {
+      const uid = profile!.uid!;
+      return forkJoin(
+        (leagues ?? []).map(l =>
+          this.leagueService.listUserMatches(l.leagueId, uid).pipe(
+            take(1),
+            map(matches => ({ leagueId: l.leagueId, matches: matches ?? [] }))
+          )
+        )
+      ).pipe(
+        map(results => {
+          for (const { leagueId, matches } of results) {
+            const hasAlert = matches.some(m =>
+              (m.status === 'reported' && m.confirmations?.[uid] !== true) ||
+              m.status === 'pending' ||
+              (m.status === 'pending_acceptance' && m.playerB === uid)
+            );
+            if (hasAlert) return leagueId;
+          }
+          return results[0]?.leagueId ?? null;
+        })
+      );
+    })
+  );
 
   constructor() {
     effect(() => {
@@ -38,6 +70,12 @@ export class HomeComponent {
       const cur = this.selectedLeagueId();
       const valid = leagues.some(p => p.leagueId === cur);
       if (!valid) this.selectedLeagueId.set(leagues[0].leagueId);
+    });
+  }
+
+  ngOnInit() {
+    this.preferredLeagueId$.subscribe(leagueId => {
+      if (leagueId) this.selectedLeagueId.set(leagueId);
     });
   }
 
@@ -105,14 +143,15 @@ export class HomeComponent {
     map(matches => matches.slice(0, 5))
   );
 
-  /** Alerts for banner: match awaiting confirmation, new match to play, or match request to accept. */
-  matchAlerts$: Observable<{ messages: string[] } | null> = combineLatest([
+  /** Alerts for banner: match awaiting confirmation, new match to play, or match request to accept. Includes leagueId so "Go to My Matches" can open the right league. */
+  matchAlerts$: Observable<{ messages: string[]; leagueId: string } | null> = combineLatest([
     this.selectedLeagueMatches$,
+    this.effectiveLeagueId$,
     toObservable(this.authService.profile)
   ]).pipe(
-    map(([matches, profile]) => {
+    map(([matches, leagueId, profile]) => {
       const uid = profile?.uid;
-      if (!uid || !matches.length) return null;
+      if (!uid || !leagueId || !matches.length) return null;
       const messages: string[] = [];
       const needsConfirm = matches.some(m => m.status === 'reported' && m.confirmations?.[uid] !== true);
       const hasNewMatchToPlay = matches.some(m => m.status === 'pending');
@@ -122,10 +161,20 @@ export class HomeComponent {
       if (hasMatchToAccept) messages.push('You have a match request to accept.');
       if (hasNewMatchToPlay) messages.push('You have a match ready to play.');
       if (waitingForOpponent && !hasNewMatchToPlay && !needsConfirm && !hasMatchToAccept) messages.push('A match is waiting for your opponent to accept.');
-      return messages.length ? { messages } : null;
+      return messages.length ? { messages, leagueId } : null;
     })
   );
 
+  /** Top players in the selected league (for logged-in dashboard). */
+  leagueLeaderboard$: Observable<LeagueParticipant[]> = this.effectiveLeagueId$.pipe(
+    switchMap(leagueId =>
+      leagueId
+        ? this.leagueService.listParticipants(leagueId).pipe(map(p => (p ?? []).slice(0, 10)))
+        : of([])
+    )
+  );
+
+  /** Global top players (for logged-out landing). */
   topPlayers$: Observable<LeagueParticipant[]> = this.leagueService.getTopParticipantsGlobally(50).pipe(
     map(participants => {
       const byUser = new Map<string, LeagueParticipant>();

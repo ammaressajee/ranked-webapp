@@ -1,61 +1,79 @@
 <div class="profile-container" *ngIf="player() as p">
-  <div class="profile-card">
-    <div class="profile-header">
-      <img [src]="p.photoURL" alt="Profile" class="profile-avatar" />
-      <div class="profile-info">
-        <h2>{{ p.displayName }}</h2>
-        <p class="tier">{{ getTier(displayRank(p)) }}</p>
-        <p class="join-date" *ngIf="p.joinedAt">
-          Joined {{ p.joinedAt?.toDate ? (p.joinedAt.toDate() | date) : (p.joinedAt | date) }}
-        </p>
+  <!-- Header: avatar + name + tier -->
+  <header class="profile-header">
+    <img [src]="p.photoURL" alt="" class="profile-avatar" />
+    <div class="profile-info">
+      <h1 class="profile-name">{{ p.displayName }}</h1>
+      <p class="tier">{{ getTier(displayRank(p)) }}</p>
+      <p class="join-date" *ngIf="p.joinedAt">
+        Joined {{ p.joinedAt?.toDate ? (p.joinedAt.toDate() | date) : (p.joinedAt | date) }}
+      </p>
+    </div>
+  </header>
+
+  <!-- Row: stats (left) | recent matches (right) -->
+  <div class="profile-cards-row">
+    <div class="profile-card profile-card-stats" *ngIf="overallStats()">
+      <h2 class="section-title">Across all leagues</h2>
+      <div class="stat-grid">
+        <div class="stat">
+          <span class="stat-value">{{ displayRank(p) }}</span>
+          <span class="stat-label">Rank</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value">{{ displayWins(p) }}</span>
+          <span class="stat-label">Wins</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value">{{ displayLosses(p) }}</span>
+          <span class="stat-label">Losses</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value">{{ displayWins(p) + displayLosses(p) }}</span>
+          <span class="stat-label">Matches</span>
+        </div>
       </div>
     </div>
 
-    <!-- Overall stats across all leagues -->
-    <div class="profile-stats">
-      <p class="stats-label" *ngIf="overallStats()">Across all leagues</p>
-      <div class="stat">
-        <h3>{{ displayRank(p) }}</h3>
-        <p>Avg ELO</p>
-      </div>
-      <div class="stat">
-        <h3>{{ displayWins(p) }}</h3>
-        <p>Wins</p>
-      </div>
-      <div class="stat">
-        <h3>{{ displayLosses(p) }}</h3>
-        <p>Losses</p>
-      </div>
-      <div class="stat">
-        <h3>{{ displayWins(p) + displayLosses(p) }}</h3>
-        <p>Matches</p>
-      </div>
+    <div class="profile-card recent-matches">
+      <h2 class="section-title">Recent Matches</h2>
+      <ul *ngIf="recentMatches().length; else noMatches">
+        <li *ngFor="let match of recentMatches()">
+          <span class="match-vs">vs opponent</span>
+          <span class="result" [class.win]="isMatchCompleted(match) && isWinner(match, profileUid())" [class.loss]="isMatchCompleted(match) && !isWinner(match, profileUid())" [class.pending]="!isMatchCompleted(match)">
+            {{ getMatchResultLabel(match) }}
+          </span>
+        </li>
+      </ul>
+      <ng-template #noMatches>
+        <p class="no-matches">No matches yet.</p>
+      </ng-template>
     </div>
   </div>
 
-  <!-- Contact preferences (own profile only) -->
+  <!-- Contact: full width below (own profile only) -->
   <div class="contact-preferences" *ngIf="isOwnProfile()">
-    <h3>Contact for coordination</h3>
-    <p class="contact-hint">Only opponents you're matched with can see shared info. You can share globally or per match from My Matches.</p>
+    <h2 class="section-title">Contact for coordination</h2>
+    <p class="contact-hint">Only matched opponents can see shared info. Share globally or per match from My Matches.</p>
     <div class="contact-form">
       <div class="contact-field">
         <label>Email (optional)</label>
-        <input type="email" [ngModel]="contactPrefs().contactEmail" (ngModelChange)="updateContactPref('contactEmail', $event)" placeholder="e.g. you@example.com" />
+        <input type="email" [ngModel]="contactPrefs().contactEmail" (ngModelChange)="updateContactPref('contactEmail', $event)" placeholder="you@example.com" />
         <label class="checkbox-label"><input type="checkbox" [ngModel]="contactPrefs().shareContactEmail" (ngModelChange)="updateContactPref('shareContactEmail', $event)" /> Share with matched opponents</label>
       </div>
       <div class="contact-field">
         <label>Phone (optional)</label>
-        <input type="tel" [ngModel]="contactPrefs().contactPhone" (ngModelChange)="updateContactPref('contactPhone', $event)" placeholder="e.g. +1 555 123 4567" />
+        <input type="tel" [ngModel]="contactPrefs().contactPhone" (ngModelChange)="updateContactPref('contactPhone', $event)" placeholder="+1 555 123 4567" />
         <label class="checkbox-label"><input type="checkbox" [ngModel]="contactPrefs().shareContactPhone" (ngModelChange)="updateContactPref('shareContactPhone', $event)" /> Share with matched opponents</label>
       </div>
       <div class="contact-field">
         <label>Handle (optional)</label>
-        <input type="text" [ngModel]="contactPrefs().contactHandle" (ngModelChange)="updateContactPref('contactHandle', $event)" placeholder="e.g. Discord, Instagram, or preferred app" />
+        <input type="text" [ngModel]="contactPrefs().contactHandle" (ngModelChange)="updateContactPref('contactHandle', $event)" placeholder="Discord, Instagram, or app handle" />
         <label class="checkbox-label"><input type="checkbox" [ngModel]="contactPrefs().shareContactHandle" (ngModelChange)="updateContactPref('shareContactHandle', $event)" /> Share with matched opponents</label>
       </div>
       <div class="contact-field global-share">
         <label class="checkbox-label"><input type="checkbox" [ngModel]="contactPrefs().shareContactWithOpponents" (ngModelChange)="updateContactPref('shareContactWithOpponents', $event)" /> Share contact with all matched opponents</label>
-        <span class="field-hint">When on, any opponent you're matched with can see the contact details you've marked above.</span>
+        <span class="field-hint">Opponents you're matched with can see the contact details you've marked above.</span>
       </div>
       <div class="contact-actions">
         <button type="button" class="btn-save" (click)="saveContactPreferences()" [disabled]="contactSaving()">
@@ -64,21 +82,5 @@
         <span class="saved-msg" *ngIf="contactSaved()">Saved.</span>
       </div>
     </div>
-  </div>
-
-  <!-- Recent League Matches -->
-  <div class="recent-matches">
-    <h3>Recent Matches</h3>
-    <ul *ngIf="recentMatches().length; else noMatches">
-      <li *ngFor="let match of recentMatches()">
-        <span>vs opponent</span>
-        <span class="result" [class.win]="isMatchCompleted(match) && isWinner(match, profileUid())" [class.loss]="isMatchCompleted(match) && !isWinner(match, profileUid())" [class.pending]="!isMatchCompleted(match)">
-          {{ getMatchResultLabel(match) }}
-        </span>
-      </li>
-    </ul>
-    <ng-template #noMatches>
-      <p class="no-matches">No matches yet.</p>
-    </ng-template>
   </div>
 </div>

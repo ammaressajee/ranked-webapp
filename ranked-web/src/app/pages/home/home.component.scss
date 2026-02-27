@@ -86,15 +86,18 @@
 
 .match-alerts {
   max-width: 900px;
-  margin: 0 auto 1rem;
+  margin: 1rem auto 1.5rem;
   padding: 0 1.5rem;
+  position: relative;
+  z-index: 2;
 
   .match-alerts-inner {
-    background: rgba(255, 193, 7, 0.12);
-    border: 1px solid rgba(255, 193, 7, 0.35);
+    background: rgba(255, 193, 7, 0.14);
+    border: 1px solid rgba(255, 193, 7, 0.4);
     border-radius: 12px;
-    padding: 1rem 1.25rem;
+    padding: 1.25rem 1.5rem;
     color: var(--text-primary);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   }
 
   .match-alert-item {
@@ -125,14 +128,13 @@
   grid-template-columns: 1fr 1fr;
   gap: 1.5rem;
   max-width: 900px;
-  margin: -1.5rem auto 2rem;
+  margin: 1rem auto 2rem;
   padding: 0 1.5rem;
   position: relative;
   z-index: 1;
 
   @media (max-width: 640px) {
     grid-template-columns: 1fr;
-    margin-top: -1rem;
   }
 }
 

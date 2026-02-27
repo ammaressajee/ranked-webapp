@@ -17,6 +17,16 @@ db = firestore.Client()
 PROVISIONAL_THRESHOLD = 5
 AUTO_FINALIZE_MINUTES = 48 * 60  # 48 hours: if opponent doesn't confirm, reported score stands
 MATCH_NO_SHOW_MINUTES = 10       # sweep pending matches timeout
+
+# Skill-based matchmaking: max rank difference allowed, by time in queue (seconds).
+# (seconds_waited, max_rank_diff). Searcher only matches with opponents within max_rank_diff.
+# After the last band, no cap (any opponent allowed).
+MATCHMAKING_RANK_BANDS = [
+    (0, 150),      # 0–1 min: max 150 rank diff
+    (60, 250),     # 1–2 min: max 250
+    (120, 400),    # 2–5 min: max 400
+    (300, 9999),   # 5+ min: allow up to 9999 (effectively any)
+]
 # Define multiple allowed origins here. You can pass this as a comma-separated
 # environment variable if you prefer, but defining it as a list is cleaner.
 # Example includes localhost and a production URL:
@@ -259,17 +269,22 @@ def find_match(request: Request):
         resp = jsonify({"error": "token uid mismatch"})
         return resp, 403, response_headers
 
-    # --- Record search request ---
+    # --- Record search request (preserve createdAt if already in queue) ---
     sr_id = f"{league_id}_{user_id}"
     sr_ref = db.collection("searchRequests").document(sr_id)
-    sr_ref.set({
+    existing = sr_ref.get()
+    existing_data = existing.to_dict() if existing.exists else {}
+    is_already_seeking = existing_data.get("seeking") is True
+    update_data = {
         "leagueId": league_id,
         "userId": user_id,
         "rank": rank,
         "location": location,
-        "createdAt": firestore.SERVER_TIMESTAMP,
         "seeking": True
-    }, merge=True)
+    }
+    if not is_already_seeking:
+        update_data["createdAt"] = firestore.SERVER_TIMESTAMP
+    sr_ref.set(update_data, merge=True)
 
     # --- Find candidate ---
     # Query for others seeking a match in the same league
@@ -284,6 +299,26 @@ def find_match(request: Request):
         diff = abs(rank - int(data.get("rank", 1000)))
         created_at = data.get("createdAt") or datetime.now(timezone.utc)
         others.append((cdoc, data, diff, created_at))
+
+    # --- Expanding rank window: filter by searcher's time in queue ---
+    searcher_snap = sr_ref.get()
+    searcher_data = searcher_snap.to_dict() if searcher_snap.exists else {}
+    created_at_raw = searcher_data.get("createdAt")
+    if created_at_raw is None:
+        queue_start = datetime.now(timezone.utc)
+    elif isinstance(created_at_raw, datetime):
+        queue_start = created_at_raw if created_at_raw.tzinfo else created_at_raw.replace(tzinfo=timezone.utc)
+    elif hasattr(created_at_raw, "timestamp") and callable(getattr(created_at_raw, "timestamp")):
+        queue_start = datetime.fromtimestamp(created_at_raw.timestamp(), tz=timezone.utc)
+    else:
+        queue_start = datetime.now(timezone.utc)
+    now_utc = datetime.now(timezone.utc)
+    wait_seconds = max(0, (now_utc - queue_start).total_seconds())
+    max_allowed_rank_diff = 0
+    for band_after_seconds, band_max_diff in MATCHMAKING_RANK_BANDS:
+        if wait_seconds >= band_after_seconds:
+            max_allowed_rank_diff = band_max_diff
+    others = [t for t in others if t[2] <= max_allowed_rank_diff]
 
     if not others:
         resp = jsonify({"matchId": None, "status": "queued"})

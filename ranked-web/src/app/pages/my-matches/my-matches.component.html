@@ -3,43 +3,30 @@
   <!-- Error -->
   <div class="error" *ngIf="error">{{ error }}</div>
 
-  <!-- League Selector -->
+  <!-- League Selector + View league link -->
   <div class="league-selector" *ngIf="leaguesWithNames$ | async as leagues">
     <label>Select League:</label>
-    <select
-      [(ngModel)]="selectedLeagueId"
-      (change)="onLeagueChange()"
-      class="league-dropdown"
-    >
-      <option *ngFor="let lg of leagues" [value]="lg.leagueId">
-        {{ lg.resolvedLeagueName }}
-      </option>
-    </select>
+    <div class="league-selector-row">
+      <select
+        [(ngModel)]="selectedLeagueId"
+        (change)="onLeagueChange()"
+        class="league-dropdown"
+      >
+        <option *ngFor="let lg of leagues" [value]="lg.leagueId">
+          {{ lg.resolvedLeagueName }}
+        </option>
+      </select>
+      <a *ngIf="selectedLeagueId" [routerLink]="['/leagues', selectedLeagueId]" class="view-league-link">
+        View league
+      </a>
+    </div>
+    <p class="league-hint">Find a match and see the leaderboard on the league page.</p>
   </div>
 
   <!-- Match List -->
   <div *ngIf="matchesWithNames$ | async as vm; else noMatches">
 
     <h2 class="section-title">My Matches</h2>
-
-    <!-- Find Match CTA for selected league -->
-    <div class="find-match-bar">
-      <button
-        class="btn btn-find-match"
-        (click)="findMatchFromPage()"
-        [disabled]="findingMatch || isSeekingInLeague"
-      >
-        {{ findingMatch ? 'Searching…' : isSeekingInLeague ? 'In queue…' : 'Find Match' }}
-      </button>
-      <p *ngIf="findMatchMessage === 'queued'" class="find-match-msg queued">
-        You're in the queue. When someone else in this league clicks Find Match, you'll be paired.
-        <button type="button" class="btn-link-inline" (click)="clearFindMatchMessage()">Dismiss</button>
-      </p>
-      <p *ngIf="findMatchMessage === 'matched'" class="find-match-msg matched">
-        Match found! It should appear below—accept it to start.
-        <button type="button" class="btn-link-inline" (click)="clearFindMatchMessage()">Dismiss</button>
-      </p>
-    </div>
 
     <!-- Status: searching or pending match -->
     <div *ngIf="isSeekingInLeague" class="status-banner seeking">
@@ -51,7 +38,7 @@
 
     <div *ngIf="vm.matches.length === 0" class="empty-msg">
       No matches yet in this league.
-      <span class="empty-hint">Go to your league page and click <strong>Find Match</strong> to get paired with an opponent.</span>
+      <span class="empty-hint"><a [routerLink]="['/leagues', selectedLeagueId]">View league</a> to find a match and see the leaderboard.</span>
     </div>
 
     <div class="match-card" *ngFor="let m of vm.matches">

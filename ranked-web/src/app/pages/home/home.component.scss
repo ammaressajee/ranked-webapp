@@ -134,8 +134,14 @@
     font-size: 0.95rem;
   }
 
-  .btn-primary, .btn-secondary {
+  .cta-buttons {
+    display: flex;
+    gap: 0.75rem;
     width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .btn-primary, .btn-secondary, .btn-my-matches {
     text-align: center;
     padding: 0.75rem 1rem;
     border-radius: 10px;
@@ -145,6 +151,7 @@
   }
 
   .btn-primary {
+    width: 100%;
     background: var(--gradient-accent);
     color: #0f0f14;
     border: none;
@@ -155,12 +162,28 @@
   }
 
   .btn-secondary {
+    flex: 1;
+    min-width: 120px;
     background: transparent;
     color: var(--accent);
     border: 2px solid var(--accent);
 
     &:hover {
       background: var(--accent-muted);
+    }
+  }
+
+  .btn-my-matches {
+    flex: 1;
+    min-width: 120px;
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+
+    &:hover {
+      background: rgba(0, 212, 170, 0.08);
+      border-color: rgba(0, 212, 170, 0.35);
+      color: var(--accent);
     }
   }
 }

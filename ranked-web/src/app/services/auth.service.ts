@@ -19,10 +19,18 @@ export class AuthService {
   /** undefined = auth not yet restored, null = signed out, User = signed in. Use this so UI doesn't flash "signed out" on reload. */
   authState = signal<User | null | undefined>(undefined);
 
+  private pendingNullTimeout: ReturnType<typeof setTimeout> | null = null;
+  /** Delay before treating null as "signed out" so we don't flash logged-out while persistence is restoring. */
+  private static readonly NULL_DELAY_MS = 400;
+
   constructor() {
     this.user$.subscribe(async (u) => {
-      this.authState.set(u);
       if (u) {
+        if (this.pendingNullTimeout != null) {
+          clearTimeout(this.pendingNullTimeout);
+          this.pendingNullTimeout = null;
+        }
+        this.authState.set(u);
         this.profile.set({
           uid: u.uid,
           displayName: u.displayName,
@@ -36,8 +44,21 @@ export class AuthService {
         });
         await this.ensureUserProfile(u); // ensures user doc consistency
       } else {
-        this.profile.set(null);
-        this.joined.set(false);
+        const wasUndefined = this.authState() === undefined;
+        if (wasUndefined) {
+          // First emission might be null before persistence restores; avoid flashing "signed out" on reload
+          if (this.pendingNullTimeout != null) clearTimeout(this.pendingNullTimeout);
+          this.pendingNullTimeout = setTimeout(() => {
+            this.pendingNullTimeout = null;
+            this.authState.set(null);
+            this.profile.set(null);
+            this.joined.set(false);
+          }, AuthService.NULL_DELAY_MS);
+        } else {
+          this.authState.set(null);
+          this.profile.set(null);
+          this.joined.set(false);
+        }
       }
     });
   }

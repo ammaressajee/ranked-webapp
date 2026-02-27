@@ -1,5 +1,5 @@
 import { Component, inject } from '@angular/core';
-import { combineLatest, firstValueFrom, map, Observable, of, Subscription, switchMap } from 'rxjs';
+import { combineLatest, map, Observable, of, Subscription, switchMap } from 'rxjs';
 import { LeagueService } from '../../services/league.service';
 import { Auth } from '@angular/fire/auth';
 import { LeagueMatch } from '../../models/LeagueMatch';
@@ -40,9 +40,6 @@ export class MyMatchesComponent {
 
   /** True when user is in the matchmaking queue for the selected league. */
   isSeekingInLeague = false;
-  /** Find Match from this page: in progress or result message. */
-  findingMatch = false;
-  findMatchMessage: 'queued' | 'matched' | null = null;
 
   // Report dialog state
   reportDialogOpen = false;
@@ -139,42 +136,6 @@ export class MyMatchesComponent {
   onLeagueChange() {
     if (!this.selectedLeagueId) return;
     this.loadMatches(this.selectedLeagueId);
-  }
-
-  /** Find Match for the selected league from this page. */
-  async findMatchFromPage() {
-    const user = this.auth.currentUser;
-    if (!user || !this.selectedLeagueId) return;
-    if (this.findingMatch || this.isSeekingInLeague) return;
-
-    this.findingMatch = true;
-    this.findMatchMessage = null;
-    try {
-      const participants = await firstValueFrom(this.ls.listUserLeagues(user.uid));
-      const part = participants?.find(p => p.leagueId === this.selectedLeagueId);
-      if (!part) {
-        alert('Join this league first to find a match.');
-        return;
-      }
-      const rank = part.currentRank ?? 1000;
-      const resp = await this.ls.findMatchOnDemand(this.selectedLeagueId, user.uid, rank, '');
-      if (resp?.status === 'queued') {
-        this.findMatchMessage = 'queued';
-        this.loadMatches(this.selectedLeagueId!);
-      } else if (resp?.status === 'matched') {
-        this.findMatchMessage = 'matched';
-        this.loadMatches(this.selectedLeagueId!);
-      }
-    } catch (err: any) {
-      console.error(err);
-      alert(err?.error?.error || err?.message || 'Could not find match.');
-    } finally {
-      this.findingMatch = false;
-    }
-  }
-
-  clearFindMatchMessage() {
-    this.findMatchMessage = null;
   }
 
   /** True if current user has a match in the list waiting for opponent to accept (user is playerA). */

@@ -4,7 +4,14 @@
       <button (click)="toggleSidebar()" class="menu-btn" aria-label="Toggle sidebar">
         <span class="menu-icon">{{ isSidebarOpen ? '✕' : '☰' }}</span>
       </button>
-      <a routerLink="/" class="app-title">Ranked</a>
+      <a routerLink="/" class="app-title">
+        <span class="logo-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M6 2v20M18 2v20M6 6h12M6 10h12M6 14h12M6 18h12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+        <span class="logo-text">Ladders</span>
+      </a>
     </div>
     <div class="right-section">
       <!-- Wait for auth to restore on reload before showing signed-out state -->
@@ -31,4 +38,8 @@
       <router-outlet></router-outlet>
     </main>
   </div>
+
+  <footer class="app-footer">
+    <span class="footer-notice">© 2025 Ammar Essajee. All rights reserved.</span>
+  </footer>
 </div>

@@ -21,11 +21,18 @@
               <span class="rank-value">Avg ELO {{ stats.avgElo }}</span>
               <span class="stats">{{ stats.totalWins }}W · {{ stats.totalLosses }}L</span>
             </div>
-            <a [routerLink]="['/my-matches']" class="btn-primary">Find Match</a>
-            <a [routerLink]="['/leagues']" class="btn-secondary">Browse Leagues</a>
+            @if (participant$ | async; as participant) {
+              <a [routerLink]="['/leagues', participant.leagueId]" class="btn-primary">Find Match</a>
+            } @else {
+              <a [routerLink]="['/leagues']" class="btn-primary">Find Match</a>
+            }
+            <div class="cta-buttons">
+              <a [routerLink]="['/leagues']" class="btn-secondary">Leagues</a>
+              <a [routerLink]="['/my-matches']" class="btn-my-matches">My Matches</a>
+            </div>
           } @else {
             <p class="cta-hint">Join a league to start playing</p>
-            <a routerLink="/leagues" class="btn-primary">Browse Leagues</a>
+            <a routerLink="/leagues" class="btn-primary">Leagues</a>
           }
         }
       </div>
@@ -99,7 +106,7 @@
       <h1>Climb the Ladder</h1>
       <p class="hero-subtitle">Join local leagues. Find matches. Record wins. Rise in the ranks.</p>
       <div class="hero-actions">
-        <a routerLink="/leagues" class="btn-primary">Browse Leagues</a>
+        <a routerLink="/leagues" class="btn-primary">Leagues</a>
         <a routerLink="/login" class="btn-secondary">Get Started</a>
       </div>
     </section>

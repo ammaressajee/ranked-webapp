@@ -24,6 +24,8 @@ export class HomeComponent implements OnInit {
   private platformId = inject(PLATFORM_ID);
 
   userLeagues$ = new Observable<LeagueParticipant[]>();
+  /** Overall stats across all leagues: total wins, total losses, avg ELO */
+  overallStats$: Observable<{ totalWins: number; totalLosses: number; avgElo: number; hasAnyLeague: boolean }> = of({ totalWins: 0, totalLosses: 0, avgElo: 1000, hasAnyLeague: false });
   firstLeague$ = new Observable<League | null>();
   participant$ = new Observable<LeagueParticipant | null>();
   recentMatches$ = new Observable<LeagueMatch[]>();
@@ -43,6 +45,17 @@ export class HomeComponent implements OnInit {
     const uid = this.user?.uid;
     if (uid) {
       this.userLeagues$ = this.leagueService.listUserLeagues(uid);
+      this.overallStats$ = this.userLeagues$.pipe(
+        map(participants => {
+          const list = participants ?? [];
+          if (!list.length) return { totalWins: 0, totalLosses: 0, avgElo: 1000, hasAnyLeague: false };
+          const totalWins = list.reduce((s, p) => s + (p.wins ?? 0), 0);
+          const totalLosses = list.reduce((s, p) => s + (p.losses ?? 0), 0);
+          const sumRank = list.reduce((s, p) => s + (p.currentRank ?? 1000), 0);
+          const avgElo = Math.round(sumRank / list.length);
+          return { totalWins, totalLosses, avgElo, hasAnyLeague: true };
+        })
+      );
       this.participant$ = this.userLeagues$.pipe(
         map(participants => participants?.[0] ?? null)
       );

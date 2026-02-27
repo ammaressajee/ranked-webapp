@@ -48,8 +48,9 @@
     <form *ngIf="!createSuccess" (ngSubmit)="createLeague()">
       <label>League name</label>
       <input [(ngModel)]="createLeagueName" name="createName" placeholder="e.g., Austin Pickleball League" required />
-      <label>Location (city)</label>
+      <label>Location</label>
       <input [(ngModel)]="createLocation" name="createLocation" placeholder="e.g., Austin, TX" required />
+      <p class="location-format-note">Format: City, State (e.g. Austin, TX)</p>
       <p *ngIf="createError" class="error-msg">{{ createError }}</p>
       <div class="modal-actions">
         <button type="button" class="btn-cancel" (click)="closeCreateForm()">Cancel</button>

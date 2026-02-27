@@ -3,41 +3,87 @@
   max-width: 480px;
   margin: 0 auto;
 
-  h3 {
-    margin: 0 0 0.5rem;
+  h2 {
+    margin: 0 0 0.25rem;
     color: var(--text-primary);
+    font-size: 1.5rem;
   }
 
-  label {
-    display: block;
-    font-size: 0.9rem;
+  .league-location {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    margin: 0 0 1.5rem;
+  }
+
+  .join-hint {
+    font-size: 0.95rem;
     color: var(--text-secondary);
-    margin: 0.75rem 0 0.25rem;
+    margin: 0 0 1rem;
   }
 
-  input {
-    width: 100%;
-    padding: 0.6rem 1rem;
-    background: var(--bg-elevated);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    color: var(--text-primary);
-    font-size: 1rem;
-    box-sizing: border-box;
+  .join-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
   }
 
-  button {
-    margin-top: 1rem;
-    padding: 0.6rem 1.25rem;
+  .btn-primary {
+    padding: 0.75rem 1.25rem;
     background: var(--gradient-accent);
     color: #0f0f14;
     border: none;
     border-radius: 10px;
     font-weight: 600;
+    font-size: 1rem;
     cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover:not(:disabled) {
+      transform: translateY(-1px);
+    }
+
+    &:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+  }
+
+  .btn-link {
+    background: none;
+    border: none;
+    color: var(--accent);
+    font-size: 0.9rem;
+    cursor: pointer;
+    padding: 0.25rem 0;
+    align-self: flex-start;
 
     &:hover {
-      transform: translateY(-1px);
+      text-decoration: underline;
+    }
+  }
+
+  .city-form {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+
+    input {
+      flex: 1;
+      padding: 0.6rem 1rem;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text-primary);
+      font-size: 1rem;
+    }
+
+    button {
+      padding: 0.6rem 1rem;
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      cursor: pointer;
     }
   }
 
@@ -56,6 +102,11 @@
     a {
       color: var(--accent);
       font-weight: 500;
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 0.5rem;
     }
   }
 }

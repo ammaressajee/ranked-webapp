@@ -9,13 +9,12 @@ import { LeagueDetailComponent } from './components/league-detail/league-detail.
 import { LeagueMatchesComponent } from './components/league-matches/league-matches.component';
 import { LeagueLeaderboardComponent } from './components/league-leaderboard/league-leaderboard.component';
 import { MyMatchesComponent } from './pages/my-matches/my-matches.component';
-import { LeagueHubComponent } from './pages/league-hub/league-hub.component';
 import { AdminComponent } from './pages/admin/admin.component';
 import { adminGuard } from './guards/admin.guard';
 
 export const routes: Routes = [
     { path: '', component: HomeComponent },
-    { path: 'league', component: LeagueHubComponent },
+    { path: 'league', redirectTo: 'leagues', pathMatch: 'full' },
     // Define a path for your login screen
 
     { path: 'login', component: LoginComponent },

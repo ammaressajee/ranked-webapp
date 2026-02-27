@@ -1,4 +1,5 @@
-import { inject, Injectable } from '@angular/core';
+import { inject, Injectable, NgZone, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { GeocodingService } from './geocoding.service';
 
@@ -14,8 +15,17 @@ const STORAGE_KEY = 'ranked_user_location';
 @Injectable({ providedIn: 'root' })
 export class LocationService {
   private geocoding = inject(GeocodingService);
+  private platformId = inject(PLATFORM_ID);
+  private ngZone = inject(NgZone);
 
-  private readonly _userLocation$ = new BehaviorSubject<UserLocation | null>(this.loadStored());
+  private readonly _userLocation$ = new BehaviorSubject<UserLocation | null>(null);
+
+  constructor() {
+    if (isPlatformBrowser(this.platformId)) {
+      const stored = this.loadStored();
+      if (stored) this._userLocation$.next(stored);
+    }
+  }
 
   readonly userLocation$: Observable<UserLocation | null> = this._userLocation$.asObservable();
 
@@ -24,9 +34,9 @@ export class LocationService {
   }
 
   private loadStored(): UserLocation | null {
-    if (typeof sessionStorage === 'undefined') return null;
+    if (typeof window === 'undefined' || !window.localStorage) return null;
     try {
-      const raw = sessionStorage.getItem(STORAGE_KEY);
+      const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return null;
       const parsed = JSON.parse(raw) as UserLocation;
       if (typeof parsed?.lat === 'number' && typeof parsed?.lng === 'number') {
@@ -39,12 +49,12 @@ export class LocationService {
   }
 
   private persist(loc: UserLocation | null): void {
-    if (typeof sessionStorage === 'undefined') return;
+    if (typeof window === 'undefined' || !window.localStorage) return;
     try {
       if (loc) {
-        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(loc));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(loc));
       } else {
-        sessionStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(STORAGE_KEY);
       }
     } catch {
       // ignore
@@ -64,9 +74,11 @@ export class LocationService {
             lat: pos.coords.latitude,
             lng: pos.coords.longitude
           };
-          this._userLocation$.next(loc);
-          this.persist(loc);
-          resolve(loc);
+          this.ngZone.run(() => {
+            this._userLocation$.next(loc);
+            this.persist(loc);
+            resolve(loc);
+          });
         },
         err => reject(err),
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }

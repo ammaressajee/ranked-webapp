@@ -6,7 +6,7 @@ service cloud.firestore {
       allow read: if request.auth != null;
       allow create: if false;
       allow update: if request.auth != null &&
-        request.auth.uid in get(/databases/$(database)/documents/config/admins).data.uids;
+        request.auth.uid in get(/databases/$(db)/documents/config/admins).data.get('uids', []);
     }
 
     // User profiles - read public, write own
@@ -16,15 +16,15 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // Leagues - read public, create/update admins only
+    // Leagues - read public, create/update/delete admins only
     match /leagues/{leagueId} {
       allow read: if true;
       allow create: if request.auth != null &&
-        exists(/databases/$(database)/documents/config/admins) &&
-        request.auth.uid in get(/databases/$(database)/documents/config/admins).data.uids;
-      allow update: if request.auth != null &&
-        exists(/databases/$(database)/documents/config/admins) &&
-        request.auth.uid in get(/databases/$(database)/documents/config/admins).data.uids;
+        exists(/databases/$(db)/documents/config/admins) &&
+        request.auth.uid in get(/databases/$(db)/documents/config/admins).data.get('uids', []);
+      allow update, delete: if request.auth != null &&
+        exists(/databases/$(db)/documents/config/admins) &&
+        request.auth.uid in get(/databases/$(db)/documents/config/admins).data.get('uids', []);
     }
 
     // League requests - users create, admins update
@@ -33,22 +33,29 @@ service cloud.firestore {
       allow create: if request.auth != null &&
         request.resource.data.requestedBy == request.auth.uid;
       allow update: if request.auth != null &&
-        exists(/databases/$(database)/documents/config/admins) &&
-        request.auth.uid in get(/databases/$(database)/documents/config/admins).data.uids;
+        exists(/databases/$(db)/documents/config/admins) &&
+        request.auth.uid in get(/databases/$(db)/documents/config/admins).data.get('uids', []);
     }
 
-    // League participants - read public, join/create own
+    // League participants - read public, join/create own, delete own or by admin
     match /leagueParticipants/{participantId} {
       allow read: if true;
       allow create: if request.auth != null;
       allow update: if request.auth != null;
+      allow delete: if request.auth != null &&
+        (request.auth.uid == resource.data.get('userId', '') ||
+         (exists(/databases/$(db)/documents/config/admins) &&
+          request.auth.uid in get(/databases/$(db)/documents/config/admins).data.get('uids', [])));
     }
 
-    // League matches - read if authenticated, create via find_match flow
+    // League matches - read if authenticated, create/update; admins can delete
     match /leagueMatches/{matchId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null;
       allow update: if request.auth != null;
+      allow delete: if request.auth != null &&
+        exists(/databases/$(db)/documents/config/admins) &&
+        request.auth.uid in get(/databases/$(db)/documents/config/admins).data.get('uids', []);
     }
 
     // Search requests - used by matchmaking; only Cloud Functions should write

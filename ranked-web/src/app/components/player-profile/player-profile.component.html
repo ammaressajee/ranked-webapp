@@ -11,11 +11,12 @@
       </div>
     </div>
 
-    <!-- Stats: prefer league rank when in a league -->
+    <!-- Overall stats across all leagues -->
     <div class="profile-stats">
+      <p class="stats-label" *ngIf="overallStats()">Across all leagues</p>
       <div class="stat">
         <h3>{{ displayRank(p) }}</h3>
-        <p>ELO</p>
+        <p>Avg ELO</p>
       </div>
       <div class="stat">
         <h3>{{ displayWins(p) }}</h3>

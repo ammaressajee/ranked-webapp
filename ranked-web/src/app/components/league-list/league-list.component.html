@@ -10,40 +10,41 @@
 
   <section class="location-section">
     <div *ngIf="!(userLocation$ | async); else hasLocation" class="location-prompt">
-      <p class="location-hint">Find leagues near you (players must meet in person)</p>
+      <p class="location-hint">Find leagues near you (players meet in person)</p>
       <div class="location-actions">
-        <button (click)="useMyLocation()" class="btn-location">Use my location</button>
-        <div class="location-or">
-          <span>or enter your city</span>
-          <input [(ngModel)]="locationPromptCity" placeholder="e.g., Austin, TX" (keyup.enter)="setLocationFromCity()" />
-          <button (click)="setLocationFromCity()" class="btn-set-city">Set</button>
-        </div>
+        <button (click)="useMyLocation()" class="btn-location" [disabled]="locationLoading">
+          {{ locationLoading ? 'Getting location…' : '📍 Use current location' }}
+        </button>
+        <button (click)="skipLocation()" class="btn-skip">Browse all leagues</button>
       </div>
       <p *ngIf="locationError" class="location-error">{{ locationError }}</p>
-      <p class="location-fallback">Showing all leagues. Set your location to see only nearby leagues.</p>
     </div>
     <ng-template #hasLocation>
       <div class="location-set">
-        <span>Showing leagues within {{ DEFAULT_LEAGUE_RADIUS_KM }} km</span>
+        <span>📍 Showing leagues within {{ LEAGUE_RADIUS_MILES }} miles</span>
         <button (click)="clearLocation()" class="btn-clear-location">Change location</button>
       </div>
     </ng-template>
   </section>
 
+  <p *ngIf="usedFallback$ | async" class="fallback-msg">No leagues within {{ LEAGUE_RADIUS_MILES }} miles. Showing all leagues.</p>
+
   <section class="leagues-grid">
-    <div *ngFor="let l of leagues | async" class="league-card">
+    <div *ngFor="let item of leaguesWithJoined$ | async" class="league-card" [class.joined]="item.joined">
       <div class="card-content">
         <div class="card-icon">🏓</div>
-        <h3>{{ l.name }}</h3>
-        <p class="location">{{ l.location }}</p>
+        <span *ngIf="item.joined" class="joined-badge">Joined</span>
+        <h3>{{ item.league.name }}</h3>
+        <p class="location">{{ item.league.location }}</p>
         <div class="card-actions">
-          <button (click)="openLeague(l.id!)" class="btn-view">View</button>
-          <button (click)="joinLeague(l.id!)" class="btn-join">Join</button>
+          <button (click)="openLeague(item.league.id!)" class="btn-view">View</button>
+          <button *ngIf="!item.joined" (click)="joinLeague(item.league.id!)" class="btn-join">Join</button>
+          <span *ngIf="item.joined" class="btn-joined">✓ Member</span>
         </div>
       </div>
     </div>
 
-    <div *ngIf="(leagues | async)?.length === 0" class="empty-state">
+    <div *ngIf="(leaguesWithJoined$ | async)?.length === 0" class="empty-state">
       <p>No leagues in your area yet.</p>
       <ng-container *ngIf="isAdmin$ | async; else requestBlock">
         <button (click)="showCreateForm = true" class="btn-primary">Create League</button>
@@ -64,15 +65,10 @@
       <label>League name</label>
       <input [(ngModel)]="requestLeagueName" name="leagueName" placeholder="e.g., Austin Pickleball League" required />
       <label>Location (city)</label>
-      <input [(ngModel)]="requestLocation" name="location" placeholder="e.g., Austin, TX" required />
-      <div *ngIf="(suggestedLocations$ | async)?.length" class="suggested-locations">
-        <span class="suggest-label">Others have requested:</span>
-        <div class="location-chips">
-          <button type="button" *ngFor="let loc of suggestedLocations$ | async" class="chip" (click)="requestLocation = loc">
-            {{ loc }}
-          </button>
-        </div>
-      </div>
+      <select [(ngModel)]="requestLocation" name="location" required>
+        <option value="">Select a city</option>
+        <option *ngFor="let city of selectableCities$ | async" [value]="city">{{ city }}</option>
+      </select>
       <div class="modal-actions">
         <button type="button" class="btn-cancel" (click)="showRequestForm = false">Cancel</button>
         <button type="submit" class="btn-submit">Submit Request</button>
@@ -92,8 +88,10 @@
     <form (ngSubmit)="createLeague()" *ngIf="!createSuccess">
       <label>League name</label>
       <input [(ngModel)]="createLeagueName" name="createName" placeholder="e.g., Austin Pickleball League" required />
-      <label>Location (city)</label>
+      <label>Location</label>
       <input [(ngModel)]="createLocation" name="createLocation" placeholder="e.g., Austin, TX" required />
+      <p class="location-format-note">Format: City, State (e.g. Austin, TX)</p>
+      <p *ngIf="createLeagueError" class="modal-error">{{ createLeagueError }}</p>
       <div class="modal-actions">
         <button type="button" class="btn-cancel" (click)="showCreateForm = false">Cancel</button>
         <button type="submit" class="btn-submit">Create</button>

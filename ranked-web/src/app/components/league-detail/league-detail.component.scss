@@ -13,6 +13,30 @@
     color: var(--text-primary);
   }
 
+  .header-badges {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .browse-link {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    text-decoration: none;
+
+    &:hover {
+      color: var(--accent);
+      text-decoration: underline;
+    }
+  }
+
+  .league-badge {
+    font-size: 0.9rem;
+    color: var(--success, #22c55e);
+    font-weight: 500;
+  }
+
   .join-link {
     font-size: 0.95rem;
     color: var(--accent);
@@ -21,6 +45,45 @@
 
     &:hover {
       text-decoration: underline;
+    }
+  }
+
+  .btn-leave {
+    font-size: 0.9rem;
+    padding: 0.4rem 0.75rem;
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      color: #e11;
+      border-color: #e11;
+    }
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+
+  .btn-delete-league {
+    font-size: 0.9rem;
+    padding: 0.4rem 0.75rem;
+    background: transparent;
+    color: #b91c1c;
+    border: 1px solid rgba(185, 28, 28, 0.5);
+    border-radius: 8px;
+    cursor: pointer;
+    margin-left: auto;
+
+    &:hover:not(:disabled) {
+      background: rgba(185, 28, 28, 0.1);
+      border-color: #b91c1c;
+    }
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
     }
   }
 }

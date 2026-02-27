@@ -9,21 +9,24 @@
     <section class="dashboard-grid">
       <!-- Primary CTA -->
       <div class="cta-card">
-        @if (participant$ | async; as p) {
-          <div class="rank-summary">
-            <span class="rank-value">ELO {{ p.currentRank }}</span>
-            <span class="stats">{{ p.wins }}W · {{ p.losses }}L</span>
-          </div>
-          <a [routerLink]="['/my-matches']" class="btn-primary">Find Match</a>
-          <a [routerLink]="['/league']" class="btn-secondary">League</a>
-        } @else {
-          <p class="cta-hint">Join a league to start playing</p>
-          <a routerLink="/league" class="btn-primary">Join League</a>
+        @if (overallStats$ | async; as stats) {
+          @if (stats.hasAnyLeague) {
+            <div class="rank-summary">
+              <span class="rank-value">Avg ELO {{ stats.avgElo }}</span>
+              <span class="stats">{{ stats.totalWins }}W · {{ stats.totalLosses }}L</span>
+            </div>
+            <a [routerLink]="['/my-matches']" class="btn-primary">Find Match</a>
+            <a [routerLink]="['/leagues']" class="btn-secondary">Browse Leagues</a>
+          } @else {
+            <p class="cta-hint">Join a league to start playing</p>
+            <a routerLink="/leagues" class="btn-primary">Browse Leagues</a>
+          }
         }
       </div>
 
       <!-- Recent matches -->
-      @if (participant$ | async) {
+      @if (overallStats$ | async; as stats) {
+      @if (stats.hasAnyLeague) {
         <div class="recent-card">
           <h3>Recent Matches</h3>
           <div class="match-list">
@@ -39,6 +42,7 @@
           </div>
           <a [routerLink]="['/my-matches']" class="link-more">View all matches</a>
         </div>
+      }
       }
     </section>
 
@@ -89,7 +93,7 @@
       <h1>Climb the Ladder</h1>
       <p class="hero-subtitle">Join local leagues. Find matches. Record wins. Rise in the ranks.</p>
       <div class="hero-actions">
-        <a routerLink="/league" class="btn-primary">Browse Leagues</a>
+        <a routerLink="/leagues" class="btn-primary">Browse Leagues</a>
         <a routerLink="/login" class="btn-secondary">Get Started</a>
       </div>
     </section>

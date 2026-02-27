@@ -1,7 +1,17 @@
 <div class="league-detail page">
     <header class="league-header">
         <h1>🏓 {{ (league$ | async)?.name || leagueId }}</h1>
-        <a [routerLink]="['/leagues', leagueId, 'join']" class="join-link">Join this league</a>
+        <div class="header-badges">
+            <span *ngIf="isInLeague() === true" class="league-badge">✓ Member</span>
+            <button *ngIf="isInLeague() === true" type="button" class="btn-leave" (click)="leaveLeague()" [disabled]="leaving">
+                {{ leaving ? 'Leaving…' : 'Leave league' }}
+            </button>
+            <a *ngIf="isInLeague() === false" [routerLink]="['/leagues', leagueId, 'join']" class="join-link">Join this league</a>
+            <a [routerLink]="['/leagues']" class="browse-link">Browse leagues</a>
+            <button *ngIf="isAdmin$ | async" type="button" class="btn-delete-league" (click)="deleteLeague()" [disabled]="deleting">
+                {{ deleting ? 'Deleting…' : 'Delete league' }}
+            </button>
+        </div>
     </header>
 
     <section class="cta-section">

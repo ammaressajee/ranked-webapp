@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { addDoc, collection, collectionData, doc, docData, endAt, Firestore, getDoc, getDocs, limit, orderBy, query, serverTimestamp, startAt, setDoc, updateDoc, where } from '@angular/fire/firestore';
+import { addDoc, collection, collectionData, deleteDoc, doc, docData, endAt, Firestore, getDoc, getDocs, limit, orderBy, query, serverTimestamp, startAt, setDoc, updateDoc, where } from '@angular/fire/firestore';
 import { combineLatest, firstValueFrom, map, Observable, of } from 'rxjs';
 import { League } from '../models/League';
 import { LeagueParticipant } from '../models/LeagueParticipant';
@@ -10,8 +10,28 @@ import { geohashForLocation, geohashQueryBounds, distanceBetween } from 'geofire
 import { GeocodingService } from './geocoding.service';
 import { environment } from '../../environments/environment';
 
-/** Default radius in km for nearby league queries */
-export const DEFAULT_LEAGUE_RADIUS_KM = 50;
+/** 50 miles in km - leagues within this radius of user's location */
+export const LEAGUE_RADIUS_MILES = 50;
+export const DEFAULT_LEAGUE_RADIUS_KM = LEAGUE_RADIUS_MILES * 1.60934;
+
+/** Normalized city list so "austin" and "austin tx" match the same option */
+export const DEFAULT_CITIES: string[] = [
+  'Austin, TX', 'Houston, TX', 'San Antonio, TX', 'Dallas, TX', 'Fort Worth, TX',
+  'Los Angeles, CA', 'San Diego, CA', 'San Francisco, CA', 'San Jose, CA',
+  'Phoenix, AZ', 'Tucson, AZ', 'Denver, CO', 'Chicago, IL', 'Seattle, WA',
+  'Portland, OR', 'Atlanta, GA', 'Miami, FL', 'Orlando, FL', 'Tampa, FL',
+  'Boston, MA', 'New York, NY', 'Philadelphia, PA', 'Washington, DC',
+  'Las Vegas, NV', 'Nashville, TN', 'Charlotte, NC', 'Minneapolis, MN',
+  'Detroit, MI', 'Columbus, OH', 'Indianapolis, IN', 'New Orleans, LA'
+];
+
+/**
+ * Location matching: leagues and users use the same normalized city list (dropdown only).
+ * - League: created with a city from getSelectableCities() → geocoded to lat/lng at create time.
+ * - User: "Use current location" (browser geolocation) or select city from same dropdown → lat/lng.
+ * - Join / nearby: always compare coordinates; allow only if distance <= LEAGUE_RADIUS_MILES.
+ * No free-text location input anywhere (avoids bogus geocodes like "test" → 12127 km).
+ */
 
 @Injectable({ providedIn: 'root' })
 export class LeagueService {
@@ -28,16 +48,20 @@ export class LeagueService {
   // League CRUD
   // --------------------------
   async createLeague(payload: { name: string; location: string; startAt?: any; endAt?: any; season?: number; maxPlayers?: number }) {
-    const geo = await this.geocoding.geocode(payload.location);
     const docData: Record<string, unknown> = {
       ...payload,
       isActive: true,
       createdAt: serverTimestamp()
     };
-    if (geo) {
-      docData['lat'] = geo.lat;
-      docData['lng'] = geo.lng;
-      docData['geohash'] = geohashForLocation([geo.lat, geo.lng]);
+    try {
+      const geo = await this.geocoding.geocode(payload.location);
+      if (geo) {
+        docData['lat'] = geo.lat;
+        docData['lng'] = geo.lng;
+        docData['geohash'] = geohashForLocation([geo.lat, geo.lng]);
+      }
+    } catch (_) {
+      // League still created; will show in "all leagues" but not in nearby search
     }
     const docRef = await addDoc(this.leaguesColl(), docData);
     return docRef.id;
@@ -51,6 +75,33 @@ export class LeagueService {
   listActiveLeagues(): Observable<League[]> {
     const q = query(this.leaguesColl(), where('isActive', '==', true), orderBy('createdAt', 'desc'));
     return collectionData(q, { idField: 'id' }) as Observable<League[]>;
+  }
+
+  /**
+   * List leagues within radius. If none found, falls back to all active leagues.
+   * Always includes leagues the user has joined (via merge in component).
+   */
+  listLeaguesNearbyWithFallback(lat: number, lng: number, radiusKm: number = DEFAULT_LEAGUE_RADIUS_KM): Observable<{ leagues: League[]; usedFallback: boolean }> {
+    return new Observable(sub => {
+      this.listLeaguesNearby(lat, lng, radiusKm).subscribe({
+        next: nearby => {
+          if (nearby.length > 0) {
+            sub.next({ leagues: nearby, usedFallback: false });
+          } else {
+            this.listActiveLeagues().subscribe(all => {
+              sub.next({ leagues: all ?? [], usedFallback: true });
+            });
+          }
+          sub.complete();
+        },
+        error: err => {
+          this.listActiveLeagues().subscribe(all => {
+            sub.next({ leagues: all ?? [], usedFallback: true });
+            sub.complete();
+          });
+        }
+      });
+    });
   }
 
   /**
@@ -136,6 +187,29 @@ export class LeagueService {
       recentOpponents: []          // initialize empty array
     }, { merge: true });
     return participantId;
+  }
+
+  /** Remove the current user from a league (deletes their participant doc). */
+  async leaveLeague(leagueId: string, userId: string): Promise<void> {
+    const participantId = `${leagueId}_${userId}`;
+    const ref = doc(this.fs, 'leagueParticipants', participantId);
+    await deleteDoc(ref);
+  }
+
+  /** Admin only: delete a league and all its participants and matches. */
+  async deleteLeague(leagueId: string): Promise<void> {
+    const participantsQ = query(this.participantsColl(), where('leagueId', '==', leagueId));
+    const participantsSnap = await getDocs(participantsQ);
+    for (const d of participantsSnap.docs) {
+      await deleteDoc(d.ref);
+    }
+    const matchesQ = query(this.matchesColl(), where('leagueId', '==', leagueId));
+    const matchesSnap = await getDocs(matchesQ);
+    for (const d of matchesSnap.docs) {
+      await deleteDoc(d.ref);
+    }
+    const leagueRef = doc(this.fs, 'leagues', leagueId);
+    await deleteDoc(leagueRef);
   }
 
   listParticipants(leagueId: string): Observable<LeagueParticipant[]> {
@@ -339,6 +413,41 @@ export class LeagueService {
           }
         }
         return locations.slice(0, 10);
+      })
+    );
+  }
+
+  /** Cities for dropdown: default list + any from leagues/requests, normalized and sorted */
+  getSelectableCities(): Observable<string[]> {
+    return combineLatest([
+      this.listActiveLeagues(),
+      this.listLeagueRequests('pending')
+    ]).pipe(
+      map(([leagues, requests]) => {
+        const seen = new Set<string>();
+        const out: string[] = [];
+        for (const city of DEFAULT_CITIES) {
+          const key = city.toLowerCase();
+          if (!seen.has(key)) {
+            seen.add(key);
+            out.push(city);
+          }
+        }
+        for (const l of leagues) {
+          const loc = (l.location || '').trim();
+          if (loc && !seen.has(loc.toLowerCase())) {
+            seen.add(loc.toLowerCase());
+            out.push(loc);
+          }
+        }
+        for (const r of requests) {
+          const loc = (r.location || '').trim();
+          if (loc && !seen.has(loc.toLowerCase())) {
+            seen.add(loc.toLowerCase());
+            out.push(loc);
+          }
+        }
+        return out.sort((a, b) => a.localeCompare(b));
       })
     );
   }

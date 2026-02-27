@@ -228,6 +228,12 @@ h1 {
     box-sizing: border-box;
   }
 
+  .location-format-note {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin: 0.25rem 0 0;
+  }
+
   .error-msg {
     color: #ff6b6b;
     font-size: 0.9rem;

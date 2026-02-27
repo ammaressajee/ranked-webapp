@@ -1,11 +1,12 @@
 import { Component, inject, signal } from '@angular/core';
 import { LeagueService } from '../../services/league.service';
+import { AdminService } from '../../services/admin.service';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom, Observable } from 'rxjs';
 import { LeagueParticipant } from '../../models/LeagueParticipant';
-import { getAuth } from '@angular/fire/auth';
+import { Auth, authState } from '@angular/fire/auth';
 
 @Component({
   selector: 'app-league-detail',
@@ -15,8 +16,10 @@ import { getAuth } from '@angular/fire/auth';
 })
 export class LeagueDetailComponent {
   ls = inject(LeagueService);
+  adminService = inject(AdminService);
   route = inject(ActivatedRoute);
   router = inject(Router);
+  private auth = inject(Auth);
 
   leagueId = this.route.snapshot.paramMap.get('id')!;
   league$ = this.ls.getLeague(this.leagueId);
@@ -25,20 +28,30 @@ export class LeagueDetailComponent {
   findingMatch = false;
   findMatchError: string | null = null;
   findMatchQueued = false;
-  private auth = getAuth();
+  leaving = false;
+  deleting = false;
   /** true = in league, false = not in league, null = still loading */
   isInLeague = signal<boolean | null>(null);
+  isAdmin$ = this.adminService.isAdmin$;
 
   constructor() {
-    const user = this.auth.currentUser;
-    if (user) {
-      this.ls.listUserLeagues(user.uid).subscribe(parts => {
-        const inLeague = !!parts?.find(p => p.leagueId === this.leagueId);
-        this.isInLeague.set(inLeague);
-      });
-    } else {
-      this.isInLeague.set(false);
-    }
+    authState(this.auth).subscribe(user => {
+      if (user) {
+        this.ls.listUserLeagues(user.uid).subscribe(parts => {
+          const inLeague = !!parts?.find(p => p.leagueId === this.leagueId);
+          this.isInLeague.set(inLeague);
+        });
+      } else {
+        this.isInLeague.set(false);
+      }
+    });
+    // Fallback: if user appears in standings, they're in the league (handles race conditions)
+    this.participants$.subscribe(participants => {
+      const user = this.auth.currentUser;
+      if (user && participants?.some(p => p.userId === user.uid) && this.isInLeague() !== true) {
+        this.isInLeague.set(true);
+      }
+    });
   }
 
   async findMatch() {
@@ -87,6 +100,39 @@ export class LeagueDetailComponent {
 
   openLeaderboard() {
     this.router.navigate(['/leagues', this.leagueId, 'leaderboard']);
+  }
+
+  async leaveLeague() {
+    const user = this.auth.currentUser;
+    if (!user || this.leaving) return;
+    if (!confirm('Leave this league? Your wins and rank in this league will no longer be tracked here.')) return;
+    this.leaving = true;
+    try {
+      await this.ls.leaveLeague(this.leagueId, user.uid);
+      this.isInLeague.set(false);
+      this.router.navigate(['/leagues']);
+    } catch (err) {
+      console.error(err);
+      alert('Could not leave league. Please try again.');
+    } finally {
+      this.leaving = false;
+    }
+  }
+
+  async deleteLeague() {
+    if (this.deleting) return;
+    const name = (await firstValueFrom(this.league$))?.name || this.leagueId;
+    if (!confirm(`Permanently delete the league "${name}"? All members and matches will be removed. This cannot be undone.`)) return;
+    this.deleting = true;
+    try {
+      await this.ls.deleteLeague(this.leagueId);
+      this.router.navigate(['/leagues']);
+    } catch (err) {
+      console.error(err);
+      alert('Could not delete league. Please try again.');
+    } finally {
+      this.deleting = false;
+    }
   }
 
 }

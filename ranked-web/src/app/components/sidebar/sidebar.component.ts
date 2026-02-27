@@ -41,9 +41,9 @@ export class SidebarComponent implements OnInit {
         requiresAuth: false
       },
       {
-        icon: 'sports_soccer',
-        label: 'League',
-        route: '/league',
+        icon: 'sports_esports',
+        label: 'Browse Leagues',
+        route: '/leagues',
         requiresAuth: false
       },
       {

@@ -84,6 +84,42 @@
   }
 }
 
+.match-alerts {
+  max-width: 900px;
+  margin: 0 auto 1rem;
+  padding: 0 1.5rem;
+
+  .match-alerts-inner {
+    background: rgba(255, 193, 7, 0.12);
+    border: 1px solid rgba(255, 193, 7, 0.35);
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    color: var(--text-primary);
+  }
+
+  .match-alert-item {
+    margin: 0 0 0.5rem;
+    font-size: 0.95rem;
+    line-height: 1.4;
+
+    &:last-of-type {
+      margin-bottom: 0.75rem;
+    }
+  }
+
+  .match-alerts-cta {
+    display: inline-block;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--accent);
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
 .dashboard-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -110,6 +146,36 @@
   flex-direction: column;
   gap: 1rem;
   align-items: flex-start;
+
+  .league-picker {
+    width: 100%;
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 0.35rem;
+    }
+
+    .league-select {
+      width: 100%;
+      max-width: 100%;
+      padding: 0.5rem 2rem 0.5rem 0.75rem;
+      font-size: 0.95rem;
+      color: var(--text-primary);
+      background-color: var(--bg-elevated, var(--bg-card));
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.6rem center;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+    }
+  }
 
   .rank-summary {
     display: flex;

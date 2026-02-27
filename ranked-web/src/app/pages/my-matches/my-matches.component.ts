@@ -4,6 +4,7 @@ import { LeagueService } from '../../services/league.service';
 import { Auth } from '@angular/fire/auth';
 import { LeagueMatch } from '../../models/LeagueMatch';
 import { LeagueParticipant } from '../../models/LeagueParticipant';
+import { SharedContactDisplay } from '../../models/UserContactPreferences';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -111,6 +112,7 @@ export class MyMatchesComponent {
     const user = this.auth.currentUser;
     if (!user) return;
 
+    this.opponentContactCache.clear();
     this.matches$ = this.ls.listUserMatches(leagueId, user.uid);
     this.participants$ = this.ls.listParticipants(leagueId);
     this.matchesWithNames$ = combineLatest([this.matches$, this.participants$]).pipe(
@@ -143,6 +145,50 @@ export class MyMatchesComponent {
     const uid = this.auth.currentUser?.uid;
     if (!uid || !matches?.length) return false;
     return matches.some(m => m.status === 'pending_acceptance' && m.playerA === uid);
+  }
+
+  /** Opponent UID for a match (the other player). */
+  getOpponentUid(match: LeagueMatch): string | null {
+    const uid = this.auth.currentUser?.uid;
+    if (!uid) return null;
+    return match.playerA === uid ? match.playerB ?? null : match.playerA;
+  }
+
+  private opponentContactCache = new Map<string, Observable<SharedContactDisplay | null>>();
+
+  /** Shared contact for the opponent on this match (only visible when they've opted in). Cached per match id. */
+  getOpponentContact(match: LeagueMatch): Observable<SharedContactDisplay | null> {
+    const id = match.id;
+    if (!id) return of(null);
+    if (this.opponentContactCache.has(id)) return this.opponentContactCache.get(id)!;
+    const uid = this.auth.currentUser?.uid;
+    const opp = this.getOpponentUid(match);
+    if (!uid || !opp) return of(null);
+    const obs = this.ls.getSharedContactForUser(opp, { match, viewerUid: uid });
+    this.opponentContactCache.set(id, obs);
+    return obs;
+  }
+
+  /** True if current user has already shared their contact for this match. */
+  hasSharedMyContact(match: LeagueMatch): boolean {
+    const uid = this.auth.currentUser?.uid;
+    if (!uid) return false;
+    return !!((match.playerA === uid && match.sharedContactByPlayerA) || (match.playerB === uid && match.sharedContactByPlayerB));
+  }
+
+  sharingContactMatchId: string | null = null;
+
+  async shareMyContactWithOpponent(match: LeagueMatch) {
+    if (!match.id) return;
+    const uid = this.auth.currentUser?.uid;
+    if (!uid) return;
+    this.sharingContactMatchId = match.id;
+    try {
+      const isPlayerA = match.playerA === uid;
+      await this.ls.setMatchSharedContact(match.id, isPlayerA);
+    } finally {
+      this.sharingContactMatchId = null;
+    }
   }
 
   // -------------------------------------
@@ -261,7 +307,7 @@ export class MyMatchesComponent {
         return 'Ready to play';
       case 'reported':
       case 'pendingConfirm':
-        return 'Awaiting your confirmation';
+        return 'Awaiting confirmation';
       case 'completed':
         return 'Completed';
       case 'cancelled':

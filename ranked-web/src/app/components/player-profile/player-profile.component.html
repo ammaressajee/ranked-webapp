@@ -33,14 +33,47 @@
     </div>
   </div>
 
+  <!-- Contact preferences (own profile only) -->
+  <div class="contact-preferences" *ngIf="isOwnProfile()">
+    <h3>Contact for coordination</h3>
+    <p class="contact-hint">Only opponents you're matched with can see shared info. You can share globally or per match from My Matches.</p>
+    <div class="contact-form">
+      <div class="contact-field">
+        <label>Email (optional)</label>
+        <input type="email" [ngModel]="contactPrefs().contactEmail" (ngModelChange)="updateContactPref('contactEmail', $event)" placeholder="e.g. you@example.com" />
+        <label class="checkbox-label"><input type="checkbox" [ngModel]="contactPrefs().shareContactEmail" (ngModelChange)="updateContactPref('shareContactEmail', $event)" /> Share with matched opponents</label>
+      </div>
+      <div class="contact-field">
+        <label>Phone (optional)</label>
+        <input type="tel" [ngModel]="contactPrefs().contactPhone" (ngModelChange)="updateContactPref('contactPhone', $event)" placeholder="e.g. +1 555 123 4567" />
+        <label class="checkbox-label"><input type="checkbox" [ngModel]="contactPrefs().shareContactPhone" (ngModelChange)="updateContactPref('shareContactPhone', $event)" /> Share with matched opponents</label>
+      </div>
+      <div class="contact-field">
+        <label>Handle (optional)</label>
+        <input type="text" [ngModel]="contactPrefs().contactHandle" (ngModelChange)="updateContactPref('contactHandle', $event)" placeholder="e.g. Discord, Instagram, or preferred app" />
+        <label class="checkbox-label"><input type="checkbox" [ngModel]="contactPrefs().shareContactHandle" (ngModelChange)="updateContactPref('shareContactHandle', $event)" /> Share with matched opponents</label>
+      </div>
+      <div class="contact-field global-share">
+        <label class="checkbox-label"><input type="checkbox" [ngModel]="contactPrefs().shareContactWithOpponents" (ngModelChange)="updateContactPref('shareContactWithOpponents', $event)" /> Share contact with all matched opponents</label>
+        <span class="field-hint">When on, any opponent you're matched with can see the contact details you've marked above.</span>
+      </div>
+      <div class="contact-actions">
+        <button type="button" class="btn-save" (click)="saveContactPreferences()" [disabled]="contactSaving()">
+          {{ contactSaving() ? 'Saving…' : 'Save preferences' }}
+        </button>
+        <span class="saved-msg" *ngIf="contactSaved()">Saved.</span>
+      </div>
+    </div>
+  </div>
+
   <!-- Recent League Matches -->
   <div class="recent-matches">
     <h3>Recent Matches</h3>
     <ul *ngIf="recentMatches().length; else noMatches">
       <li *ngFor="let match of recentMatches()">
         <span>vs opponent</span>
-        <span class="result" [class.win]="isWinner(match, profileUid())" [class.loss]="!isWinner(match, profileUid())">
-          {{ isWinner(match, profileUid()) ? 'Won' : 'Lost' }}
+        <span class="result" [class.win]="isMatchCompleted(match) && isWinner(match, profileUid())" [class.loss]="isMatchCompleted(match) && !isWinner(match, profileUid())" [class.pending]="!isMatchCompleted(match)">
+          {{ getMatchResultLabel(match) }}
         </span>
       </li>
     </ul>

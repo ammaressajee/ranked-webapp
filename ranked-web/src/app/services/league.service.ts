@@ -3,8 +3,10 @@ import { addDoc, collection, collectionData, deleteDoc, doc, docData, endAt, Fir
 import { combineLatest, firstValueFrom, map, Observable, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { League } from '../models/League';
+import { LeagueMatch } from '../models/LeagueMatch';
 import { LeagueParticipant } from '../models/LeagueParticipant';
 import { LeagueRequest } from '../models/LeagueRequest';
+import { SharedContactDisplay, UserContactPreferences } from '../models/UserContactPreferences';
 import { getAuth } from '@angular/fire/auth';
 import { HttpClient } from '@angular/common/http';
 import { geohashForLocation, geohashQueryBounds, distanceBetween } from 'geofire-common';
@@ -391,6 +393,68 @@ export class LeagueService {
   async reportAndConfirm(matchId: string, leagueId: string, winnerUid: string, userId: string) {
     await this.reportMatchResult(matchId, leagueId, userId, winnerUid);
     await this.confirmMatchResult(matchId, userId);
+  }
+
+  // --------------------------
+  // Opponent contact (coordination)
+  // --------------------------
+
+  /** Get contact preferences for a user (for own profile edit). */
+  getUserContactPreferences(uid: string): Observable<UserContactPreferences | null> {
+    const ref = doc(this.fs, 'users', uid);
+    return (docData(ref).pipe(
+      map(data => data as UserContactPreferences | null),
+      catchError(() => of(null))
+    ) as Observable<UserContactPreferences | null>);
+  }
+
+  /**
+   * Get shared contact for an opponent to display on a match card.
+   * Returns contact only if they've opted in (global share or per-match share for this match).
+   */
+  getSharedContactForUser(
+    opponentUid: string,
+    context: { match?: LeagueMatch; viewerUid: string }
+  ): Observable<SharedContactDisplay | null> {
+    const ref = doc(this.fs, 'users', opponentUid);
+    return (docData(ref).pipe(
+      map(data => {
+        if (!data || typeof data !== 'object') return null;
+        const d = data as Record<string, unknown>;
+        const match = context.match;
+        const viewerUid = context.viewerUid;
+        const isOpponentA = match?.playerA === opponentUid;
+        const isOpponentB = match?.playerB === opponentUid;
+        const sharedForThisMatch =
+          (isOpponentA && match?.sharedContactByPlayerA) || (isOpponentB && match?.sharedContactByPlayerB);
+        const shareWithOpponents = !!d['shareContactWithOpponents'];
+
+        const out: SharedContactDisplay = {};
+        if (sharedForThisMatch) {
+          if (d['contactEmail']) out.contactEmail = String(d['contactEmail']);
+          if (d['contactPhone']) out.contactPhone = String(d['contactPhone']);
+          if (d['contactHandle']) out.contactHandle = String(d['contactHandle']);
+        } else if (shareWithOpponents) {
+          if (d['shareContactEmail'] && d['contactEmail']) out.contactEmail = String(d['contactEmail']);
+          if (d['shareContactPhone'] && d['contactPhone']) out.contactPhone = String(d['contactPhone']);
+          if (d['shareContactHandle'] && d['contactHandle']) out.contactHandle = String(d['contactHandle']);
+        }
+        const hasAny = out.contactEmail || out.contactPhone || out.contactHandle;
+        return hasAny ? out : null;
+      }),
+      catchError(() => of(null))
+    ) as Observable<SharedContactDisplay | null>);
+  }
+
+  async updateUserContactPreferences(uid: string, prefs: Partial<UserContactPreferences>): Promise<void> {
+    const ref = doc(this.fs, 'users', uid);
+    await updateDoc(ref, prefs as Record<string, unknown>);
+  }
+
+  /** Mark that the current user has shared their contact with the opponent for this match. */
+  async setMatchSharedContact(matchId: string, isPlayerA: boolean): Promise<void> {
+    const matchRef = doc(this.fs, 'leagueMatches', matchId);
+    await updateDoc(matchRef, isPlayerA ? { sharedContactByPlayerA: true } : { sharedContactByPlayerB: true });
   }
 
   collectionDataWithId<T>(collectionName: string, field: string, value: any, orderField?: string): Observable<T[]> {

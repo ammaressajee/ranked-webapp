@@ -1,7 +1,8 @@
 import { Component, inject } from '@angular/core';
 import { LeagueMatch } from '../../models/LeagueMatch';
+import { SharedContactDisplay } from '../../models/UserContactPreferences';
 import { collection, collectionData, Firestore, orderBy, query, where } from '@angular/fire/firestore';
-import { interval, map, Observable, startWith } from 'rxjs';
+import { interval, map, Observable, of, startWith } from 'rxjs';
 import { ActivatedRoute } from '@angular/router';
 import { Auth } from '@angular/fire/auth';
 import { LeagueService } from '../../services/league.service';
@@ -98,5 +99,46 @@ export class LeagueMatchesComponent {
         return diff > 0 ? `${minutes}m ${seconds}s` : 'finalizing...';
       })
     );
+  }
+
+  getOpponentUid(match: LeagueMatch): string | null {
+    const uid = this.auth.currentUser?.uid;
+    if (!uid) return null;
+    return match.playerA === uid ? match.playerB ?? null : match.playerA;
+  }
+
+  private opponentContactCache = new Map<string, Observable<SharedContactDisplay | null>>();
+
+  getOpponentContact(match: LeagueMatch): Observable<SharedContactDisplay | null> {
+    const id = match.id;
+    if (!id) return of(null);
+    if (this.opponentContactCache.has(id)) return this.opponentContactCache.get(id)!;
+    const uid = this.auth.currentUser?.uid;
+    const opp = this.getOpponentUid(match);
+    if (!uid || !opp) return of(null);
+    const obs = this.ls.getSharedContactForUser(opp, { match, viewerUid: uid });
+    this.opponentContactCache.set(id, obs);
+    return obs;
+  }
+
+  hasSharedMyContact(match: LeagueMatch): boolean {
+    const uid = this.auth.currentUser?.uid;
+    if (!uid) return false;
+    return !!((match.playerA === uid && match.sharedContactByPlayerA) || (match.playerB === uid && match.sharedContactByPlayerB));
+  }
+
+  sharingContactMatchId: string | null = null;
+
+  async shareMyContactWithOpponent(match: LeagueMatch) {
+    if (!match.id) return;
+    const uid = this.auth.currentUser?.uid;
+    if (!uid) return;
+    this.sharingContactMatchId = match.id;
+    try {
+      const isPlayerA = match.playerA === uid;
+      await this.ls.setMatchSharedContact(match.id, isPlayerA);
+    } finally {
+      this.sharingContactMatchId = null;
+    }
   }
 }

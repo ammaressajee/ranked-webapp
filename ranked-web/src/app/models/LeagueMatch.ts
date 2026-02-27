@@ -28,4 +28,9 @@ export interface LeagueMatch {
   confirmations?: {
     [uid: string]: boolean;
   };
+
+  /** When true, playerA has shared their contact with playerB for this match. */
+  sharedContactByPlayerA?: boolean;
+  /** When true, playerB has shared their contact with playerA for this match. */
+  sharedContactByPlayerB?: boolean;
 }

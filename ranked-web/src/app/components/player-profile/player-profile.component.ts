@@ -1,21 +1,23 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { Auth } from '@angular/fire/auth';
 import { doc, Firestore, getDoc } from '@angular/fire/firestore';
 import { ActivatedRoute } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { LeagueService } from '../../services/league.service';
+import { UserContactPreferences } from '../../models/UserContactPreferences';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-player-profile',
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './player-profile.component.html',
   styleUrl: './player-profile.component.scss',
 })
 export class PlayerProfileComponent {
   private route = inject(ActivatedRoute);
   private firestore = inject(Firestore);
-  private auth = inject(Auth);
+  auth = inject(Auth);
   private leagueService = inject(LeagueService);
 
   player = signal<any>(null);
@@ -24,6 +26,16 @@ export class PlayerProfileComponent {
   /** Overall stats across all leagues: total wins, total losses, average ELO */
   overallStats = signal<{ totalWins: number; totalLosses: number; avgElo: number; leagueCount: number } | null>(null);
   recentMatches = signal<any[]>([]);
+
+  /** Contact preferences for own profile edit */
+  contactPrefs = signal<Partial<UserContactPreferences>>({});
+  contactSaving = signal(false);
+  contactSaved = signal(false);
+  isOwnProfile = computed(() => {
+    const uid = this.profileUid();
+    const current = this.auth.currentUser?.uid;
+    return !!(uid && current && uid === current);
+  });
 
   async ngOnInit() {
     const uid = this.route.snapshot.paramMap.get('uid') || this.auth.currentUser?.uid;
@@ -67,6 +79,31 @@ export class PlayerProfileComponent {
 
     // Load recent league matches
     this.leagueService.listRecentLeagueMatchesForUser(uid, 10).subscribe(data => this.recentMatches.set(data));
+
+    // Load contact preferences when viewing own profile
+    if (this.auth.currentUser?.uid === uid) {
+      this.leagueService.getUserContactPreferences(uid).subscribe(prefs => {
+        this.contactPrefs.set(prefs ?? {});
+      });
+    }
+  }
+
+  updateContactPref<K extends keyof UserContactPreferences>(key: K, value: UserContactPreferences[K]) {
+    this.contactPrefs.update(p => ({ ...p, [key]: value }));
+  }
+
+  async saveContactPreferences() {
+    const uid = this.profileUid();
+    if (!uid || uid !== this.auth.currentUser?.uid) return;
+    this.contactSaving.set(true);
+    this.contactSaved.set(false);
+    try {
+      await this.leagueService.updateUserContactPreferences(uid, this.contactPrefs());
+      this.contactSaved.set(true);
+      setTimeout(() => this.contactSaved.set(false), 3000);
+    } finally {
+      this.contactSaving.set(false);
+    }
   }
 
   displayRank(p: any): number {
@@ -86,6 +123,28 @@ export class PlayerProfileComponent {
 
   isWinner(match: any, uid: string | null): boolean {
     return !!(uid && match?.result?.winner === uid);
+  }
+
+  /** Label for match in list: Won/Lost only when completed; otherwise status (Pending, Awaiting confirmation, Cancelled). */
+  getMatchResultLabel(match: any): string {
+    if (!match) return '—';
+    const status = match.status;
+    if (status === 'completed') {
+      return this.isWinner(match, this.profileUid()) ? 'Won' : 'Lost';
+    }
+    switch (status) {
+      case 'pending_acceptance': return 'Pending';
+      case 'pending': return 'Pending';
+      case 'reported':
+      case 'pendingConfirm': return 'Awaiting confirmation';
+      case 'cancelled': return 'Cancelled';
+      default: return status || 'Pending';
+    }
+  }
+
+  /** True only when match is completed (so we can show win/loss styling). */
+  isMatchCompleted(match: any): boolean {
+    return match?.status === 'completed';
   }
 
   getTier(rank: number): string {

@@ -61,6 +61,23 @@
         <strong>Score:</strong> {{ m.result?.score }}
       </div>
 
+      <!-- Opponent contact (when they've shared) -->
+      <div class="opponent-contact" *ngIf="getOpponentContact(m) | async as contact">
+        <p class="opponent-contact-label">Opponent shared contact for coordination:</p>
+        <div class="opponent-contact-details">
+          <a *ngIf="contact.contactEmail" [href]="'mailto:' + contact.contactEmail" class="contact-link">{{ contact.contactEmail }}</a>
+          <a *ngIf="contact.contactPhone" [href]="'tel:' + contact.contactPhone" class="contact-link">{{ contact.contactPhone }}</a>
+          <span *ngIf="contact.contactHandle" class="contact-handle">{{ contact.contactHandle }}</span>
+        </div>
+      </div>
+
+      <!-- Share my contact with this opponent -->
+      <div class="share-contact-row" *ngIf="!hasSharedMyContact(m) && getOpponentUid(m) && m.status !== 'completed' && m.status !== 'cancelled'">
+        <button type="button" class="btn btn-share-contact" (click)="shareMyContactWithOpponent(m)" [disabled]="sharingContactMatchId === m.id">
+          {{ sharingContactMatchId === m.id ? 'Sharing…' : 'Share my contact with this opponent' }}
+        </button>
+      </div>
+
       <!-- Status Logic -->
       <div class="match-actions">
 

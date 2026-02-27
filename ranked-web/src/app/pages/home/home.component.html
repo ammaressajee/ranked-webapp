@@ -12,16 +12,42 @@
       <p class="hero-subtitle">Find matches and climb the ranks</p>
     </section>
 
+    @if (matchAlerts$ | async; as alerts) {
+      <section class="match-alerts" aria-label="Match alerts">
+        <div class="match-alerts-inner">
+          @for (msg of alerts.messages; track msg) {
+            <p class="match-alert-item">{{ msg }}</p>
+          }
+          <a [routerLink]="['/my-matches']" class="match-alerts-cta">Go to My Matches</a>
+        </div>
+      </section>
+    }
+
     <section class="dashboard-grid">
       <!-- Primary CTA -->
       <div class="cta-card">
-        @if (overallStats$ | async; as stats) {
+        @if (leagueStats$ | async; as stats) {
           @if (stats.hasAnyLeague) {
+            @if (userLeagues().length > 1) {
+              <div class="league-picker">
+                <label for="home-league-select">League</label>
+                <select
+                  id="home-league-select"
+                  [value]="selectedLeagueId() ?? ''"
+                  (change)="onLeagueChange($any($event.target).value)"
+                  class="league-select"
+                >
+                  @for (p of userLeagues(); track p.leagueId) {
+                    <option [value]="p.leagueId">{{ p.leagueName || p.leagueId }}</option>
+                  }
+                </select>
+              </div>
+            }
             <div class="rank-summary">
-              <span class="rank-value">Avg ELO {{ stats.avgElo }}</span>
-              <span class="stats">{{ stats.totalWins }}W · {{ stats.totalLosses }}L</span>
+              <span class="rank-value">Rank {{ stats.rank }}</span>
+              <span class="stats">{{ stats.wins }}W · {{ stats.losses }}L</span>
             </div>
-            @if (participant$ | async; as participant) {
+            @if (selectedParticipant$ | async; as participant) {
               <a [routerLink]="['/leagues', participant.leagueId]" class="btn-primary">Find Match</a>
             } @else {
               <a [routerLink]="['/leagues']" class="btn-primary">Find Match</a>
@@ -38,7 +64,7 @@
       </div>
 
       <!-- Recent matches -->
-      @if (overallStats$ | async; as stats) {
+      @if (leagueStats$ | async; as stats) {
       @if (stats.hasAnyLeague) {
         <div class="recent-card">
           <h3>Recent Matches</h3>

@@ -1,18 +1,19 @@
-import { Component, inject } from '@angular/core';
+import { Component, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { toObservable } from '@angular/core/rxjs-interop';
+import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../services/auth.service';
 import { LeagueService } from '../../services/league.service';
 import { combineLatest, map, Observable, of, switchMap } from 'rxjs';
 import { LeagueParticipant } from '../../models/LeagueParticipant';
 import { LeagueMatch } from '../../models/LeagueMatch';
 import { League } from '../../models/League';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, FormsModule],
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss'
 })
@@ -25,41 +26,103 @@ export class HomeComponent {
     switchMap(p => p?.uid ? this.leagueService.listUserLeagues(p.uid) : of([]))
   );
 
-  /** Overall stats across all leagues: total wins, total losses, avg ELO */
-  overallStats$: Observable<{ totalWins: number; totalLosses: number; avgElo: number; hasAnyLeague: boolean }> = this.userLeagues$.pipe(
-    map(participants => {
-      const list = participants ?? [];
-      if (!list.length) return { totalWins: 0, totalLosses: 0, avgElo: 1000, hasAnyLeague: false };
-      const totalWins = list.reduce((s, p) => s + (p.wins ?? 0), 0);
-      const totalLosses = list.reduce((s, p) => s + (p.losses ?? 0), 0);
-      const sumRank = list.reduce((s, p) => s + (p.currentRank ?? 1000), 0);
-      const avgElo = Math.round(sumRank / list.length);
-      return { totalWins, totalLosses, avgElo, hasAnyLeague: true };
-    })
-  );
+  userLeagues = toSignal(this.userLeagues$, { initialValue: [] as LeagueParticipant[] });
 
-  participant$: Observable<LeagueParticipant | null> = this.userLeagues$.pipe(
-    map(participants => participants?.[0] ?? null)
-  );
+  /** User-selected league id; defaults to first league when leagues load. */
+  selectedLeagueId = signal<string | null>(null);
 
-  firstLeague$: Observable<League | null> = this.userLeagues$.pipe(
-    switchMap(participants => {
-      const first = participants?.[0];
-      if (!first?.leagueId) return of(null);
-      return this.leagueService.getLeague(first.leagueId);
-    })
-  );
+  constructor() {
+    effect(() => {
+      const leagues = this.userLeagues();
+      if (!leagues?.length) return;
+      const cur = this.selectedLeagueId();
+      const valid = leagues.some(p => p.leagueId === cur);
+      if (!valid) this.selectedLeagueId.set(leagues[0].leagueId);
+    });
+  }
 
-  recentMatches$: Observable<LeagueMatch[]> = combineLatest([
+  onLeagueChange(leagueId: string) {
+    this.selectedLeagueId.set(leagueId || null);
+  }
+
+  /** Effective league id: selected if valid, otherwise first. */
+  effectiveLeagueId$ = combineLatest([
     this.userLeagues$,
+    toObservable(this.selectedLeagueId)
+  ]).pipe(
+    map(([leagues, selected]) => {
+      if (!leagues?.length) return null;
+      if (selected && leagues.some(p => p.leagueId === selected)) return selected;
+      return leagues[0].leagueId;
+    })
+  );
+
+  /** Stats for the selected league only: rank, wins, losses. */
+  leagueStats$: Observable<{ rank: number; wins: number; losses: number; hasAnyLeague: boolean }> = combineLatest([
+    this.userLeagues$,
+    this.effectiveLeagueId$
+  ]).pipe(
+    map(([participants, leagueId]) => {
+      const list = participants ?? [];
+      if (!list.length || !leagueId) return { rank: 1000, wins: 0, losses: 0, hasAnyLeague: false };
+      const p = list.find(part => part.leagueId === leagueId);
+      if (!p) return { rank: 1000, wins: 0, losses: 0, hasAnyLeague: true };
+      return {
+        rank: p.currentRank ?? 1000,
+        wins: p.wins ?? 0,
+        losses: p.losses ?? 0,
+        hasAnyLeague: true
+      };
+    })
+  );
+
+  /** Participant for the selected league (for Find Match link). */
+  selectedParticipant$: Observable<LeagueParticipant | null> = combineLatest([
+    this.userLeagues$,
+    this.effectiveLeagueId$
+  ]).pipe(
+    map(([participants, leagueId]) => participants?.find(p => p.leagueId === leagueId) ?? null)
+  );
+
+  selectedLeague$: Observable<League | null> = this.effectiveLeagueId$.pipe(
+    switchMap(id => id ? this.leagueService.getLeague(id) : of(null))
+  );
+
+  /** All matches in the selected league (for banner + recent list). */
+  selectedLeagueMatches$: Observable<LeagueMatch[]> = combineLatest([
+    this.effectiveLeagueId$,
     toObservable(this.authService.profile)
   ]).pipe(
-    switchMap(([participants, profile]) => {
-      const first = participants?.[0];
-      if (!first?.leagueId || !profile?.uid) return of([]);
-      return this.leagueService.listUserMatches(first.leagueId, profile.uid).pipe(
-        map(matches => (matches || []).slice(0, 5))
+    switchMap(([leagueId, profile]) => {
+      if (!leagueId || !profile?.uid) return of([]);
+      return this.leagueService.listUserMatches(leagueId, profile.uid).pipe(
+        map(matches => matches || [])
       );
+    })
+  );
+
+  recentMatches$: Observable<LeagueMatch[]> = this.selectedLeagueMatches$.pipe(
+    map(matches => matches.slice(0, 5))
+  );
+
+  /** Alerts for banner: match awaiting confirmation, new match to play, or match request to accept. */
+  matchAlerts$: Observable<{ messages: string[] } | null> = combineLatest([
+    this.selectedLeagueMatches$,
+    toObservable(this.authService.profile)
+  ]).pipe(
+    map(([matches, profile]) => {
+      const uid = profile?.uid;
+      if (!uid || !matches.length) return null;
+      const messages: string[] = [];
+      const needsConfirm = matches.some(m => m.status === 'reported' && m.confirmations?.[uid] !== true);
+      const hasNewMatchToPlay = matches.some(m => m.status === 'pending');
+      const hasMatchToAccept = matches.some(m => m.status === 'pending_acceptance' && m.playerB === uid);
+      const waitingForOpponent = matches.some(m => m.status === 'pending_acceptance' && m.playerA === uid);
+      if (needsConfirm) messages.push('You have a match awaiting your confirmation.');
+      if (hasMatchToAccept) messages.push('You have a match request to accept.');
+      if (hasNewMatchToPlay) messages.push('You have a match ready to play.');
+      if (waitingForOpponent && !hasNewMatchToPlay && !needsConfirm && !hasMatchToAccept) messages.push('A match is waiting for your opponent to accept.');
+      return messages.length ? { messages } : null;
     })
   );
 

@@ -16,8 +16,12 @@ export class AuthService {
   profile = signal<any>(null);
   joined = signal(false);
 
+  /** undefined = auth not yet restored, null = signed out, User = signed in. Use this so UI doesn't flash "signed out" on reload. */
+  authState = signal<User | null | undefined>(undefined);
+
   constructor() {
     this.user$.subscribe(async (u) => {
+      this.authState.set(u);
       if (u) {
         this.profile.set({
           uid: u.uid,
@@ -85,7 +89,15 @@ export class AuthService {
     await signOut(this.auth);
   }
 
+  /** True only after Firebase has restored auth; then true if user is signed in. */
   isLoggedIn(): boolean {
-    return this.auth.currentUser !== null;
+    const state = this.authState();
+    if (state === undefined) return false; // still loading
+    return state !== null;
+  }
+
+  /** True once we know auth state (signed in or not). Use to avoid showing "signed out" before restore. */
+  isAuthReady(): boolean {
+    return this.authState() !== undefined;
   }
 }

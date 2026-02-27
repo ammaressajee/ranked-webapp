@@ -7,12 +7,16 @@
       <a routerLink="/" class="app-title">Ranked</a>
     </div>
     <div class="right-section">
-      <ng-container *ngIf="!authService.isLoggedIn(); else loggedInButtons">
+      <!-- Wait for auth to restore on reload before showing signed-out state -->
+      <ng-container *ngIf="!authService.isAuthReady()">
+        <span class="auth-loading" aria-hidden="true"></span>
+      </ng-container>
+      <ng-container *ngIf="authService.isAuthReady() && !authService.isLoggedIn()">
         <a (click)="isSidebarOpen=false" class="auth-btn login" routerLink="/login">Get Started</a>
       </ng-container>
-      <ng-template #loggedInButtons>
+      <ng-container *ngIf="authService.isAuthReady() && authService.isLoggedIn()">
         <button (click)="handleLogout()" class="auth-btn logout">Sign Out</button>
-      </ng-template>
+      </ng-container>
     </div>
   </header>
 

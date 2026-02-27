@@ -22,6 +22,33 @@
 
     <h2 class="section-title">My Matches</h2>
 
+    <!-- Find Match CTA for selected league -->
+    <div class="find-match-bar">
+      <button
+        class="btn btn-find-match"
+        (click)="findMatchFromPage()"
+        [disabled]="findingMatch || isSeekingInLeague"
+      >
+        {{ findingMatch ? 'Searching…' : isSeekingInLeague ? 'In queue…' : 'Find Match' }}
+      </button>
+      <p *ngIf="findMatchMessage === 'queued'" class="find-match-msg queued">
+        You're in the queue. When someone else in this league clicks Find Match, you'll be paired.
+        <button type="button" class="btn-link-inline" (click)="clearFindMatchMessage()">Dismiss</button>
+      </p>
+      <p *ngIf="findMatchMessage === 'matched'" class="find-match-msg matched">
+        Match found! It should appear below—accept it to start.
+        <button type="button" class="btn-link-inline" (click)="clearFindMatchMessage()">Dismiss</button>
+      </p>
+    </div>
+
+    <!-- Status: searching or pending match -->
+    <div *ngIf="isSeekingInLeague" class="status-banner seeking">
+      🔍 You're in the queue for this league. A match will appear here when another player searches.
+    </div>
+    <div *ngIf="!isSeekingInLeague && hasPendingAcceptanceMatch(vm.matches)" class="status-banner pending">
+      ⏳ You have a match waiting for your opponent to accept. It will appear below once they accept.
+    </div>
+
     <div *ngIf="vm.matches.length === 0" class="empty-msg">
       No matches yet in this league.
       <span class="empty-hint">Go to your league page and click <strong>Find Match</strong> to get paired with an opponent.</span>

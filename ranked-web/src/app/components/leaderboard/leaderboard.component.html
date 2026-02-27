@@ -24,21 +24,21 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let player of players(); let i = index" [routerLink]="['/profile', player.id]" class="player-row">
+            <tr *ngFor="let player of players(); let i = index" [routerLink]="['/profile', player.userId]" class="player-row">
               <td class="rank-num">{{ i + 1 }}</td>
               <td class="player-name">{{ player.displayName || 'Anonymous' }}</td>
-              <td>{{ player.rank }}</td>
+              <td>{{ player.currentRank }}</td>
               <td>
                 <span [ngClass]="{
                   'rank-tier': true,
-                  'bronze': player.rank < 1000,
-                  'silver': player.rank >= 1000 && player.rank < 1300,
-                  'gold': player.rank >= 1300 && player.rank < 1600,
-                  'platinum': player.rank >= 1600 && player.rank < 1900,
-                  'diamond': player.rank >= 1900 && player.rank < 2200,
-                  'champion': player.rank >= 2200
+                  'bronze': player.currentRank < 1000,
+                  'silver': player.currentRank >= 1000 && player.currentRank < 1300,
+                  'gold': player.currentRank >= 1300 && player.currentRank < 1600,
+                  'platinum': player.currentRank >= 1600 && player.currentRank < 1900,
+                  'diamond': player.currentRank >= 1900 && player.currentRank < 2200,
+                  'champion': player.currentRank >= 2200
                 }">
-                  {{ getTier(player.rank) }}
+                  {{ getTier(player.currentRank) }}
                 </span>
               </td>
               <td>{{ player.wins || 0 }}</td>

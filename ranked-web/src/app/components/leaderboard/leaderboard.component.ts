@@ -1,7 +1,9 @@
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { Component, inject, PLATFORM_ID, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { collection, collectionData, Firestore, limit, orderBy, query } from '@angular/fire/firestore';
+import { LeagueService } from '../../services/league.service';
+import { LeagueParticipant } from '../../models/LeagueParticipant';
+import { map } from 'rxjs/operators';
 
 @Component({
   selector: 'app-leaderboard',
@@ -10,20 +12,25 @@ import { collection, collectionData, Firestore, limit, orderBy, query } from '@a
   styleUrl: './leaderboard.component.scss',
 })
 export class LeaderboardComponent {
-
-  private firestore = inject(Firestore);
+  private ls = inject(LeagueService);
   private platformId = inject(PLATFORM_ID);
-  players = signal<any[]>([]);
+  players = signal<LeagueParticipant[]>([]);
 
   ngOnInit() {
     if (isPlatformBrowser(this.platformId)) {
-      const leaderboardQuery = query(
-        collection(this.firestore, 'users'),
-        orderBy('rank', 'desc'),
-        limit(10)
-      );
-      collectionData(leaderboardQuery, { idField: 'id' })
-        .subscribe(data => this.players.set(data));
+      this.ls.getTopParticipantsGlobally(100).pipe(
+        map(participants => {
+          const byUser = new Map<string, LeagueParticipant>();
+          for (const p of participants ?? []) {
+            const existing = byUser.get(p.userId);
+            if (!existing || (p.currentRank ?? 0) > (existing.currentRank ?? 0))
+              byUser.set(p.userId, p);
+          }
+          return Array.from(byUser.values())
+            .sort((a, b) => (b.currentRank ?? 0) - (a.currentRank ?? 0))
+            .slice(0, 10);
+        })
+      ).subscribe(data => this.players.set(data));
     }
   }
 

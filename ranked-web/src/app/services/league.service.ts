@@ -1,6 +1,7 @@
 import { inject, Injectable, NgZone } from '@angular/core';
 import { addDoc, collection, collectionData, deleteDoc, doc, docData, endAt, Firestore, getDoc, getDocs, limit, orderBy, query, serverTimestamp, startAt, setDoc, updateDoc, where } from '@angular/fire/firestore';
 import { combineLatest, firstValueFrom, map, Observable, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { League } from '../models/League';
 import { LeagueParticipant } from '../models/LeagueParticipant';
 import { LeagueRequest } from '../models/LeagueRequest';
@@ -44,6 +45,7 @@ export class LeagueService {
   private participantsColl() { return collection(this.fs, 'leagueParticipants'); }
   private matchesColl() { return collection(this.fs, 'leagueMatches'); }
   private leagueRequestsColl() { return collection(this.fs, 'leagueRequests'); }
+  private searchRequestsColl() { return collection(this.fs, 'searchRequests'); }
 
   // --------------------------
   // League CRUD
@@ -249,6 +251,26 @@ export class LeagueService {
     const body = { leagueId, userId, rank, location };
 
     return firstValueFrom(this.http.post(this.FIND_MATCH_URL, body, { headers })) as Promise<any>;
+  }
+
+  /** Whether this user is currently in the matchmaking queue for this league (seeking). */
+  getSearchRequest(leagueId: string, userId: string): Observable<{ seeking: boolean } | null> {
+    const docId = `${leagueId}_${userId}`;
+    const ref = doc(this.fs, 'searchRequests', docId);
+    return docData(ref).pipe(
+      map(data => (data != null && typeof data === 'object') ? { seeking: !!data['seeking'] } : null),
+      catchError(() => of(null))
+    );
+  }
+
+  /** Top participants across all leagues by currentRank (for global leaderboard). Dedupe by userId in consumer. */
+  getTopParticipantsGlobally(limitCount = 50): Observable<LeagueParticipant[]> {
+    const q = query(
+      this.participantsColl(),
+      orderBy('currentRank', 'desc'),
+      limit(limitCount)
+    );
+    return collectionData(q, { idField: 'id' }) as Observable<LeagueParticipant[]>;
   }
 
   // Call sweep_pending_matches

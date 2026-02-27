@@ -34,7 +34,10 @@
         </nav>
 
         <div class="user-auth-section">
-            <ng-container *ngIf="authService.profile() !== null; else loggedOutContent">
+            <ng-container *ngIf="!authService.isAuthReady()">
+                <span class="auth-loading-text">Loading…</span>
+            </ng-container>
+            <ng-container *ngIf="authService.isAuthReady() && authService.profile() !== null">
                 <div class="user-profile-summary">
                     <img [src]="authService.profile()?.photoURL" alt="User Profile" class="profile-thumb" />
                     <div class="profile-details">
@@ -43,12 +46,11 @@
                     </div>
                 </div>
             </ng-container>
-
-            <ng-template #loggedOutContent>
-                <button (click)="navigateToLogin()" (click)="handleNavClick()"  class="login-prompt-button">
+            <ng-container *ngIf="authService.isAuthReady() && authService.profile() === null">
+                <button (click)="navigateToLogin()" (click)="handleNavClick()" class="login-prompt-button">
                     <span class="nav-icon material-symbols-outlined">person</span> Login Here
                 </button>
-            </ng-template>
+            </ng-container>
         </div>
     </div>
 </aside>

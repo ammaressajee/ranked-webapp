@@ -80,6 +80,62 @@
   color: var(--text-primary);
 }
 
+.find-match-bar {
+  margin-bottom: 1rem;
+
+  .btn-find-match {
+    padding: 0.6rem 1.25rem;
+    background: var(--gradient-accent);
+    color: #0f0f14;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    margin-bottom: 0.5rem;
+
+    &:hover:not(:disabled) {
+      transform: translateY(-1px);
+    }
+    &:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+  }
+  .find-match-msg {
+    font-size: 0.9rem;
+    margin: 0.25rem 0 0;
+    &.queued { color: var(--text-secondary); }
+    &.matched { color: var(--success, #22c55e); }
+    .btn-link-inline {
+      background: none;
+      border: none;
+      color: var(--accent);
+      cursor: pointer;
+      text-decoration: underline;
+      padding: 0 0.25rem;
+      font-size: inherit;
+    }
+  }
+}
+
+.status-banner {
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  &.seeking {
+    background: rgba(33, 150, 243, 0.15);
+    color: #2196f3;
+    border: 1px solid rgba(33, 150, 243, 0.3);
+  }
+  &.pending {
+    background: rgba(255, 193, 7, 0.15);
+    color: #e6a800;
+    border: 1px solid rgba(255, 193, 7, 0.3);
+  }
+}
+
 .match-card {
   background: var(--bg-card);
   border: 1px solid var(--border);

@@ -102,6 +102,11 @@
   }
 
   .user-auth-section {
+    .auth-loading-text {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      padding: 0.75rem;
+    }
     .user-profile-summary {
       display: flex;
       align-items: center;

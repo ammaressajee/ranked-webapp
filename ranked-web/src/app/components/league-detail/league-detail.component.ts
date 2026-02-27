@@ -4,7 +4,8 @@ import { AdminService } from '../../services/admin.service';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { firstValueFrom, Observable } from 'rxjs';
+import { firstValueFrom, Observable, of } from 'rxjs';
+import { map, switchMap } from 'rxjs/operators';
 import { LeagueParticipant } from '../../models/LeagueParticipant';
 import { Auth, authState } from '@angular/fire/auth';
 
@@ -36,6 +37,10 @@ export class LeagueDetailComponent {
   /** true = in league, false = not in league, null = still loading */
   isInLeague = signal<boolean | null>(null);
   isAdmin$ = this.adminService.isAdmin$;
+  /** True when user is in the matchmaking queue for this league (so we don't allow Find Match again). */
+  isSeekingInLeague$: Observable<boolean> = authState(this.auth).pipe(
+    switchMap(user => !user ? of(false) : this.ls.getSearchRequest(this.leagueId, user.uid).pipe(map(r => r?.seeking ?? false)))
+  );
 
   constructor() {
     authState(this.auth).subscribe(user => {

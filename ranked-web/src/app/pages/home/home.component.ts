@@ -3,8 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { LeagueService } from '../../services/league.service';
-import { collection, collectionData, Firestore, limit, orderBy, query } from '@angular/fire/firestore';
-import { combineLatest, map, Observable, of, switchMap } from 'rxjs';
+import { map, Observable, of, switchMap } from 'rxjs';
 import { LeagueParticipant } from '../../models/LeagueParticipant';
 import { LeagueMatch } from '../../models/LeagueMatch';
 import { League } from '../../models/League';
@@ -20,7 +19,6 @@ import { isPlatformBrowser } from '@angular/common';
 export class HomeComponent implements OnInit {
   private authService = inject(AuthService);
   private leagueService = inject(LeagueService);
-  private firestore = inject(Firestore);
   private platformId = inject(PLATFORM_ID);
 
   userLeagues$ = new Observable<LeagueParticipant[]>();
@@ -29,10 +27,14 @@ export class HomeComponent implements OnInit {
   firstLeague$ = new Observable<League | null>();
   participant$ = new Observable<LeagueParticipant | null>();
   recentMatches$ = new Observable<LeagueMatch[]>();
-  topPlayers$ = new Observable<any[]>();
+  topPlayers$ = new Observable<LeagueParticipant[]>();
 
   get user() {
     return this.authService.profile();
+  }
+
+  get isAuthReady() {
+    return this.authService.isAuthReady();
   }
 
   get isLoggedIn() {
@@ -77,12 +79,20 @@ export class HomeComponent implements OnInit {
       );
     }
 
-    const leaderboardQuery = query(
-      collection(this.firestore, 'users'),
-      orderBy('rank', 'desc'),
-      limit(5)
+    // Top players from league participants (by best currentRank across leagues), not stale users collection
+    this.topPlayers$ = this.leagueService.getTopParticipantsGlobally(50).pipe(
+      map(participants => {
+        const byUser = new Map<string, LeagueParticipant>();
+        for (const p of participants ?? []) {
+          const existing = byUser.get(p.userId);
+          if (!existing || (p.currentRank ?? 0) > (existing.currentRank ?? 0))
+            byUser.set(p.userId, p);
+        }
+        return Array.from(byUser.values())
+          .sort((a, b) => (b.currentRank ?? 0) - (a.currentRank ?? 0))
+          .slice(0, 5);
+      })
     );
-    this.topPlayers$ = collectionData(leaderboardQuery, { idField: 'id' }) as Observable<any[]>;
   }
 
   getTier(rank: number): string {

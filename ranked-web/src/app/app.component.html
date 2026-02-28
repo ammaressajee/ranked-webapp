@@ -14,6 +14,9 @@
       </a>
     </div>
     <div class="right-section">
+      <a routerLink="/help" class="topbar-help" aria-label="Help">
+        <span class="material-symbols-outlined">help</span>
+      </a>
       <!-- Wait for auth to restore on reload before showing signed-out state -->
       <ng-container *ngIf="!authService.isAuthReady()">
         <span class="auth-loading" aria-hidden="true"></span>
@@ -29,6 +32,8 @@
 
   <!-- Main layout area -->
   <div class="layout-container">
+    <!-- Backdrop: only on mobile when sidebar open; blocks scroll and closes on tap -->
+    <div class="sidebar-backdrop" [class.visible]="isSidebarOpen" (click)="closeSidebar()" aria-hidden="true"></div>
     <!-- Sidebar -->
     <app-sidebar class="sidebar" [class.open]="isSidebarOpen" [isSidebarOpen]="isSidebarOpen"
       [class.collapsed]="!isSidebarOpen" (clickOutside)="closeSidebar()" (toggleEvent)="toggleSidebar()"></app-sidebar>

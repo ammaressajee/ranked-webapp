@@ -37,6 +37,10 @@ html, body {
   box-sizing: border-box;
 }
 
+html {
+  overflow-x: hidden;
+}
+
 body {
   background: var(--bg-dark);
   color: var(--text-primary);
@@ -44,6 +48,16 @@ body {
   font-size: 16px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* When sidebar is open on mobile: lock body scroll so background doesn’t move */
+body.sidebar-open-mobile {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
 }
 
 * {

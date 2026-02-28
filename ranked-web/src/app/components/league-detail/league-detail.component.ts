@@ -110,7 +110,7 @@ export class LeagueDetailComponent {
   openMatches() {
     this.findMatchResult = null;
     this.findMatchOpponentUid = null;
-    this.router.navigate(['/my-matches']);
+    this.router.navigate(['/my-matches'], { queryParams: { league: this.leagueId } });
   }
 
   openLeaderboard() {

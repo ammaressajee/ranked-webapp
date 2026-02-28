@@ -10,6 +10,7 @@ import { LeagueMatchesComponent } from './components/league-matches/league-match
 import { LeagueLeaderboardComponent } from './components/league-leaderboard/league-leaderboard.component';
 import { MyMatchesComponent } from './pages/my-matches/my-matches.component';
 import { AdminComponent } from './pages/admin/admin.component';
+import { HelpComponent } from './pages/help/help.component';
 import { adminGuard } from './guards/admin.guard';
 
 export const routes: Routes = [
@@ -26,6 +27,7 @@ export const routes: Routes = [
     { path: 'leagues/:id/matches', component: LeagueMatchesComponent },
     { path: 'leagues/:id/leaderboard', component: LeagueLeaderboardComponent },
     { path: 'my-matches', component: MyMatchesComponent },
+    { path: 'help', component: HelpComponent },
     { path: 'admin', component: AdminComponent, canActivate: [adminGuard] },
     // Catch-all or redirect
     { path: '**', redirectTo: '' }

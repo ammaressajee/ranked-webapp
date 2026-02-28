@@ -7,7 +7,7 @@ import { LeagueParticipant } from '../../models/LeagueParticipant';
 import { SharedContactDisplay } from '../../models/UserContactPreferences';
 import { AuthService } from '../../services/auth.service';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 
 /** Participant with league name resolved (from league doc if missing on participant) */
@@ -26,6 +26,7 @@ export class MyMatchesComponent {
   private authService = inject(AuthService);
   private ls = inject(LeagueService);
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
 
   userLeagues$!: Observable<LeagueParticipant[]>;
   /** Participants with league names resolved (fetches from leagues if leagueName missing) */
@@ -38,6 +39,8 @@ export class MyMatchesComponent {
   error: string | null = null;
 
   selectedLeagueId: string | null = null;
+  /** Latest leagues list (from leaguesWithNames$) so we can apply query param when it changes. */
+  private leaguesList: LeagueParticipantWithName[] = [];
   private sub = new Subscription();
   private nameMapSub = new Subscription();
   private searchRequestSub = new Subscription();
@@ -102,7 +105,9 @@ export class MyMatchesComponent {
             return;
           }
 
-          // Prefer league from query (e.g. from home page "Go to My Matches" alert)
+          this.leaguesList = leagues;
+
+          // Prefer league from query (e.g. from home page "Go to My Matches" alert or league detail)
           const leagueFromQuery = this.route.snapshot.queryParamMap.get('league');
           const preferredLeagueId = leagueFromQuery && leagues.some(l => l.leagueId === leagueFromQuery)
             ? leagueFromQuery
@@ -119,6 +124,19 @@ export class MyMatchesComponent {
           this.error = 'Failed to load leagues.';
           this.loading = false;
         },
+      })
+    );
+
+    // React to query param changes (e.g. user clicks "Go to My Matches" from home alert or league detail with ?league=)
+    this.sub.add(
+      this.route.queryParams.subscribe(params => {
+        const league = params['league'];
+        if (!league || !this.leaguesList?.length) return;
+        const valid = this.leaguesList.some(l => l.leagueId === league);
+        if (valid && this.selectedLeagueId !== league) {
+          this.selectedLeagueId = league;
+          this.loadMatches(league);
+        }
       })
     );
   }
@@ -156,6 +174,12 @@ export class MyMatchesComponent {
   onLeagueChange() {
     if (!this.selectedLeagueId) return;
     this.loadMatches(this.selectedLeagueId);
+    // Keep URL in sync so refresh or shared link shows this league
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { league: this.selectedLeagueId },
+      replaceUrl: true
+    });
   }
 
   /** True if current user has a match in the list waiting for opponent to accept (user is playerA). */

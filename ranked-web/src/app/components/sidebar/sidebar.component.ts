@@ -34,11 +34,12 @@ export class SidebarComponent implements OnInit {
     { icon: 'sports_esports', label: 'Browse Leagues', route: '/leagues', requiresAuth: false }
   ]);
 
-  /** Profile and Admin — shown below "Climb the Ladder" section. */
+  /** Profile and Help — shown below "Climb the Ladder" section. */
   secondaryNavItems: Signal<NavItem[]> = computed(() => {
     const user = this.authService.profile();
     const uid = user?.uid || '';
     const items: NavItem[] = [
+      { icon: 'help', label: 'Help', route: '/help', requiresAuth: false },
       { icon: 'account_circle', label: 'Profile', route: uid ? `/profile/${uid}` : '/login', requiresAuth: false }
     ];
     return items;

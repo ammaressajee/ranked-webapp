@@ -1,0 +1,95 @@
+<div class="help-page">
+  <header class="help-hero">
+    <span class="help-hero-icon" aria-hidden="true">
+      <span class="material-symbols-outlined">help</span>
+    </span>
+    <h1>How Ladders Works</h1>
+    <p class="help-hero-subtitle">Join leagues, find fair matches, log results, and climb the ranks.</p>
+  </header>
+
+  <div class="help-content">
+    <section class="help-section">
+      <h2>
+        <span class="section-icon material-symbols-outlined">info</span>
+        How the app works
+      </h2>
+      <p>
+        <strong>Ladders</strong> is a competitive ladder app where you join <strong>leagues</strong>, get matched with opponents
+        at a similar skill level, and record match results to move up (or down) the leaderboard. Your rank in each league
+        is based on wins and losses. The more you play, the more accurate your rank becomes.
+      </p>
+      <ul class="help-list">
+        <li>Sign in with Google to get started.</li>
+        <li>Browse and join one or more leagues (e.g. your local club or region).</li>
+        <li>From a league page, use <strong>Find Match</strong> to get paired with someone.</li>
+        <li>After the match, one player reports the score; the other confirms it.</li>
+        <li>Ranks update automatically and you can view the leaderboard anytime.</li>
+      </ul>
+    </section>
+
+    <section class="help-section">
+      <h2>
+        <span class="section-icon material-symbols-outlined">group</span>
+        Matchmaking
+      </h2>
+      <p>
+        When you tap <strong>Find Match</strong> in a league, the app looks for other players in that league who are also
+        searching. To keep games fair, we use <strong>skill-based matchmaking</strong>: you are matched with opponents
+        whose rank is close to yours.
+      </p>
+      <div class="help-callout">
+        <strong>Expanding search window</strong> — If no one is available within a tight rank range, the allowed rank
+        difference grows the longer you wait (e.g. first minute: within 150 points; after a few minutes: wider range).
+        So you still get a match without waiting forever, while early matches stay balanced.
+      </div>
+      <p>
+        Once you’re matched, your opponent must <strong>accept</strong> the match. After they accept, you can play and
+        then report the score (see below).
+      </p>
+    </section>
+
+    <section class="help-section">
+      <h2>
+        <span class="section-icon material-symbols-outlined">edit_note</span>
+        Logging your score
+      </h2>
+      <p>
+        After a completed match, either you or your opponent can <strong>report the score</strong> from
+        <a routerLink="/my-matches" class="help-link">My Matches</a>. Enter the correct result (who won and the score if your league uses it).
+      </p>
+      <ul class="help-list">
+        <li>The other player must <strong>confirm</strong> the result. Until they do, the match stays “Awaiting confirmation”.</li>
+        <li>If the reported score is wrong, the opponent can decline; you can then report again or discuss.</li>
+        <li>Once both agree, the match is <strong>completed</strong> and both players’ ranks and stats update.</li>
+      </ul>
+      <p>
+        You can also <strong>cancel</strong> a match (e.g. if it won’t be played). Cancelled matches don’t affect your rank.
+      </p>
+    </section>
+
+    <section class="help-section">
+      <h2>
+        <span class="section-icon material-symbols-outlined">request_quote</span>
+        Requesting leagues
+      </h2>
+      <p>
+        Leagues are created and managed by admins. If you don’t see a league for your area or club, you can
+        <strong>request one</strong> from the <a routerLink="/leagues" class="help-link">Browse Leagues</a> page.
+      </p>
+      <ul class="help-list">
+        <li>Use the “Request a league” (or similar) option and fill in the league name and any details.</li>
+        <li>An admin will review the request and can create the league and add you as a member.</li>
+        <li>Once the league exists, you and others can join and start finding matches.</li>
+      </ul>
+      <p>
+        If you run a club or community and want to become an admin, contact the app owner to get admin access so you
+        can create and manage leagues.
+      </p>
+    </section>
+
+    <section class="help-section help-cta">
+      <p>Ready to play? Pick a league and hit <strong>Find Match</strong>.</p>
+      <a routerLink="/leagues" class="help-btn">Browse Leagues</a>
+    </section>
+  </div>
+</div>

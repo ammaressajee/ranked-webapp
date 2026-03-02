@@ -58,6 +58,14 @@ export class MyMatchesComponent {
   dialogScore = '';
   dialogNameMap: Record<string, string> = {};
 
+  /** Loading states to prevent double-clicks and show feedback */
+  acceptingMatchId: string | null = null;
+  decliningMatchId: string | null = null;
+  confirmingMatchId: string | null = null;
+  submittingReport = false;
+  /** Message for the action overlay (Accepting match... / Declining... / Confirming...) */
+  actionOverlayMessage: string | null = null;
+
   constructor() {
     // When auth is ready (after reload or on first load), init once
     effect(() => {
@@ -252,9 +260,13 @@ export class MyMatchesComponent {
       alert('Please fill out all fields.');
       return;
     }
-
-    await this.reportScore(this.dialogMatch, this.dialogWinnerUid, this.dialogScore);
-    this.closeReportDialog();
+    this.submittingReport = true;
+    try {
+      await this.reportScore(this.dialogMatch, this.dialogWinnerUid, this.dialogScore);
+      this.closeReportDialog();
+    } finally {
+      this.submittingReport = false;
+    }
   }
 
   isUser(uid: string | null | undefined): boolean {
@@ -286,23 +298,35 @@ export class MyMatchesComponent {
   }
 
   async acceptMatch(match: LeagueMatch) {
-    if (!match.id) return;
+    if (!match.id || this.acceptingMatchId) return;
+    this.acceptingMatchId = match.id;
+    this.actionOverlayMessage = 'Accepting match…';
     try {
       await this.ls.acceptMatch(match.id);
+      this.acceptingMatchId = null;
+      this.actionOverlayMessage = null;
       alert('Match accepted! Coordinate with your opponent and play.');
     } catch (err) {
       console.error(err);
+      this.acceptingMatchId = null;
+      this.actionOverlayMessage = null;
       alert('Failed to accept match.');
     }
   }
 
   async declineMatch(match: LeagueMatch) {
-    if (!match.id) return;
+    if (!match.id || this.decliningMatchId) return;
+    this.decliningMatchId = match.id;
+    this.actionOverlayMessage = 'Declining…';
     try {
       await this.ls.declineMatch(match.id);
+      this.decliningMatchId = null;
+      this.actionOverlayMessage = null;
       alert('Match declined.');
     } catch (err) {
       console.error(err);
+      this.decliningMatchId = null;
+      this.actionOverlayMessage = null;
       alert('Failed to decline match.');
     }
   }
@@ -310,12 +334,18 @@ export class MyMatchesComponent {
   async confirmResult(match: LeagueMatch) {
     const user = this.auth.currentUser;
     if (!user) return alert('Please sign in first.');
-
+    if (this.confirmingMatchId) return;
+    this.confirmingMatchId = match.id!;
+    this.actionOverlayMessage = 'Confirming result…';
     try {
       await this.ls.confirmMatchResult(match.id!, user.uid);
+      this.confirmingMatchId = null;
+      this.actionOverlayMessage = null;
       alert('Result confirmed!');
     } catch (err) {
       console.error(err);
+      this.confirmingMatchId = null;
+      this.actionOverlayMessage = null;
       alert('Failed to confirm result.');
     }
   }

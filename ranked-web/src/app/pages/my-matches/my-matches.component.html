@@ -26,7 +26,10 @@
   <!-- Match List -->
   <div *ngIf="matchesWithNames$ | async as vm; else noMatches">
 
-    <h2 class="section-title">My Matches</h2>
+    <div class="page-header">
+      <h2 class="section-title">My Matches</h2>
+      <p class="page-intro">View and manage your matches in this league. Accept invites, report scores, and coordinate with opponents.</p>
+    </div>
 
     <!-- Status: searching or pending match -->
     <div *ngIf="isSeekingInLeague" class="status-banner seeking">
@@ -36,9 +39,10 @@
       ⏳ You have a match waiting for your opponent to accept. It will appear below once they accept.
     </div>
 
-    <div *ngIf="vm.matches.length === 0" class="empty-msg">
-      No matches yet in this league.
-      <span class="empty-hint"><a [routerLink]="['/leagues', selectedLeagueId]">View league</a> to find a match and see the leaderboard.</span>
+    <div *ngIf="vm.matches.length === 0" class="empty-state">
+      <p class="empty-msg">No matches yet in this league.</p>
+      <p class="empty-hint">Go to the league page to find a match and see the leaderboard.</p>
+      <a *ngIf="selectedLeagueId" [routerLink]="['/leagues', selectedLeagueId]" class="btn btn-empty-cta">Find a match</a>
     </div>
 
     <div class="match-card" *ngFor="let m of vm.matches">
@@ -55,26 +59,39 @@
         </div>
       </div>
 
-      <!-- Winner -->
-      <div class="result" *ngIf="m.result?.winner as winner">
-        <strong>Winner:</strong> {{ isUser(winner) ? 'You' : displayName(winner, vm.nameMap) }} <br />
-        <strong>Score:</strong> {{ m.result?.score }}
+      <!-- Winner / Score -->
+      <div class="result-block" *ngIf="m.result?.winner as winner">
+        <span class="result-winner">Winner: {{ isUser(winner) ? 'You' : displayName(winner, vm.nameMap) }}</span>
+        <span class="result-score" *ngIf="m.result?.score">Score: {{ m.result?.score }}</span>
       </div>
 
       <!-- Opponent contact (when they've shared) -->
-      <div class="opponent-contact" *ngIf="getOpponentContact(m) | async as contact">
-        <p class="opponent-contact-label">Opponent shared contact for coordination:</p>
+      <div class="opponent-contact-card" *ngIf="getOpponentContact(m) | async as contact">
+        <p class="opponent-contact-heading">
+          <span class="material-symbols-outlined">contact_phone</span>
+          Opponent's contact
+        </p>
         <div class="opponent-contact-details">
-          <a *ngIf="contact.contactEmail" [href]="'mailto:' + contact.contactEmail" class="contact-link">{{ contact.contactEmail }}</a>
-          <a *ngIf="contact.contactPhone" [href]="'tel:' + contact.contactPhone" class="contact-link">{{ contact.contactPhone }}</a>
-          <span *ngIf="contact.contactHandle" class="contact-handle">{{ contact.contactHandle }}</span>
+          <a *ngIf="contact.contactEmail" [href]="'mailto:' + contact.contactEmail" class="contact-item contact-email">
+            <span class="material-symbols-outlined">mail</span>
+            <span class="contact-value">{{ contact.contactEmail }}</span>
+          </a>
+          <a *ngIf="contact.contactPhone" [href]="'tel:' + contact.contactPhone" class="contact-item contact-phone">
+            <span class="material-symbols-outlined">phone</span>
+            <span class="contact-value">{{ contact.contactPhone }}</span>
+          </a>
+          <div *ngIf="contact.contactHandle" class="contact-item contact-handle">
+            <span class="material-symbols-outlined">alternate_email</span>
+            <span class="contact-value">{{ contact.contactHandle }}</span>
+          </div>
         </div>
       </div>
 
       <!-- Share my contact with this opponent -->
       <div class="share-contact-row" *ngIf="!hasSharedMyContact(m) && getOpponentUid(m) && m.status !== 'completed' && m.status !== 'cancelled'">
         <button type="button" class="btn btn-share-contact" (click)="shareMyContactWithOpponent(m)" [disabled]="sharingContactMatchId === m.id">
-          {{ sharingContactMatchId === m.id ? 'Sharing…' : 'Share my contact with this opponent' }}
+          <span class="material-symbols-outlined" *ngIf="sharingContactMatchId !== m.id">share</span>
+          <span class="btn-share-text">{{ sharingContactMatchId === m.id ? 'Sharing…' : 'Share my contact' }}</span>
         </button>
       </div>
 
@@ -83,8 +100,12 @@
 
         <!-- Pending Acceptance: Invited player can Accept or Decline -->
         <ng-container *ngIf="shouldShowAccept(m)">
-          <button class="btn accept-btn" (click)="acceptMatch(m)">Accept Match</button>
-          <button class="btn decline-btn" (click)="declineMatch(m)">Decline</button>
+          <button class="btn accept-btn" (click)="acceptMatch(m)" [disabled]="acceptingMatchId !== null || decliningMatchId !== null">
+            Accept Match
+          </button>
+          <button class="btn decline-btn" (click)="declineMatch(m)" [disabled]="acceptingMatchId !== null || decliningMatchId !== null">
+            Decline
+          </button>
         </ng-container>
 
         <!-- Pending Acceptance: Seeker waits -->
@@ -115,8 +136,8 @@
         <!-- Confirm Result (when opponent reported and you haven't confirmed) -->
         <div *ngIf="shouldShowConfirm(m)" class="confirm-block">
           <p *ngIf="getConfirmHint(m)" class="confirm-hint">{{ getConfirmHint(m) }}</p>
-          <button class="btn confirm-btn" (click)="confirmResult(m)">
-            Confirm Result
+          <button class="btn confirm-btn" (click)="confirmResult(m)" [disabled]="confirmingMatchId !== null">
+            {{ confirmingMatchId === m.id ? 'Confirming…' : 'Confirm Result' }}
           </button>
         </div>
 
@@ -130,7 +151,10 @@
     </div>
   </div>
   <ng-template #noMatches>
-    <h2 class="section-title">My Matches</h2>
+    <div class="page-header">
+      <h2 class="section-title">My Matches</h2>
+      <p class="page-intro">View and manage your matches in this league.</p>
+    </div>
     <div class="empty-msg">Loading…</div>
   </ng-template>
 </div>
@@ -161,9 +185,19 @@
     />
 
     <div class="modal-actions">
-      <button class="btn cancel" (click)="closeReportDialog()">Cancel</button>
-      <button class="btn submit" (click)="submitReport()">Submit</button>
+      <button class="btn cancel" (click)="closeReportDialog()" [disabled]="submittingReport">Cancel</button>
+      <button class="btn submit" (click)="submitReport()" [disabled]="submittingReport">
+        {{ submittingReport ? 'Submitting…' : 'Submit' }}
+      </button>
     </div>
 
+  </div>
+</div>
+
+<!-- Action overlay: Accepting / Declining / Confirming (blocks repeat clicks) -->
+<div class="action-overlay" *ngIf="actionOverlayMessage">
+  <div class="action-overlay-content">
+    <div class="action-spinner" aria-hidden="true"></div>
+    <p class="action-message">{{ actionOverlayMessage }}</p>
   </div>
 </div>

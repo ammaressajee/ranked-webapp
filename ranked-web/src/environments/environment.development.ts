@@ -1,5 +1,9 @@
 export const environment = {
     production: false,
+    adsEnabled: false,
+    adClient: '',
+    adSlotFooter: '',
+    adSlotInContent: '',
     /** Base URL for Cloud Functions. Use emulator URL when running locally. */
     functionsUrl: 'http://127.0.0.1:5000',
     firebaseConfig: {

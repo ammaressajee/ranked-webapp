@@ -185,4 +185,11 @@
       </div>
     </section>
   }
+
+  <!-- In-content ad: one card-style unit after main content -->
+  @if (showInContentAd) {
+    <section class="home-ad-section" aria-label="Sponsored">
+      <app-ad-slot placement="card" [adSlotId]="adSlotInContent"></app-ad-slot>
+    </section>
+  }
 </div>

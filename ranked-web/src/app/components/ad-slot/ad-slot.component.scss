@@ -1,0 +1,36 @@
+.ad-container {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  overflow: hidden;
+
+  .ad-label {
+    display: block;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+  }
+
+  :host ::ng-deep .adsbygoogle {
+    min-height: 50px;
+  }
+
+  &--footer {
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    max-height: 120px;
+    .ad-label {
+      margin-bottom: 0.35rem;
+    }
+  }
+
+  &--card {
+    border-radius: 16px;
+    padding: 1rem 1.25rem;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+}

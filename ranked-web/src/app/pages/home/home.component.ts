@@ -9,11 +9,13 @@ import { LeagueParticipant } from '../../models/LeagueParticipant';
 import { LeagueMatch } from '../../models/LeagueMatch';
 import { League } from '../../models/League';
 import { FormsModule } from '@angular/forms';
+import { AdSlotComponent } from '../../components/ad-slot/ad-slot.component';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule, RouterLink, FormsModule],
+  imports: [CommonModule, RouterLink, FormsModule, AdSlotComponent],
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss'
 })
@@ -200,6 +202,11 @@ export class HomeComponent implements OnInit {
   /** Use auth service auth state so we don't show logged-out view while profile is still loading after reload. */
   get isLoggedIn() {
     return this.authService.isLoggedIn();
+  }
+
+  adSlotInContent = environment.adSlotInContent;
+  get showInContentAd(): boolean {
+    return !!environment.adsEnabled && !!environment.adSlotInContent;
   }
 
   getTier(rank: number): string {

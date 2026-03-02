@@ -45,6 +45,11 @@
   </div>
 
   <footer class="app-footer">
+    @if (showFooterAd) {
+      <div class="footer-ad">
+        <app-ad-slot placement="footer" [adSlotId]="adSlotFooter"></app-ad-slot>
+      </div>
+    }
     <span class="footer-notice">© 2025 Ammar Essajee. All rights reserved.</span>
   </footer>
 </div>

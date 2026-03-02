@@ -191,6 +191,12 @@
   background: var(--bg-card);
   border-top: 1px solid var(--border);
   text-align: center;
+
+  .footer-ad {
+    max-width: 900px;
+    margin: 0 auto 0.75rem;
+  }
+
   .footer-notice {
     font-size: 0.75rem;
     color: var(--text-muted);

@@ -33,7 +33,14 @@
 
     <!-- Status: searching or pending match -->
     <div *ngIf="isSeekingInLeague" class="status-banner seeking">
-      🔍 You're in the queue for this league. A match will appear here when another player searches.
+      <p class="status-banner-text">
+        🔍 You're in the queue for this league
+        <span *ngIf="queueCount$ | async as qc"> ({{ qc }} {{ qc === 1 ? 'person' : 'people' }} in queue)</span>.
+        A match will appear here when another player searches.
+      </p>
+      <button type="button" class="btn-exit-queue" (click)="leaveQueue()" [disabled]="leavingQueue">
+        {{ leavingQueue ? 'Exiting…' : 'Exit queue' }}
+      </button>
     </div>
     <div *ngIf="!isSeekingInLeague && hasPendingAcceptanceMatch(vm.matches)" class="status-banner pending">
       ⏳ You have a match waiting for your opponent to accept. It will appear below once they accept.
@@ -98,8 +105,9 @@
       <!-- Status Logic -->
       <div class="match-actions">
 
-        <!-- Pending Acceptance: Invited player can Accept or Decline -->
+        <!-- Pending Acceptance: Either player can Accept or Decline (until both have accepted) -->
         <ng-container *ngIf="shouldShowAccept(m)">
+          <p *ngIf="getAcceptDeadlineText(m)" class="accept-deadline">{{ getAcceptDeadlineText(m) }}</p>
           <button class="btn accept-btn" (click)="acceptMatch(m)" [disabled]="acceptingMatchId !== null || decliningMatchId !== null">
             Accept Match
           </button>
@@ -108,20 +116,98 @@
           </button>
         </ng-container>
 
-        <!-- Pending Acceptance: Seeker waits -->
-        <button
-          *ngIf="m.status === 'pending_acceptance' && !shouldShowAccept(m)"
-          class="btn find-btn"
-          disabled
-        >
-          Waiting for opponent to accept...
-        </button>
+        <!-- Pending Acceptance: You accepted, waiting for opponent -->
+        <ng-container *ngIf="waitingForOpponentToAccept(m)">
+          <p *ngIf="getAcceptDeadlineText(m)" class="accept-deadline">{{ getAcceptDeadlineText(m) }}</p>
+          <p class="waiting-hint">Waiting for {{ displayName(getOpponentUid(m), vm.nameMap) }} to accept…</p>
+          <button class="btn decline-btn" (click)="declineMatch(m)" [disabled]="acceptingMatchId !== null || decliningMatchId !== null">
+            Decline
+          </button>
+        </ng-container>
 
         <!-- Pending: Ready to play — View opponent to coordinate -->
         <div *ngIf="m.status === 'pending'" class="pending-actions">
           <a [routerLink]="['/profile', isUser(m.playerA) ? m.playerB : m.playerA]" class="btn message-btn">
             👤 View opponent
           </a>
+        </div>
+
+        <!-- Availability: 10 days × 3 periods + exact time dropdown (pending only) -->
+        <div *ngIf="m.status === 'pending'" class="availability-section">
+          <h4 class="availability-heading">Pick a time to play</h4>
+
+          <!-- Already agreed date + time -->
+          <div *ngIf="m.agreedSlot as agreed; then agreedTime; else noAgreedTime"></div>
+          <ng-template #agreedTime let-agreed="ngIf">
+            <div *ngIf="agreed.date && agreed.time" class="agreed-time-display">
+              <span class="material-symbols-outlined">event_available</span>
+              Agreed: {{ formatDayLabel(agreed.date) }} at {{ agreed.time }}
+            </div>
+          </ng-template>
+          <ng-template #noAgreedTime>
+            <!-- Agreed date + period but no exact time: show dropdown -->
+            <ng-container *ngIf="m.agreedSlot as aslot">
+              <div *ngIf="aslot.date && aslot.period && !aslot.time" class="exact-time-row">
+                <label>Exact time for {{ formatDayLabel(aslot.date) }} ({{ aslot.period }}):</label>
+                <select
+                  class="time-dropdown"
+                  [ngModel]="aslot.time"
+                  (ngModelChange)="setAgreedTime(m, $event)"
+                  [disabled]="settingTimeMatchId === m.id"
+                >
+                  <option value="">Select time…</option>
+                  <option *ngFor="let t of TIME_OPTIONS[aslot.period]" [value]="t">{{ t }}</option>
+                </select>
+                <span *ngIf="settingTimeMatchId === m.id" class="saving-label">Saving…</span>
+              </div>
+            </ng-container>
+          </ng-template>
+
+          <!-- No agreed slot yet: grid + overlap confirm -->
+          <ng-container *ngIf="!m.agreedSlot?.date || !m.agreedSlot?.period">
+            <p class="availability-hint">Tap slots when you're available. Save, then your opponent can confirm a time that works for both.</p>
+            <div class="availability-grid">
+              <div class="grid-header">
+                <span class="grid-cell header-cell"></span>
+                <span *ngFor="let p of PERIODS" class="grid-cell header-cell">{{ p.label }}</span>
+              </div>
+              <div *ngFor="let dateStr of getAvailabilityDays()" class="grid-row">
+                <span class="grid-cell day-label">{{ formatDayLabel(dateStr) }}</span>
+                <button
+                  *ngFor="let p of PERIODS"
+                  type="button"
+                  class="grid-cell slot-cell"
+                  [class.selected]="isSlotInList(getMyAvailability(m), dateStr, p.id)"
+                  [class.overlap]="isSlotInList(getOverlappingSlots(m), dateStr, p.id)"
+                  (click)="toggleAvailabilitySlot(m, dateStr, p.id)"
+                >
+                  <span *ngIf="isSlotInList(getOverlappingSlots(m), dateStr, p.id)">Both</span>
+                  <span *ngIf="!isSlotInList(getOverlappingSlots(m), dateStr, p.id) && isSlotInList(getMyAvailability(m), dateStr, p.id)">✓</span>
+                  <span *ngIf="!isSlotInList(getMyAvailability(m), dateStr, p.id) && isSlotInList(getOpponentAvailability(m), dateStr, p.id)" class="opponent-only">Them</span>
+                  <span *ngIf="!isSlotInList(getMyAvailability(m), dateStr, p.id) && !isSlotInList(getOpponentAvailability(m), dateStr, p.id)">—</span>
+                </button>
+              </div>
+            </div>
+            <div class="availability-actions">
+              <button type="button" class="btn btn-save-availability" (click)="saveMyAvailability(m)" [disabled]="savingAvailabilityMatchId === m.id">
+                {{ savingAvailabilityMatchId === m.id ? 'Saving…' : 'Save my availability' }}
+              </button>
+            </div>
+            <div *ngIf="getOverlappingSlots(m).length > 0" class="overlap-section">
+              <p class="overlap-label">Both available — confirm one:</p>
+              <div class="overlap-buttons">
+                <button
+                  *ngFor="let slot of getOverlappingSlots(m)"
+                  type="button"
+                  class="btn btn-confirm-slot"
+                  (click)="confirmSlot(m, slot.date, slot.period)"
+                  [disabled]="confirmingSlotMatchId === m.id"
+                >
+                  {{ formatDayLabel(slot.date) }} {{ slot.period }}
+                </button>
+              </div>
+            </div>
+          </ng-container>
         </div>
 
         <!-- Report Score (when match is pending and you're a player) -->

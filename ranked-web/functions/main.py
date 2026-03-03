@@ -54,6 +54,17 @@ def get_allowed_origin(request: Request) -> str | None:
         return origin
     return None
 
+
+def get_cors_origin_for_response(request: Request, for_options_preflight: bool = False) -> str | None:
+    """Origin to use in Access-Control-Allow-Origin. For OPTIONS preflight, use fallbacks so preflight succeeds."""
+    origin = get_allowed_origin(request)
+    if origin:
+        return origin
+    if for_options_preflight:
+        # Some environments strip Origin on preflight; echo back if present, else use production default
+        return request.headers.get("Origin") or "https://ranked-app-9f746.web.app"
+    return None
+
 def expected_score(r_a, r_b):
     return 1 / (1 + 10 ** ((r_b - r_a) / 400))
 
@@ -216,31 +227,29 @@ def finalize_league_match(cloud_event):
 def find_match(request: Request):
     """HTTP POST endpoint to find a match (with Firebase Bearer token)"""
 
-    # Get the allowed origin based on the request header
-    allowed_origin = get_allowed_origin(request)
-    
-    # Define response headers for non-OPTIONS and non-preflight requests
+    is_preflight = request.method == "OPTIONS"
+    cors_origin = get_cors_origin_for_response(request, for_options_preflight=is_preflight)
     response_headers = {}
-    if allowed_origin:
-        response_headers['Access-Control-Allow-Origin'] = allowed_origin
-        # Include credentials support for Firebase token
+    if cors_origin:
+        response_headers['Access-Control-Allow-Origin'] = cors_origin
         response_headers['Access-Control-Allow-Credentials'] = 'true'
 
-
-    # --- Handle CORS preflight ---
     if request.method == "OPTIONS":
         resp = make_response('', 204)
-        if allowed_origin:
-            resp.headers.set('Access-Control-Allow-Origin', allowed_origin)
+        if cors_origin:
+            resp.headers.set('Access-Control-Allow-Origin', cors_origin)
             resp.headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS')
             resp.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-            resp.headers.set('Access-Control-Max-Age', '3600') # Cache preflight for 1 hour
+            resp.headers.set('Access-Control-Max-Age', '3600')
             resp.headers.set('Access-Control-Allow-Credentials', 'true')
         return resp
 
-    # Check if the origin is allowed before proceeding with the main logic
-    if not allowed_origin:
-        return jsonify({"error": "Forbidden Origin"}), 403, {'Content-Type': 'application/json'}
+    if not get_allowed_origin(request):
+        err_headers = {**response_headers, 'Content-Type': 'application/json'}
+        if request.headers.get("Origin"):
+            err_headers['Access-Control-Allow-Origin'] = request.headers.get("Origin")
+            err_headers['Access-Control-Allow-Credentials'] = 'true'
+        return jsonify({"error": "Forbidden Origin"}), 403, err_headers
 
 
     try:
@@ -259,11 +268,19 @@ def find_match(request: Request):
 
     league_id = payload.get("leagueId")
     user_id = payload.get("userId")
-    rank = int(payload.get("rank", 1000))
-    location = payload.get("location", "") or ""
+    try:
+        rank_raw = payload.get("rank", 1000)
+        rank = int(rank_raw) if rank_raw is not None else 1000
+    except (TypeError, ValueError):
+        rank = 1000
+    rank = max(100, min(3000, rank))
+    location = (payload.get("location") or "")[:200] if isinstance(payload.get("location"), str) else ""
 
     if not league_id or not user_id:
         resp = jsonify({"error": "leagueId and userId required"})
+        return resp, 400, response_headers
+    if not isinstance(league_id, str) or not isinstance(user_id, str):
+        resp = jsonify({"error": "leagueId and userId must be strings"})
         return resp, 400, response_headers
     if decoded.get("uid") != user_id:
         resp = jsonify({"error": "token uid mismatch"})
@@ -349,7 +366,7 @@ def find_match(request: Request):
             # This is the "already matched" case
             raise RuntimeError("already matched")
             
-        # Create match with pending_acceptance - playerB (opponent) must accept
+        # Create match with pending_acceptance - both players must accept before it becomes "pending"
         tx.set(match_ref, {
             "leagueId": league_id,
             "round": 0,
@@ -357,6 +374,7 @@ def find_match(request: Request):
             "playerB": opponent_id,
             "status": "pending_acceptance",
             "type": "ondemand",
+            "acceptances": {},
             "createdAt": firestore.SERVER_TIMESTAMP,
             "scheduledAt": firestore.SERVER_TIMESTAMP
         })
@@ -377,26 +395,31 @@ def find_match(request: Request):
 # ----- ACCEPT MATCH HTTP -----
 @functions_framework.http
 def accept_match(request: Request):
-    """HTTP POST: Opponent (playerB) accepts a pending_acceptance match."""
+    """HTTP POST: Either player accepts a pending_acceptance match. When both have accepted, status becomes pending."""
 
-    allowed_origin = get_allowed_origin(request)
+    is_preflight = request.method == "OPTIONS"
+    cors_origin = get_cors_origin_for_response(request, for_options_preflight=is_preflight)
     response_headers = {}
-    if allowed_origin:
-        response_headers['Access-Control-Allow-Origin'] = allowed_origin
+    if cors_origin:
+        response_headers['Access-Control-Allow-Origin'] = cors_origin
         response_headers['Access-Control-Allow-Credentials'] = 'true'
 
     if request.method == "OPTIONS":
         resp = make_response('', 204)
-        if allowed_origin:
-            resp.headers.set('Access-Control-Allow-Origin', allowed_origin)
+        if cors_origin:
+            resp.headers.set('Access-Control-Allow-Origin', cors_origin)
             resp.headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS')
             resp.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
             resp.headers.set('Access-Control-Max-Age', '3600')
             resp.headers.set('Access-Control-Allow-Credentials', 'true')
         return resp
 
-    if not allowed_origin:
-        return jsonify({"error": "Forbidden Origin"}), 403, {'Content-Type': 'application/json'}
+    if not get_allowed_origin(request):
+        err_headers = {**response_headers, 'Content-Type': 'application/json'}
+        if request.headers.get("Origin"):
+            err_headers['Access-Control-Allow-Origin'] = request.headers.get("Origin")
+            err_headers['Access-Control-Allow-Credentials'] = 'true'
+        return jsonify({"error": "Forbidden Origin"}), 403, err_headers
 
     try:
         decoded = _verify_id_token_from_request(request)
@@ -411,6 +434,8 @@ def accept_match(request: Request):
     user_id = decoded.get("uid")
     if not match_id or not user_id:
         return jsonify({"error": "matchId required"}), 400, response_headers
+    if not isinstance(match_id, str) or len(match_id) > 256:
+        return jsonify({"error": "Invalid matchId"}), 400, response_headers
 
     match_ref = db.collection("leagueMatches").document(match_id)
     match_snap = match_ref.get()
@@ -421,41 +446,55 @@ def accept_match(request: Request):
     if data.get("status") != "pending_acceptance":
         return jsonify({"error": "Match is not awaiting acceptance"}), 400, response_headers
 
-    if data.get("playerB") != user_id:
-        return jsonify({"error": "Only the invited player can accept"}), 403, response_headers
+    player_a = data.get("playerA")
+    player_b = data.get("playerB")
+    if user_id != player_a and user_id != player_b:
+        return jsonify({"error": "Only a player in this match can accept"}), 403, response_headers
 
-    match_ref.update({
-        "status": "pending",
-        "acceptedAt": firestore.SERVER_TIMESTAMP,
-        "acceptedBy": user_id
-    })
+    acceptances = dict(data.get("acceptances") or {})
+    if acceptances.get(user_id):
+        return jsonify({"status": "already_accepted", "matchId": match_id}), 200, response_headers
 
-    return jsonify({"status": "accepted", "matchId": match_id}), 200, response_headers
+    acceptances[user_id] = True
+    match_ref.update({"acceptances": acceptances})
+
+    if acceptances.get(player_a) and acceptances.get(player_b):
+        match_ref.update({
+            "status": "pending",
+            "acceptedAt": firestore.SERVER_TIMESTAMP
+        })
+        return jsonify({"status": "accepted", "matchId": match_id, "ready": True}), 200, response_headers
+    return jsonify({"status": "accepted", "matchId": match_id, "ready": False}), 200, response_headers
 
 
 # ----- DECLINE MATCH HTTP -----
 @functions_framework.http
 def decline_match(request: Request):
-    """HTTP POST: Opponent (playerB) declines a pending_acceptance match."""
+    """HTTP POST: Either player can decline a pending_acceptance match; both are re-enabled to search again."""
 
-    allowed_origin = get_allowed_origin(request)
+    is_preflight = request.method == "OPTIONS"
+    cors_origin = get_cors_origin_for_response(request, for_options_preflight=is_preflight)
     response_headers = {}
-    if allowed_origin:
-        response_headers['Access-Control-Allow-Origin'] = allowed_origin
+    if cors_origin:
+        response_headers['Access-Control-Allow-Origin'] = cors_origin
         response_headers['Access-Control-Allow-Credentials'] = 'true'
 
     if request.method == "OPTIONS":
         resp = make_response('', 204)
-        if allowed_origin:
-            resp.headers.set('Access-Control-Allow-Origin', allowed_origin)
+        if cors_origin:
+            resp.headers.set('Access-Control-Allow-Origin', cors_origin)
             resp.headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS')
             resp.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
             resp.headers.set('Access-Control-Max-Age', '3600')
             resp.headers.set('Access-Control-Allow-Credentials', 'true')
         return resp
 
-    if not allowed_origin:
-        return jsonify({"error": "Forbidden Origin"}), 403, {'Content-Type': 'application/json'}
+    if not get_allowed_origin(request):
+        err_headers = {**response_headers, 'Content-Type': 'application/json'}
+        if request.headers.get("Origin"):
+            err_headers['Access-Control-Allow-Origin'] = request.headers.get("Origin")
+            err_headers['Access-Control-Allow-Credentials'] = 'true'
+        return jsonify({"error": "Forbidden Origin"}), 403, err_headers
 
     try:
         decoded = _verify_id_token_from_request(request)
@@ -470,6 +509,8 @@ def decline_match(request: Request):
     user_id = decoded.get("uid")
     if not match_id or not user_id:
         return jsonify({"error": "matchId required"}), 400, response_headers
+    if not isinstance(match_id, str) or len(match_id) > 256:
+        return jsonify({"error": "Invalid matchId"}), 400, response_headers
 
     match_ref = db.collection("leagueMatches").document(match_id)
     match_snap = match_ref.get()
@@ -480,22 +521,119 @@ def decline_match(request: Request):
     if data.get("status") != "pending_acceptance":
         return jsonify({"error": "Match is not awaiting acceptance"}), 400, response_headers
 
-    if data.get("playerB") != user_id:
-        return jsonify({"error": "Only the invited player can decline"}), 403, response_headers
-
-    # Re-enable seeking for playerA so they can search again
-    league_id = data.get("leagueId")
     player_a = data.get("playerA")
-    sr_ref = db.collection("searchRequests").document(f"{league_id}_{player_a}")
+    player_b = data.get("playerB")
+    if user_id != player_a and user_id != player_b:
+        return jsonify({"error": "Only a player in this match can decline"}), 403, response_headers
+
+    league_id = data.get("leagueId")
     match_ref.update({
         "status": "cancelled",
         "cancelledAt": firestore.SERVER_TIMESTAMP,
         "cancelReason": "declined",
         "declinedBy": user_id
     })
-    sr_ref.set({"seeking": True}, merge=True)
+    for uid in (player_a, player_b):
+        if uid:
+            sr_ref = db.collection("searchRequests").document(f"{league_id}_{uid}")
+            sr_ref.set({"seeking": True}, merge=True)
 
     return jsonify({"status": "declined", "matchId": match_id}), 200, response_headers
+
+
+# ----- LEAVE QUEUE HTTP -----
+@functions_framework.http
+def leave_queue(request: Request):
+    """HTTP POST: User leaves the matchmaking queue (sets seeking to false)."""
+
+    is_preflight = request.method == "OPTIONS"
+    cors_origin = get_cors_origin_for_response(request, for_options_preflight=is_preflight)
+    response_headers = {}
+    if cors_origin:
+        response_headers['Access-Control-Allow-Origin'] = cors_origin
+        response_headers['Access-Control-Allow-Credentials'] = 'true'
+
+    if request.method == "OPTIONS":
+        resp = make_response('', 204)
+        if cors_origin:
+            resp.headers.set('Access-Control-Allow-Origin', cors_origin)
+            resp.headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS')
+            resp.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+            resp.headers.set('Access-Control-Max-Age', '3600')
+            resp.headers.set('Access-Control-Allow-Credentials', 'true')
+        return resp
+
+    if not get_allowed_origin(request):
+        err_headers = {**response_headers, 'Content-Type': 'application/json'}
+        if request.headers.get("Origin"):
+            err_headers['Access-Control-Allow-Origin'] = request.headers.get("Origin")
+            err_headers['Access-Control-Allow-Credentials'] = 'true'
+        return jsonify({"error": "Forbidden Origin"}), 403, err_headers
+
+    try:
+        decoded = _verify_id_token_from_request(request)
+    except Exception as e:
+        return jsonify({"error": "Unauthorized", "detail": str(e)}), 401, response_headers
+
+    payload = request.get_json(silent=True)
+    if not payload:
+        return jsonify({"error": "Invalid JSON"}), 400, response_headers
+
+    league_id = payload.get("leagueId")
+    user_id = decoded.get("uid")
+    if not league_id or not user_id:
+        return jsonify({"error": "leagueId required"}), 400, response_headers
+    if not isinstance(league_id, str) or len(league_id) > 256:
+        return jsonify({"error": "Invalid leagueId"}), 400, response_headers
+
+    sr_ref = db.collection("searchRequests").document(f"{league_id}_{user_id}")
+    sr_ref.set({"seeking": False}, merge=True)
+
+    return jsonify({"status": "left", "leagueId": league_id}), 200, response_headers
+
+
+# ----- QUEUE COUNT HTTP -----
+@functions_framework.http
+def queue_count(request: Request):
+    """HTTP GET: Return number of users currently seeking a match in a league. Requires auth."""
+    is_preflight = request.method == "OPTIONS"
+    cors_origin = get_cors_origin_for_response(request, for_options_preflight=is_preflight)
+    response_headers = {}
+    if cors_origin:
+        response_headers['Access-Control-Allow-Origin'] = cors_origin
+        response_headers['Access-Control-Allow-Credentials'] = 'true'
+
+    if request.method == "OPTIONS":
+        resp = make_response('', 204)
+        if cors_origin:
+            resp.headers.set('Access-Control-Allow-Origin', cors_origin)
+            resp.headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS')
+            resp.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+            resp.headers.set('Access-Control-Max-Age', '3600')
+            resp.headers.set('Access-Control-Allow-Credentials', 'true')
+        return resp
+
+    if not get_allowed_origin(request):
+        err_headers = {**response_headers, 'Content-Type': 'application/json'}
+        if request.headers.get("Origin"):
+            err_headers['Access-Control-Allow-Origin'] = request.headers.get("Origin")
+            err_headers['Access-Control-Allow-Credentials'] = 'true'
+        return jsonify({"error": "Forbidden Origin"}), 403, err_headers
+
+    try:
+        _verify_id_token_from_request(request)
+    except Exception as e:
+        return jsonify({"error": "Unauthorized", "detail": str(e)}), 401, response_headers
+
+    league_id = request.args.get("leagueId") or (request.get_json(silent=True) or {}).get("leagueId")
+    if not league_id or not isinstance(league_id, str) or len(league_id) > 256:
+        return jsonify({"error": "leagueId required"}), 400, response_headers
+
+    seekers = list(db.collection("searchRequests")
+                   .where("leagueId", "==", league_id)
+                   .where("seeking", "==", True).stream())
+    count = len(seekers)
+    return jsonify({"count": count}), 200, response_headers
 
 
 # ----- SWEEP PENDING MATCHES -----
@@ -503,30 +641,29 @@ def decline_match(request: Request):
 def sweep_pending_matches(request: Request):
     """Cancel pending matches older than MATCH_NO_SHOW_MINUTES (with CORS)."""
 
-    # Get the allowed origin based on the request header
-    allowed_origin = get_allowed_origin(request)
-    
-    # Define response headers for non-OPTIONS and non-preflight requests
+    is_preflight = request.method == "OPTIONS"
+    cors_origin = get_cors_origin_for_response(request, for_options_preflight=is_preflight)
     response_headers = {}
-    if allowed_origin:
-        response_headers['Access-Control-Allow-Origin'] = allowed_origin
+    if cors_origin:
+        response_headers['Access-Control-Allow-Origin'] = cors_origin
         response_headers['Access-Control-Allow-Credentials'] = 'true'
 
-
-    # --- Handle CORS preflight ---
     if request.method == "OPTIONS":
         resp = make_response('', 204)
-        if allowed_origin:
-            resp.headers.set('Access-Control-Allow-Origin', allowed_origin)
+        if cors_origin:
+            resp.headers.set('Access-Control-Allow-Origin', cors_origin)
             resp.headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
             resp.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
             resp.headers.set('Access-Control-Max-Age', '3600')
             resp.headers.set('Access-Control-Allow-Credentials', 'true')
         return resp
-    
-    # Check if the origin is allowed before proceeding with the main logic
-    if not allowed_origin:
-        return jsonify({"error": "Forbidden Origin"}), 403, {'Content-Type': 'application/json'}
+
+    if not get_allowed_origin(request):
+        err_headers = {**response_headers, 'Content-Type': 'application/json'}
+        if request.headers.get("Origin"):
+            err_headers['Access-Control-Allow-Origin'] = request.headers.get("Origin")
+            err_headers['Access-Control-Allow-Credentials'] = 'true'
+        return jsonify({"error": "Forbidden Origin"}), 403, err_headers
 
 
     try:

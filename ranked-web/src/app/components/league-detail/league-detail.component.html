@@ -17,6 +17,10 @@
     <section class="cta-section">
         <h2>Find a match</h2>
         <p class="cta-hint">Get paired with an opponent in your league</p>
+        <p *ngIf="!(isSeekingInLeague$ | async) && isInLeague() === true && !findingMatch && (queueCount$ | async) as qc" class="queue-visibility">
+            <span *ngIf="qc === 0">Be the first to search — others will see when they open this league.</span>
+            <span *ngIf="qc > 0">{{ qc }} {{ qc === 1 ? 'person is' : 'people are' }} looking for a match.</span>
+        </p>
         <p *ngIf="isInLeague() === false && !findingMatch" class="find-hint">
             <a [routerLink]="['/leagues', leagueId, 'join']">Join this league</a> first to find a match.
         </p>
@@ -25,11 +29,13 @@
         <!-- In queue (from Firestore or just after find): don't allow Find Match again -->
         <div *ngIf="((findMatchResult === 'queued') || (isSeekingInLeague$ | async)) && !findingMatch" class="find-result-box">
             <p class="find-result-queued">
-                You're in the queue. When another player in this league clicks Find Match, you'll be paired. Check My Matches for updates.
+                You're in the queue<span *ngIf="(queueCount$ | async) as c"> ({{ c }} in total)</span>. When another player in this league clicks Find Match, you'll be paired. Check My Matches for updates.
             </p>
             <div class="buttons primary">
                 <button class="btn-primary" (click)="openMatches()">Go to My Matches</button>
-                <button *ngIf="findMatchResult === 'queued' && !(isSeekingInLeague$ | async)" class="btn-secondary" (click)="findMatchResult = null; findMatchOpponentUid = null">Dismiss</button>
+                <button class="btn-secondary" (click)="leaveQueue()" [disabled]="leavingQueue">
+                    {{ leavingQueue ? 'Exiting…' : 'Exit queue' }}
+                </button>
             </div>
         </div>
 

@@ -98,6 +98,12 @@
   text-decoration: underline;
 }
 
+.queue-visibility {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+  color: var(--text-muted, #888);
+}
+
 .find-error {
   margin: 0 0 0.75rem;
   padding: 0.5rem;

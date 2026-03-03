@@ -37,30 +37,34 @@ service cloud.firestore {
         request.auth.uid in get(/databases/$(db)/documents/config/admins).data.get('uids', []);
     }
 
-    // League participants - read public, join/create own, delete own or by admin
+    // League participants - read public; create any (join); update/delete only own or admin
     match /leagueParticipants/{participantId} {
       allow read: if true;
       allow create: if request.auth != null;
-      allow update: if request.auth != null;
+      allow update: if request.auth != null &&
+        (resource.data.get('userId', '') == request.auth.uid ||
+         (exists(/databases/$(db)/documents/config/admins) &&
+          request.auth.uid in get(/databases/$(db)/documents/config/admins).data.get('uids', [])));
       allow delete: if request.auth != null &&
-        (request.auth.uid == resource.data.get('userId', '') ||
+        (resource.data.get('userId', '') == request.auth.uid ||
          (exists(/databases/$(db)/documents/config/admins) &&
           request.auth.uid in get(/databases/$(db)/documents/config/admins).data.get('uids', [])));
     }
 
-    // League matches - read if authenticated, create/update; admins can delete
+    // League matches - read/update if authenticated; create only by backend (Cloud Functions)
     match /leagueMatches/{matchId} {
       allow read: if request.auth != null;
-      allow create: if request.auth != null;
+      allow create: if false;
       allow update: if request.auth != null;
       allow delete: if request.auth != null &&
         exists(/databases/$(db)/documents/config/admins) &&
         request.auth.uid in get(/databases/$(db)/documents/config/admins).data.get('uids', []);
     }
 
-    // Search requests - used by matchmaking; only Cloud Functions should write
+    // Search requests - read for UI (queue status); write only by Cloud Functions (matchmaking)
     match /searchRequests/{requestId} {
-      allow read, write: if request.auth != null;
+      allow read: if request.auth != null;
+      allow write: if false;
     }
 
     // Legacy matches (Record Match flow)

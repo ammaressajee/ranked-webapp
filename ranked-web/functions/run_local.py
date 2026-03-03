@@ -10,7 +10,7 @@ Then set Angular environment.development.ts:
 Requires: pip install -r requirements.txt
 """
 from flask import Flask, request
-from main import find_match, accept_match, decline_match, sweep_pending_matches
+from main import find_match, accept_match, decline_match, sweep_pending_matches, queue_count
 
 app = Flask(__name__)
 
@@ -30,6 +30,10 @@ def route_decline_match():
 def route_sweep():
     return _handle(sweep_pending_matches)
 
+@app.route('/queue_count', methods=['GET', 'OPTIONS'])
+def route_queue_count():
+    return _handle(queue_count)
+
 def _handle(handler):
     result = handler(request)
     if isinstance(result, tuple):
@@ -42,5 +46,5 @@ def _handle(handler):
 
 if __name__ == '__main__':
     print('Cloud Functions running at http://127.0.0.1:5000')
-    print('Endpoints: /find_match, /accept_match, /decline_match, /sweep_pending_matches')
+    print('Endpoints: /find_match, /accept_match, /decline_match, /sweep_pending_matches, /queue_count')
     app.run(host='127.0.0.1', port=5000, debug=True)

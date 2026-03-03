@@ -67,6 +67,19 @@
   }
 }
 
+.accept-deadline {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.waiting-hint {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
 .confirm-block {
   margin-top: 0.5rem;
 
@@ -167,10 +180,35 @@
   border-radius: 10px;
   font-size: 0.9rem;
   margin-bottom: 1rem;
+
+  .status-banner-text {
+    margin: 0 0 0.5rem;
+  }
+
   &.seeking {
     background: rgba(33, 150, 243, 0.15);
     color: #2196f3;
     border: 1px solid rgba(33, 150, 243, 0.3);
+
+    .btn-exit-queue {
+      margin-top: 0.25rem;
+      padding: 0.4rem 0.9rem;
+      font-size: 0.85rem;
+      background: transparent;
+      color: #2196f3;
+      border: 1px solid rgba(33, 150, 243, 0.5);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      &:hover:not(:disabled) {
+        background: rgba(33, 150, 243, 0.2);
+      }
+      &:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+      }
+    }
   }
   &.pending {
     background: rgba(255, 193, 7, 0.15);
@@ -593,4 +631,192 @@
       }
     }
   }
+}
+
+// ---------- Availability grid (10 days × 3 periods) ----------
+.availability-section {
+  margin-top: 1.25rem;
+  padding: 1rem;
+  background: var(--bg-elevated);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+.availability-heading {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.availability-hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.availability-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 0.75rem;
+}
+
+.grid-header,
+.grid-row {
+  display: grid;
+  grid-template-columns: 100px repeat(3, 1fr);
+  gap: 4px;
+  align-items: center;
+}
+
+.grid-cell {
+  padding: 0.35rem 0.5rem;
+  font-size: 0.8rem;
+}
+
+.header-cell {
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.day-label {
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.slot-cell {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  cursor: pointer;
+  min-height: 2.25rem;
+  transition: background 0.15s, border-color 0.15s;
+
+  &:hover {
+    background: rgba(0, 212, 170, 0.08);
+    border-color: var(--accent);
+  }
+
+  &.selected {
+    background: rgba(0, 212, 170, 0.2);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  &.overlap {
+    background: rgba(33, 150, 243, 0.15);
+    border-color: #2196f3;
+    color: #2196f3;
+  }
+
+  .opponent-only {
+    font-style: italic;
+  }
+}
+
+.availability-actions {
+  margin-bottom: 0.75rem;
+}
+
+.btn-save-availability {
+  padding: 0.45rem 0.9rem;
+  font-size: 0.85rem;
+  background: var(--accent-muted);
+  color: var(--accent);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: rgba(0, 212, 170, 0.25);
+  }
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+}
+
+.overlap-section {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.overlap-label {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.overlap-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.btn-confirm-slot {
+  padding: 0.4rem 0.8rem;
+  font-size: 0.8rem;
+  background: rgba(33, 150, 243, 0.2);
+  color: #2196f3;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: rgba(33, 150, 243, 0.35);
+  }
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+}
+
+.agreed-time-display {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  font-weight: 500;
+  color: var(--accent);
+
+  .material-symbols-outlined {
+    font-size: 1.25rem;
+  }
+}
+
+.exact-time-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+
+  label {
+    font-size: 0.9rem;
+    color: var(--text-primary);
+  }
+}
+
+.time-dropdown {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.9rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  min-width: 120px;
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+}
+
+.saving-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
 }

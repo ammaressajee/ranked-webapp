@@ -33,6 +33,7 @@ export class LeagueDetailComponent {
   /** When matched, opponent uid for optional display. */
   findMatchOpponentUid: string | null = null;
   leaving = false;
+  leavingQueue = false;
   deleting = false;
   /** true = in league, false = not in league, null = still loading */
   isInLeague = signal<boolean | null>(null);
@@ -40,6 +41,10 @@ export class LeagueDetailComponent {
   /** True when user is in the matchmaking queue for this league (so we don't allow Find Match again). */
   isSeekingInLeague$: Observable<boolean> = authState(this.auth).pipe(
     switchMap(user => !user ? of(false) : this.ls.getSearchRequest(this.leagueId, user.uid).pipe(map(r => r?.seeking ?? false)))
+  );
+  /** Number of users currently in the queue for this league. */
+  queueCount$: Observable<number> = authState(this.auth).pipe(
+    switchMap(user => user && this.leagueId ? this.ls.getQueueCount(this.leagueId) : of(0))
   );
 
   constructor() {
@@ -111,6 +116,29 @@ export class LeagueDetailComponent {
     this.findMatchResult = null;
     this.findMatchOpponentUid = null;
     this.router.navigate(['/my-matches'], { queryParams: { league: this.leagueId } });
+  }
+
+  async leaveQueue() {
+    const user = this.auth.currentUser;
+    if (!user || this.leavingQueue) return;
+    this.leavingQueue = true;
+    this.findMatchError = null;
+    try {
+      await this.ls.leaveMatchQueue(this.leagueId);
+      this.findMatchResult = null;
+      this.findMatchOpponentUid = null;
+    } catch (err: any) {
+      const msg = err?.error?.error || err?.error?.detail || err?.message;
+      const status = err?.status;
+      if (status === 404) {
+        this.findMatchError = 'Leave queue is not available yet. Deploy the leave_queue Cloud Function and try again.';
+      } else {
+        this.findMatchError = msg ? `Could not leave queue: ${msg}` : 'Could not leave queue. Try again.';
+      }
+      console.error('Leave queue error:', err);
+    } finally {
+      this.leavingQueue = false;
+    }
   }
 
   openLeaderboard() {

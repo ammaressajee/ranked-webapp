@@ -1,9 +1,9 @@
 import { inject, Injectable, NgZone } from '@angular/core';
 import { addDoc, collection, collectionData, deleteDoc, doc, docData, endAt, Firestore, getDoc, getDocs, limit, orderBy, query, serverTimestamp, startAt, setDoc, updateDoc, where } from '@angular/fire/firestore';
-import { combineLatest, firstValueFrom, map, Observable, of } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { combineLatest, firstValueFrom, from, map, Observable, of } from 'rxjs';
+import { catchError, switchMap } from 'rxjs/operators';
 import { League } from '../models/League';
-import { LeagueMatch } from '../models/LeagueMatch';
+import { AgreedSlot, AvailabilitySlot, LeagueMatch } from '../models/LeagueMatch';
 import { LeagueParticipant } from '../models/LeagueParticipant';
 import { LeagueRequest } from '../models/LeagueRequest';
 import { SharedContactDisplay, UserContactPreferences } from '../models/UserContactPreferences';
@@ -12,6 +12,9 @@ import { HttpClient } from '@angular/common/http';
 import { geohashForLocation, geohashQueryBounds, distanceBetween } from 'geofire-common';
 import { GeocodingService } from './geocoding.service';
 import { environment } from '../../environments/environment';
+
+/** Minutes after match creation by which both players must accept (must match backend MATCH_NO_SHOW_MINUTES). */
+export const ACCEPT_DEADLINE_MINUTES = 10;
 
 /** 50 miles in km - leagues within this radius of user's location */
 export const LEAGUE_RADIUS_MILES = 50;
@@ -239,6 +242,8 @@ export class LeagueService {
   private get SWEEP_MATCH_URL() { return `${this.baseUrl}/sweep_pending_matches`; }
   private get ACCEPT_MATCH_URL() { return `${this.baseUrl}/accept_match`; }
   private get DECLINE_MATCH_URL() { return `${this.baseUrl}/decline_match`; }
+  private get LEAVE_QUEUE_URL() { return `${this.baseUrl}/leave_queue`; }
+  private get QUEUE_COUNT_URL() { return `${this.baseUrl}/queue_count`; }
 
   // Call find_match
   async findMatchOnDemand(leagueId: string, userId: string, rank = 1000, location = '') {
@@ -299,6 +304,31 @@ export class LeagueService {
     return firstValueFrom(this.http.post(this.DECLINE_MATCH_URL, { matchId }, { headers })) as Promise<any>;
   }
 
+  /** Leave the matchmaking queue for a league. */
+  async leaveMatchQueue(leagueId: string) {
+    const auth = getAuth();
+    const token = await auth.currentUser?.getIdToken(true);
+    if (!token) throw new Error('Not authenticated');
+    const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+    return firstValueFrom(this.http.post(this.LEAVE_QUEUE_URL, { leagueId }, { headers })) as Promise<{ status: string }>;
+  }
+
+  /** Number of users currently in the matchmaking queue for a league (including current user if seeking). */
+  getQueueCount(leagueId: string): Observable<number> {
+    const user = getAuth().currentUser;
+    const tokenPromise = user ? user.getIdToken(true) : Promise.reject(new Error('Not authenticated'));
+    return from(tokenPromise).pipe(
+      switchMap(token =>
+        this.http.get<{ count: number }>(this.QUEUE_COUNT_URL, {
+          headers: { Authorization: `Bearer ${token}` },
+          params: { leagueId }
+        })
+      ),
+      map(res => res?.count ?? 0),
+      catchError(() => of(0))
+    );
+  }
+
   // --------------------------
   // Reporting & Confirming
   // --------------------------
@@ -314,6 +344,18 @@ export class LeagueService {
   async confirmMatchResult(matchId: string, confirmerUid: string) {
     const matchRef = doc(this.fs, 'leagueMatches', matchId);
     await updateDoc(matchRef, { [`confirmations.${confirmerUid}`]: true });
+  }
+
+  /** Set current user's availability for a pending match (availabilityA or availabilityB). */
+  async setMatchAvailability(matchId: string, isPlayerA: boolean, slots: AvailabilitySlot[]) {
+    const matchRef = doc(this.fs, 'leagueMatches', matchId);
+    await updateDoc(matchRef, { [isPlayerA ? 'availabilityA' : 'availabilityB']: slots });
+  }
+
+  /** Set agreed slot (date + period, and optionally time) for a pending match. */
+  async setAgreedSlot(matchId: string, agreed: AgreedSlot) {
+    const matchRef = doc(this.fs, 'leagueMatches', matchId);
+    await updateDoc(matchRef, { agreedSlot: agreed });
   }
 
   /** Recent league matches for a user across all their leagues (for profile) */

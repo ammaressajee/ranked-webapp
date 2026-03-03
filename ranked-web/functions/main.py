@@ -65,6 +65,108 @@ def get_cors_origin_for_response(request: Request, for_options_preflight: bool =
         return request.headers.get("Origin") or "https://ranked-app-9f746.web.app"
     return None
 
+
+def _queue_start_from_sr_data(created_at_raw) -> datetime:
+    """Parse createdAt from a search request doc into timezone-aware datetime."""
+    if created_at_raw is None:
+        return datetime.now(timezone.utc)
+    if isinstance(created_at_raw, datetime):
+        return created_at_raw if created_at_raw.tzinfo else created_at_raw.replace(tzinfo=timezone.utc)
+    if hasattr(created_at_raw, "timestamp") and callable(getattr(created_at_raw, "timestamp")):
+        return datetime.fromtimestamp(created_at_raw.timestamp(), tz=timezone.utc)
+    return datetime.now(timezone.utc)
+
+
+def _try_match_league_after_decline(league_id: str, excluded_uid_1: str, excluded_uid_2: str) -> None:
+    """
+    After a decline, try to create one new match in this league.
+    Uses oldest seeker as 'searcher' (same rank-band logic as find_match).
+    Never re-pairs the two who just declined (excluded_uid_1 with excluded_uid_2).
+    """
+    seekers = list(db.collection("searchRequests")
+                   .where("leagueId", "==", league_id)
+                   .where("seeking", "==", True).stream())
+    if len(seekers) < 2:
+        return
+    # Build (doc_ref, data, rank, created_at) and sort by created_at (oldest first)
+    parsed = []
+    for cdoc in seekers:
+        data = cdoc.to_dict()
+        rank = int(data.get("rank", 1000))
+        created_at = data.get("createdAt") or datetime.now(timezone.utc)
+        if isinstance(created_at, datetime):
+            ct = created_at if created_at.tzinfo else created_at.replace(tzinfo=timezone.utc)
+        elif hasattr(created_at, "timestamp") and callable(getattr(created_at, "timestamp")):
+            ct = datetime.fromtimestamp(created_at.timestamp(), tz=timezone.utc)
+        else:
+            ct = datetime.now(timezone.utc)
+        parsed.append((cdoc.reference, cdoc, data, rank, ct))
+    parsed.sort(key=lambda t: t[4])
+    searcher_ref, searcher_doc, searcher_data, searcher_rank, searcher_created = parsed[0]
+    searcher_id = searcher_data.get("userId")
+    exclude_candidate_uid = None
+    if searcher_id == excluded_uid_1:
+        exclude_candidate_uid = excluded_uid_2
+    elif searcher_id == excluded_uid_2:
+        exclude_candidate_uid = excluded_uid_1
+    # Candidates: everyone else except the declined partner
+    others = []
+    for ref, cdoc, data, rank, ct in parsed[1:]:
+        uid = data.get("userId")
+        if uid == exclude_candidate_uid:
+            continue
+        diff = abs(searcher_rank - rank)
+        others.append((cdoc, data, diff, ct))
+    if not others:
+        return
+    # Apply searcher's rank band
+    queue_start = _queue_start_from_sr_data(searcher_data.get("createdAt"))
+    now_utc = datetime.now(timezone.utc)
+    wait_seconds = max(0, (now_utc - queue_start).total_seconds())
+    max_allowed_rank_diff = 0
+    for band_after_seconds, band_max_diff in MATCHMAKING_RANK_BANDS:
+        if wait_seconds >= band_after_seconds:
+            max_allowed_rank_diff = band_max_diff
+    others = [t for t in others if t[2] <= max_allowed_rank_diff]
+    if not others:
+        return
+    others.sort(key=lambda t: (t[2], t[3]))
+    cand_doc, cand_data, _, _ = others[0]
+    opponent_id = cand_data.get("userId")
+    ids_sorted = sorted([searcher_id, opponent_id])
+    match_id = f"{league_id}_on_demand_{ids_sorted[0]}_{ids_sorted[1]}_{uuid.uuid4().hex[:6]}"
+    match_ref = db.collection("leagueMatches").document(match_id)
+    sr_ref = db.collection("searchRequests").document(f"{league_id}_{searcher_id}")
+
+    @firestore.transactional
+    def txn(tx):
+        cand_snap = cand_doc.reference.get(transaction=tx)
+        self_snap = sr_ref.get(transaction=tx)
+        if not cand_snap.exists or not self_snap.exists:
+            raise RuntimeError("search request missing")
+        cand_state = cand_snap.to_dict()
+        self_state = self_snap.to_dict()
+        if not cand_state.get("seeking") or not self_state.get("seeking"):
+            raise RuntimeError("already matched")
+        tx.set(match_ref, {
+            "leagueId": league_id,
+            "round": 0,
+            "playerA": searcher_id,
+            "playerB": opponent_id,
+            "status": "pending_acceptance",
+            "type": "ondemand",
+            "acceptances": {},
+            "createdAt": firestore.SERVER_TIMESTAMP,
+            "scheduledAt": firestore.SERVER_TIMESTAMP
+        })
+        tx.update(cand_doc.reference, {"seeking": False})
+        tx.update(sr_ref, {"seeking": False})
+
+    try:
+        txn(db.transaction())
+    except Exception:
+        pass
+
 def expected_score(r_a, r_b):
     return 1 / (1 + 10 ** ((r_b - r_a) / 400))
 
@@ -537,6 +639,10 @@ def decline_match(request: Request):
         if uid:
             sr_ref = db.collection("searchRequests").document(f"{league_id}_{uid}")
             sr_ref.set({"seeking": True}, merge=True)
+
+    # Re-run matchmaking so other seekers in the league can get paired (never re-pair the two who declined)
+    if league_id and player_a and player_b:
+        _try_match_league_after_decline(league_id, player_a, player_b)
 
     return jsonify({"status": "declined", "matchId": match_id}), 200, response_headers
 

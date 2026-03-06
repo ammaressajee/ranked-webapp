@@ -3,18 +3,15 @@ import { addDoc, collection, collectionData, deleteDoc, doc, docData, endAt, Fir
 import { combineLatest, firstValueFrom, from, map, Observable, of } from 'rxjs';
 import { catchError, switchMap } from 'rxjs/operators';
 import { League } from '../models/League';
-import { AgreedSlot, AvailabilitySlot, LeagueMatch } from '../models/LeagueMatch';
+import { LeagueMatch } from '../models/LeagueMatch';
 import { LeagueParticipant } from '../models/LeagueParticipant';
 import { LeagueRequest } from '../models/LeagueRequest';
-import { SharedContactDisplay, UserContactPreferences } from '../models/UserContactPreferences';
+import { UserContactPreferences } from '../models/UserContactPreferences';
 import { getAuth } from '@angular/fire/auth';
 import { HttpClient } from '@angular/common/http';
 import { geohashForLocation, geohashQueryBounds, distanceBetween } from 'geofire-common';
 import { GeocodingService } from './geocoding.service';
 import { environment } from '../../environments/environment';
-
-/** Minutes after match creation by which both players must accept (must match backend MATCH_NO_SHOW_MINUTES). */
-export const ACCEPT_DEADLINE_MINUTES = 10;
 
 /** 50 miles in km - leagues within this radius of user's location */
 export const LEAGUE_RADIUS_MILES = 50;
@@ -244,6 +241,7 @@ export class LeagueService {
   private get DECLINE_MATCH_URL() { return `${this.baseUrl}/decline_match`; }
   private get LEAVE_QUEUE_URL() { return `${this.baseUrl}/leave_queue`; }
   private get QUEUE_COUNT_URL() { return `${this.baseUrl}/queue_count`; }
+  private get CANCEL_MATCH_URL() { return `${this.baseUrl}/cancel_match`; }
 
   // Call find_match
   async findMatchOnDemand(leagueId: string, userId: string, rank = 1000, location = '') {
@@ -346,16 +344,13 @@ export class LeagueService {
     await updateDoc(matchRef, { [`confirmations.${confirmerUid}`]: true });
   }
 
-  /** Set current user's availability for a pending match (availabilityA or availabilityB). */
-  async setMatchAvailability(matchId: string, isPlayerA: boolean, slots: AvailabilitySlot[]) {
-    const matchRef = doc(this.fs, 'leagueMatches', matchId);
-    await updateDoc(matchRef, { [isPlayerA ? 'availabilityA' : 'availabilityB']: slots });
-  }
-
-  /** Set agreed slot (date + period, and optionally time) for a pending match. */
-  async setAgreedSlot(matchId: string, agreed: AgreedSlot) {
-    const matchRef = doc(this.fs, 'leagueMatches', matchId);
-    await updateDoc(matchRef, { agreedSlot: agreed });
+  /** Cancel a pending match (either player can cancel). */
+  async cancelMatch(matchId: string) {
+    const auth = getAuth();
+    const token = await auth.currentUser?.getIdToken(true);
+    if (!token) throw new Error('Not authenticated');
+    const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+    return firstValueFrom(this.http.post(this.CANCEL_MATCH_URL, { matchId }, { headers })) as Promise<any>;
   }
 
   /** Recent league matches for a user across all their leagues (for profile) */
@@ -450,53 +445,9 @@ export class LeagueService {
     ) as Observable<UserContactPreferences | null>);
   }
 
-  /**
-   * Get shared contact for an opponent to display on a match card.
-   * Returns contact only if they've opted in (global share or per-match share for this match).
-   */
-  getSharedContactForUser(
-    opponentUid: string,
-    context: { match?: LeagueMatch; viewerUid: string }
-  ): Observable<SharedContactDisplay | null> {
-    const ref = doc(this.fs, 'users', opponentUid);
-    return (docData(ref).pipe(
-      map(data => {
-        if (!data || typeof data !== 'object') return null;
-        const d = data as Record<string, unknown>;
-        const match = context.match;
-        const viewerUid = context.viewerUid;
-        const isOpponentA = match?.playerA === opponentUid;
-        const isOpponentB = match?.playerB === opponentUid;
-        const sharedForThisMatch =
-          (isOpponentA && match?.sharedContactByPlayerA) || (isOpponentB && match?.sharedContactByPlayerB);
-        const shareWithOpponents = !!d['shareContactWithOpponents'];
-
-        const out: SharedContactDisplay = {};
-        if (sharedForThisMatch) {
-          if (d['contactEmail']) out.contactEmail = String(d['contactEmail']);
-          if (d['contactPhone']) out.contactPhone = String(d['contactPhone']);
-          if (d['contactHandle']) out.contactHandle = String(d['contactHandle']);
-        } else if (shareWithOpponents) {
-          if (d['shareContactEmail'] && d['contactEmail']) out.contactEmail = String(d['contactEmail']);
-          if (d['shareContactPhone'] && d['contactPhone']) out.contactPhone = String(d['contactPhone']);
-          if (d['shareContactHandle'] && d['contactHandle']) out.contactHandle = String(d['contactHandle']);
-        }
-        const hasAny = out.contactEmail || out.contactPhone || out.contactHandle;
-        return hasAny ? out : null;
-      }),
-      catchError(() => of(null))
-    ) as Observable<SharedContactDisplay | null>);
-  }
-
   async updateUserContactPreferences(uid: string, prefs: Partial<UserContactPreferences>): Promise<void> {
     const ref = doc(this.fs, 'users', uid);
     await updateDoc(ref, prefs as Record<string, unknown>);
-  }
-
-  /** Mark that the current user has shared their contact with the opponent for this match. */
-  async setMatchSharedContact(matchId: string, isPlayerA: boolean): Promise<void> {
-    const matchRef = doc(this.fs, 'leagueMatches', matchId);
-    await updateDoc(matchRef, isPlayerA ? { sharedContactByPlayerA: true } : { sharedContactByPlayerB: true });
   }
 
   collectionDataWithId<T>(collectionName: string, field: string, value: any, orderField?: string): Observable<T[]> {

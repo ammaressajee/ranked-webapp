@@ -61,6 +61,17 @@ service cloud.firestore {
         request.auth.uid in get(/databases/$(db)/documents/config/admins).data.get('uids', []);
     }
 
+    // Match messages - players in the match can read/create; senderUid must be their own uid
+    match /matchMessages/{matchId}/messages/{msgId} {
+      allow read: if request.auth != null &&
+        (request.auth.uid == get(/databases/$(db)/documents/leagueMatches/$(matchId)).data.playerA ||
+         request.auth.uid == get(/databases/$(db)/documents/leagueMatches/$(matchId)).data.playerB);
+      allow create: if request.auth != null &&
+        request.resource.data.senderUid == request.auth.uid &&
+        (request.auth.uid == get(/databases/$(db)/documents/leagueMatches/$(matchId)).data.playerA ||
+         request.auth.uid == get(/databases/$(db)/documents/leagueMatches/$(matchId)).data.playerB);
+    }
+
     // Search requests - read for UI (queue status); write only by Cloud Functions (matchmaking)
     match /searchRequests/{requestId} {
       allow read: if request.auth != null;

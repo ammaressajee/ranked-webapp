@@ -1,0 +1,70 @@
+<div class="match-chat">
+  <!-- Toggle bar -->
+  <button type="button" class="chat-toggle" (click)="toggleChat()">
+    <span class="chat-toggle-label">
+      <span class="chat-icon">💬</span>
+      Messages
+    </span>
+    <span class="chat-toggle-right">
+      <span class="unread-badge" *ngIf="(unreadCount$ | async) as count">{{ count }}</span>
+      <span class="expand-arrow" [class.open]="expanded">▾</span>
+    </span>
+  </button>
+
+  <!-- Quick action chips (always visible when not expanded) -->
+  <div class="quick-actions" *ngIf="!expanded">
+    <button
+      *ngFor="let action of quickActions"
+      type="button"
+      class="chip"
+      (click)="sendQuickAction(action)"
+      [disabled]="sending"
+    >{{ action }}</button>
+  </div>
+
+  <!-- Expanded chat -->
+  <div class="chat-body" *ngIf="expanded">
+    <div class="message-list" #messageList>
+      <ng-container *ngIf="messages$ | async as messages">
+        <div *ngIf="messages.length === 0" class="empty-chat">
+          <p>No messages yet. Say hi to {{ opponentName }}!</p>
+        </div>
+        <div
+          *ngFor="let msg of messages; trackBy: trackByMsg"
+          class="message-row"
+          [class.mine]="isMe(msg.senderUid)"
+          [class.theirs]="!isMe(msg.senderUid) && msg.type !== 'system'"
+          [class.system]="msg.type === 'system'"
+        >
+          <div class="bubble">{{ msg.text }}</div>
+        </div>
+      </ng-container>
+    </div>
+
+    <!-- Quick action chips inside expanded view -->
+    <div class="quick-actions in-chat">
+      <button
+        *ngFor="let action of quickActions"
+        type="button"
+        class="chip"
+        (click)="sendQuickAction(action)"
+        [disabled]="sending"
+      >{{ action }}</button>
+    </div>
+
+    <div class="chat-input-row">
+      <input
+        type="text"
+        class="chat-input"
+        [(ngModel)]="newMessage"
+        (keydown)="onKeydown($event)"
+        placeholder="Type a message…"
+        [disabled]="sending"
+        maxlength="500"
+      />
+      <button type="button" class="send-btn" (click)="send()" [disabled]="sending || !newMessage.trim()">
+        Send
+      </button>
+    </div>
+  </div>
+</div>

@@ -16,7 +16,8 @@ db = firestore.Client()
 # ----- CONFIG -----
 PROVISIONAL_THRESHOLD = 5
 AUTO_FINALIZE_MINUTES = 48 * 60  # 48 hours: if opponent doesn't confirm, reported score stands
-MATCH_NO_SHOW_MINUTES = 10       # sweep pending matches timeout
+ACCEPT_WINDOW_HOURS = 48         # hours before a pending_acceptance match is auto-cancelled
+MATCH_DEADLINE_DAYS = 7          # days after acceptance before a pending match is auto-cancelled
 
 # Skill-based matchmaking: max rank difference allowed, by time in queue (seconds).
 # (seconds_waited, max_rank_diff). Searcher only matches with opponents within max_rank_diff.
@@ -166,6 +167,20 @@ def _try_match_league_after_decline(league_id: str, excluded_uid_1: str, exclude
         txn(db.transaction())
     except Exception:
         pass
+
+def _send_system_message(match_id: str, text: str) -> None:
+    """Write a system message into the match chat subcollection."""
+    try:
+        db.collection("matchMessages").document(match_id).collection("messages").add({
+            "matchId": match_id,
+            "senderUid": "system",
+            "text": text,
+            "createdAt": firestore.SERVER_TIMESTAMP,
+            "type": "system",
+        })
+    except Exception as e:
+        print(f"⚠️ Failed to send system message for {match_id}: {e}")
+
 
 def expected_score(r_a, r_b):
     return 1 / (1 + 10 ** ((r_b - r_a) / 400))
@@ -561,10 +576,15 @@ def accept_match(request: Request):
     match_ref.update({"acceptances": acceptances})
 
     if acceptances.get(player_a) and acceptances.get(player_b):
+        deadline = datetime.now(timezone.utc) + timedelta(days=MATCH_DEADLINE_DAYS)
         match_ref.update({
             "status": "pending",
-            "acceptedAt": firestore.SERVER_TIMESTAMP
+            "acceptedAt": firestore.SERVER_TIMESTAMP,
+            "lastActivityAt": firestore.SERVER_TIMESTAMP,
+            "matchDeadline": deadline,
         })
+        # System message in match chat
+        _send_system_message(match_id, "Match accepted! Message your opponent to coordinate a time and place to play.")
         return jsonify({"status": "accepted", "matchId": match_id, "ready": True}), 200, response_headers
     return jsonify({"status": "accepted", "matchId": match_id, "ready": False}), 200, response_headers
 
@@ -645,6 +665,83 @@ def decline_match(request: Request):
         _try_match_league_after_decline(league_id, player_a, player_b)
 
     return jsonify({"status": "declined", "matchId": match_id}), 200, response_headers
+
+
+# ----- CANCEL MATCH HTTP -----
+@functions_framework.http
+def cancel_match(request: Request):
+    """HTTP POST: Either player can cancel a pending match; both are freed to search again."""
+
+    is_preflight = request.method == "OPTIONS"
+    cors_origin = get_cors_origin_for_response(request, for_options_preflight=is_preflight)
+    response_headers = {}
+    if cors_origin:
+        response_headers['Access-Control-Allow-Origin'] = cors_origin
+        response_headers['Access-Control-Allow-Credentials'] = 'true'
+
+    if request.method == "OPTIONS":
+        resp = make_response('', 204)
+        if cors_origin:
+            resp.headers.set('Access-Control-Allow-Origin', cors_origin)
+            resp.headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS')
+            resp.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+            resp.headers.set('Access-Control-Max-Age', '3600')
+            resp.headers.set('Access-Control-Allow-Credentials', 'true')
+        return resp
+
+    if not get_allowed_origin(request):
+        err_headers = {**response_headers, 'Content-Type': 'application/json'}
+        if request.headers.get("Origin"):
+            err_headers['Access-Control-Allow-Origin'] = request.headers.get("Origin")
+            err_headers['Access-Control-Allow-Credentials'] = 'true'
+        return jsonify({"error": "Forbidden Origin"}), 403, err_headers
+
+    try:
+        decoded = _verify_id_token_from_request(request)
+    except Exception as e:
+        return jsonify({"error": "Unauthorized", "detail": str(e)}), 401, response_headers
+
+    payload = request.get_json(silent=True)
+    if not payload:
+        return jsonify({"error": "Invalid JSON"}), 400, response_headers
+
+    match_id = payload.get("matchId")
+    user_id = decoded.get("uid")
+    if not match_id or not user_id:
+        return jsonify({"error": "matchId required"}), 400, response_headers
+    if not isinstance(match_id, str) or len(match_id) > 256:
+        return jsonify({"error": "Invalid matchId"}), 400, response_headers
+
+    match_ref = db.collection("leagueMatches").document(match_id)
+    match_snap = match_ref.get()
+    if not match_snap.exists:
+        return jsonify({"error": "Match not found"}), 404, response_headers
+
+    data = match_snap.to_dict()
+    if data.get("status") not in ("pending", "pending_acceptance"):
+        return jsonify({"error": "Match cannot be cancelled in its current state"}), 400, response_headers
+
+    player_a = data.get("playerA")
+    player_b = data.get("playerB")
+    if user_id != player_a and user_id != player_b:
+        return jsonify({"error": "Only a player in this match can cancel"}), 403, response_headers
+
+    league_id = data.get("leagueId")
+    match_ref.update({
+        "status": "cancelled",
+        "cancelledAt": firestore.SERVER_TIMESTAMP,
+        "cancelReason": "player_cancelled",
+        "cancelledBy": user_id,
+    })
+
+    for uid in (player_a, player_b):
+        if uid:
+            sr_ref = db.collection("searchRequests").document(f"{league_id}_{uid}")
+            sr_ref.set({"seeking": False}, merge=True)
+
+    _send_system_message(match_id, "Match cancelled.")
+
+    return jsonify({"status": "cancelled", "matchId": match_id}), 200, response_headers
 
 
 # ----- LEAVE QUEUE HTTP -----
@@ -773,31 +870,54 @@ def sweep_pending_matches(request: Request):
 
 
     try:
-        cutoff = datetime.now(timezone.utc) - timedelta(minutes=MATCH_NO_SHOW_MINUTES)
         canceled = []
+        now_utc = datetime.now(timezone.utc)
 
-        # Cancel stale pending matches (never played)
-        for status_val in ["pending", "pending_acceptance"]:
-            q = db.collection("leagueMatches").where("status", "==", status_val).where("createdAt", "<=", cutoff)
-            for doc_snap in q.stream():
-                try:
-                    data = doc_snap.to_dict()
-                    doc_snap.reference.update({
-                        "status": "cancelled",
-                        "cancelledAt": firestore.SERVER_TIMESTAMP,
-                        "cancelReason": "no_show_sweep"
-                    })
-                    canceled.append(doc_snap.id)
-                    # Re-enable seeking for playerA so they can search again
-                    league_id = data.get("leagueId")
-                    player_a = data.get("playerA")
-                    if league_id and player_a:
-                        sr_ref = db.collection("searchRequests").document(f"{league_id}_{player_a}")
-                        sr_ref.set({"seeking": True}, merge=True)
-                except Exception as e:
-                    print(f"failed cancel {doc_snap.id}: {e}")
+        # 1. Cancel stale pending_acceptance matches (48h acceptance window)
+        acceptance_cutoff = now_utc - timedelta(hours=ACCEPT_WINDOW_HOURS)
+        q_pa = (db.collection("leagueMatches")
+                .where("status", "==", "pending_acceptance")
+                .where("createdAt", "<=", acceptance_cutoff))
+        for doc_snap in q_pa.stream():
+            try:
+                data = doc_snap.to_dict()
+                doc_snap.reference.update({
+                    "status": "cancelled",
+                    "cancelledAt": firestore.SERVER_TIMESTAMP,
+                    "cancelReason": "acceptance_timeout"
+                })
+                canceled.append(doc_snap.id)
+                league_id = data.get("leagueId")
+                for uid in (data.get("playerA"), data.get("playerB")):
+                    if uid and league_id:
+                        sr_ref = db.collection("searchRequests").document(f"{league_id}_{uid}")
+                        sr_ref.set({"seeking": False}, merge=True)
+            except Exception as e:
+                print(f"failed cancel {doc_snap.id}: {e}")
 
-        resp = jsonify({"cancelled": canceled, "count": len(canceled), "cutoff": cutoff.isoformat()})
+        # 2. Cancel stale pending matches past their matchDeadline (7 days after acceptance)
+        q_pending = (db.collection("leagueMatches")
+                     .where("status", "==", "pending")
+                     .where("matchDeadline", "<=", now_utc))
+        for doc_snap in q_pending.stream():
+            try:
+                data = doc_snap.to_dict()
+                doc_snap.reference.update({
+                    "status": "cancelled",
+                    "cancelledAt": firestore.SERVER_TIMESTAMP,
+                    "cancelReason": "match_deadline_expired"
+                })
+                canceled.append(doc_snap.id)
+                _send_system_message(doc_snap.id, "Match automatically cancelled — no score was reported in time.")
+                league_id = data.get("leagueId")
+                for uid in (data.get("playerA"), data.get("playerB")):
+                    if uid and league_id:
+                        sr_ref = db.collection("searchRequests").document(f"{league_id}_{uid}")
+                        sr_ref.set({"seeking": False}, merge=True)
+            except Exception as e:
+                print(f"failed cancel {doc_snap.id}: {e}")
+
+        resp = jsonify({"cancelled": canceled, "count": len(canceled)})
         return resp, 200, response_headers
 
     except Exception as e:

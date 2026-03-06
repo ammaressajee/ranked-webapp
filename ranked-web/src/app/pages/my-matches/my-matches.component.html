@@ -3,7 +3,7 @@
   <!-- Error -->
   <div class="error" *ngIf="error">{{ error }}</div>
 
-  <!-- League Selector + View league link -->
+  <!-- League Selector -->
   <div class="league-selector" *ngIf="leaguesWithNames$ | async as leagues">
     <label>Select League:</label>
     <div class="league-selector-row">
@@ -28,13 +28,13 @@
 
     <div class="page-header">
       <h2 class="section-title">My Matches</h2>
-      <p class="page-intro">View and manage your matches in this league. Accept invites, report scores, and coordinate with opponents.</p>
+      <p class="page-intro">View and manage your matches. Message opponents, report scores, and track your progress.</p>
     </div>
 
-    <!-- Status: searching or pending match -->
+    <!-- Status: searching -->
     <div *ngIf="isSeekingInLeague" class="status-banner seeking">
       <p class="status-banner-text">
-        🔍 You're in the queue for this league
+        You're in the queue for this league
         <span *ngIf="queueCount$ | async as qc"> ({{ qc }} {{ qc === 1 ? 'person' : 'people' }} in queue)</span>.
         A match will appear here when another player searches.
       </p>
@@ -42,8 +42,10 @@
         {{ leavingQueue ? 'Exiting…' : 'Exit queue' }}
       </button>
     </div>
+
+    <!-- Status: pending acceptance by opponent -->
     <div *ngIf="!isSeekingInLeague && hasPendingAcceptanceMatch(vm.matches)" class="status-banner pending">
-      ⏳ You have a match waiting for your opponent to accept. It will appear below once they accept.
+      A match is waiting for your opponent to accept. You'll be notified when they respond.
     </div>
 
     <div *ngIf="vm.matches.length === 0" class="empty-state">
@@ -54,13 +56,13 @@
 
     <div class="match-card" *ngFor="let m of vm.matches">
 
+      <!-- Match Header -->
       <div class="match-header">
         <div class="players">
           <span [class.me]="isUser(m.playerA)">{{ isUser(m.playerA) ? 'You' : displayName(m.playerA, vm.nameMap) }}</span>
           <span class="vs">vs</span>
           <span [class.me]="isUser(m.playerB)">{{ isUser(m.playerB) ? 'You' : displayName(m.playerB, vm.nameMap) }}</span>
         </div>
-
         <div class="status-badge" [ngClass]="m.status">
           {{ getMatchStatus(m) }}
         </div>
@@ -72,42 +74,15 @@
         <span class="result-score" *ngIf="m.result?.score">Score: {{ m.result?.score }}</span>
       </div>
 
-      <!-- Opponent contact (when they've shared) -->
-      <div class="opponent-contact-card" *ngIf="getOpponentContact(m) | async as contact">
-        <p class="opponent-contact-heading">
-          <span class="material-symbols-outlined">contact_phone</span>
-          Opponent's contact
-        </p>
-        <div class="opponent-contact-details">
-          <a *ngIf="contact.contactEmail" [href]="'mailto:' + contact.contactEmail" class="contact-item contact-email">
-            <span class="material-symbols-outlined">mail</span>
-            <span class="contact-value">{{ contact.contactEmail }}</span>
-          </a>
-          <a *ngIf="contact.contactPhone" [href]="'tel:' + contact.contactPhone" class="contact-item contact-phone">
-            <span class="material-symbols-outlined">phone</span>
-            <span class="contact-value">{{ contact.contactPhone }}</span>
-          </a>
-          <div *ngIf="contact.contactHandle" class="contact-item contact-handle">
-            <span class="material-symbols-outlined">alternate_email</span>
-            <span class="contact-value">{{ contact.contactHandle }}</span>
-          </div>
-        </div>
-      </div>
+      <!-- ============================== -->
+      <!-- PENDING ACCEPTANCE: Accept/Decline -->
+      <!-- ============================== -->
+      <div class="match-actions" *ngIf="m.status === 'pending_acceptance'">
 
-      <!-- Share my contact with this opponent -->
-      <div class="share-contact-row" *ngIf="!hasSharedMyContact(m) && getOpponentUid(m) && m.status !== 'completed' && m.status !== 'cancelled'">
-        <button type="button" class="btn btn-share-contact" (click)="shareMyContactWithOpponent(m)" [disabled]="sharingContactMatchId === m.id">
-          <span class="material-symbols-outlined" *ngIf="sharingContactMatchId !== m.id">share</span>
-          <span class="btn-share-text">{{ sharingContactMatchId === m.id ? 'Sharing…' : 'Share my contact' }}</span>
-        </button>
-      </div>
-
-      <!-- Status Logic -->
-      <div class="match-actions">
-
-        <!-- Pending Acceptance: Either player can Accept or Decline (until both have accepted) -->
         <ng-container *ngIf="shouldShowAccept(m)">
-          <p *ngIf="getAcceptDeadlineText(m)" class="accept-deadline">{{ getAcceptDeadlineText(m) }}</p>
+          <div class="accept-guidance">
+            <p class="guidance-text">You've been matched! Accept to start coordinating.</p>
+          </div>
           <button class="btn accept-btn" (click)="acceptMatch(m)" [disabled]="acceptingMatchId !== null || decliningMatchId !== null">
             Accept Match
           </button>
@@ -116,130 +91,132 @@
           </button>
         </ng-container>
 
-        <!-- Pending Acceptance: You accepted, waiting for opponent -->
         <ng-container *ngIf="waitingForOpponentToAccept(m)">
-          <p *ngIf="getAcceptDeadlineText(m)" class="accept-deadline">{{ getAcceptDeadlineText(m) }}</p>
           <p class="waiting-hint">Waiting for {{ displayName(getOpponentUid(m), vm.nameMap) }} to accept…</p>
           <button class="btn decline-btn" (click)="declineMatch(m)" [disabled]="acceptingMatchId !== null || decliningMatchId !== null">
-            Decline
+            Cancel &amp; re-search
           </button>
         </ng-container>
+      </div>
 
-        <!-- Pending: Ready to play — View opponent to coordinate -->
-        <div *ngIf="m.status === 'pending'" class="pending-actions">
-          <a [routerLink]="['/profile', isUser(m.playerA) ? m.playerB : m.playerA]" class="btn message-btn">
-            👤 View opponent
-          </a>
+      <!-- ============================== -->
+      <!-- PENDING: Guided stepper + Chat -->
+      <!-- ============================== -->
+      <ng-container *ngIf="m.status === 'pending'">
+
+        <!-- Days left + nudge -->
+        <div class="deadline-bar" *ngIf="getDaysLeft(m) as days">
+          <span class="deadline-text">{{ days }} {{ days === 1 ? 'day' : 'days' }} left to play this match</span>
         </div>
 
-        <!-- Availability: 10 days × 3 periods + exact time dropdown (pending only) -->
-        <div *ngIf="m.status === 'pending'" class="availability-section">
-          <h4 class="availability-heading">Pick a time to play</h4>
-
-          <!-- Already agreed date + time -->
-          <div *ngIf="m.agreedSlot as agreed; then agreedTime; else noAgreedTime"></div>
-          <ng-template #agreedTime let-agreed="ngIf">
-            <div *ngIf="agreed.date && agreed.time" class="agreed-time-display">
-              <span class="material-symbols-outlined">event_available</span>
-              Agreed: {{ formatDayLabel(agreed.date) }} at {{ agreed.time }}
-            </div>
-          </ng-template>
-          <ng-template #noAgreedTime>
-            <!-- Agreed date + period but no exact time: show dropdown -->
-            <ng-container *ngIf="m.agreedSlot as aslot">
-              <div *ngIf="aslot.date && aslot.period && !aslot.time" class="exact-time-row">
-                <label>Exact time for {{ formatDayLabel(aslot.date) }} ({{ aslot.period }}):</label>
-                <select
-                  class="time-dropdown"
-                  [ngModel]="aslot.time"
-                  (ngModelChange)="setAgreedTime(m, $event)"
-                  [disabled]="settingTimeMatchId === m.id"
-                >
-                  <option value="">Select time…</option>
-                  <option *ngFor="let t of TIME_OPTIONS[aslot.period]" [value]="t">{{ t }}</option>
-                </select>
-                <span *ngIf="settingTimeMatchId === m.id" class="saving-label">Saving…</span>
-              </div>
-            </ng-container>
-          </ng-template>
-
-          <!-- No agreed slot yet: grid + overlap confirm -->
-          <ng-container *ngIf="!m.agreedSlot?.date || !m.agreedSlot?.period">
-            <p class="availability-hint">Tap slots when you're available. Save, then your opponent can confirm a time that works for both.</p>
-            <div class="availability-grid">
-              <div class="grid-header">
-                <span class="grid-cell header-cell"></span>
-                <span *ngFor="let p of PERIODS" class="grid-cell header-cell">{{ p.label }}</span>
-              </div>
-              <div *ngFor="let dateStr of getAvailabilityDays()" class="grid-row">
-                <span class="grid-cell day-label">{{ formatDayLabel(dateStr) }}</span>
-                <button
-                  *ngFor="let p of PERIODS"
-                  type="button"
-                  class="grid-cell slot-cell"
-                  [class.selected]="isSlotInList(getMyAvailability(m), dateStr, p.id)"
-                  [class.overlap]="isSlotInList(getOverlappingSlots(m), dateStr, p.id)"
-                  (click)="toggleAvailabilitySlot(m, dateStr, p.id)"
-                >
-                  <span *ngIf="isSlotInList(getOverlappingSlots(m), dateStr, p.id)">Both</span>
-                  <span *ngIf="!isSlotInList(getOverlappingSlots(m), dateStr, p.id) && isSlotInList(getMyAvailability(m), dateStr, p.id)">✓</span>
-                  <span *ngIf="!isSlotInList(getMyAvailability(m), dateStr, p.id) && isSlotInList(getOpponentAvailability(m), dateStr, p.id)" class="opponent-only">Them</span>
-                  <span *ngIf="!isSlotInList(getMyAvailability(m), dateStr, p.id) && !isSlotInList(getOpponentAvailability(m), dateStr, p.id)">—</span>
-                </button>
-              </div>
-            </div>
-            <div class="availability-actions">
-              <button type="button" class="btn btn-save-availability" (click)="saveMyAvailability(m)" [disabled]="savingAvailabilityMatchId === m.id">
-                {{ savingAvailabilityMatchId === m.id ? 'Saving…' : 'Save my availability' }}
-              </button>
-            </div>
-            <div *ngIf="getOverlappingSlots(m).length > 0" class="overlap-section">
-              <p class="overlap-label">Both available — confirm one:</p>
-              <div class="overlap-buttons">
-                <button
-                  *ngFor="let slot of getOverlappingSlots(m)"
-                  type="button"
-                  class="btn btn-confirm-slot"
-                  (click)="confirmSlot(m, slot.date, slot.period)"
-                  [disabled]="confirmingSlotMatchId === m.id"
-                >
-                  {{ formatDayLabel(slot.date) }} {{ slot.period }}
-                </button>
-              </div>
-            </div>
-          </ng-container>
+        <div class="nudge-banner" *ngIf="shouldShowNudge(m)">
+          Haven't heard from your opponent? Send them a message or cancel to search again.
         </div>
 
-        <!-- Report Score (when match is pending and you're a player) -->
-        <button
-          *ngIf="shouldShowReport(m)"
-          class="btn report-btn"
-          (click)="openReportDialog(m)"
-        >
-          Report Score
-        </button>
+        <!-- Stepper -->
+        <div class="match-stepper">
+          <div class="step" [class.active]="getMatchStep(m) === 1" [class.done]="getMatchStep(m) > 1">
+            <div class="step-number">1</div>
+            <div class="step-label">Coordinate</div>
+          </div>
+          <div class="step-line"></div>
+          <div class="step" [class.active]="getMatchStep(m) === 2" [class.done]="getMatchStep(m) > 2">
+            <div class="step-number">2</div>
+            <div class="step-label">Play</div>
+          </div>
+          <div class="step-line"></div>
+          <div class="step" [class.active]="getMatchStep(m) === 3" [class.done]="getMatchStep(m) > 3">
+            <div class="step-number">3</div>
+            <div class="step-label">Report</div>
+          </div>
+          <div class="step-line"></div>
+          <div class="step" [class.active]="getMatchStep(m) === 4" [class.done]="getMatchStep(m) > 4">
+            <div class="step-number">4</div>
+            <div class="step-label">Confirm</div>
+          </div>
+        </div>
 
-        <!-- Confirm Result (when opponent reported and you haven't confirmed) -->
+        <!-- Step guidance -->
+        <div class="step-guidance">
+          <p class="guidance-text">Message your opponent to pick a time and place to play. After you play, come back here to report the score.</p>
+        </div>
+
+        <!-- Chat -->
+        <app-match-chat
+          [matchId]="m.id!"
+          [lastReadBy]="m.lastReadBy"
+          [opponentName]="displayName(getOpponentUid(m), vm.nameMap)"
+        ></app-match-chat>
+
+        <!-- Actions: Report + Cancel -->
+        <div class="match-actions pending-match-actions">
+          <button *ngIf="shouldShowReport(m)" class="btn report-btn" (click)="openReportDialog(m)">
+            Report Score
+          </button>
+          <button class="btn cancel-match-btn" (click)="openCancelDialog(m)">
+            Cancel Match
+          </button>
+        </div>
+      </ng-container>
+
+      <!-- ============================== -->
+      <!-- REPORTED: Confirm result -->
+      <!-- ============================== -->
+      <div class="match-actions" *ngIf="m.status === 'reported' || m.status === 'pendingConfirm'">
+
+        <!-- Stepper (frozen at step 3) -->
+        <div class="match-stepper">
+          <div class="step done"><div class="step-number">1</div><div class="step-label">Coordinate</div></div>
+          <div class="step-line"></div>
+          <div class="step done"><div class="step-number">2</div><div class="step-label">Play</div></div>
+          <div class="step-line"></div>
+          <div class="step done"><div class="step-number">3</div><div class="step-label">Report</div></div>
+          <div class="step-line"></div>
+          <div class="step active"><div class="step-number">4</div><div class="step-label">Confirm</div></div>
+        </div>
+
         <div *ngIf="shouldShowConfirm(m)" class="confirm-block">
-          <p *ngIf="getConfirmHint(m)" class="confirm-hint">{{ getConfirmHint(m) }}</p>
+          <p class="guidance-text">{{ getConfirmHint(m) }}</p>
           <button class="btn confirm-btn" (click)="confirmResult(m)" [disabled]="confirmingMatchId !== null">
             {{ confirmingMatchId === m.id ? 'Confirming…' : 'Confirm Result' }}
           </button>
         </div>
 
-        <!-- Completed -->
-        <div *ngIf="m.status === 'completed'" class="completed-label">
-          ✔ Completed
+        <div *ngIf="!shouldShowConfirm(m)" class="waiting-hint">
+          Waiting for {{ displayName(getOpponentUid(m), vm.nameMap) }} to confirm the result…
         </div>
+      </div>
 
+      <!-- ============================== -->
+      <!-- COMPLETED -->
+      <!-- ============================== -->
+      <div *ngIf="m.status === 'completed'" class="match-actions">
+        <div class="match-stepper completed-stepper">
+          <div class="step done"><div class="step-number">1</div><div class="step-label">Coordinate</div></div>
+          <div class="step-line"></div>
+          <div class="step done"><div class="step-number">2</div><div class="step-label">Play</div></div>
+          <div class="step-line"></div>
+          <div class="step done"><div class="step-number">3</div><div class="step-label">Report</div></div>
+          <div class="step-line"></div>
+          <div class="step done"><div class="step-number">4</div><div class="step-label">Confirm</div></div>
+        </div>
+        <div class="completed-label">Completed</div>
+      </div>
+
+      <!-- ============================== -->
+      <!-- CANCELLED -->
+      <!-- ============================== -->
+      <div *ngIf="m.status === 'cancelled'" class="match-actions">
+        <div class="cancelled-label">Cancelled</div>
       </div>
 
     </div>
   </div>
+
   <ng-template #noMatches>
     <div class="page-header">
       <h2 class="section-title">My Matches</h2>
-      <p class="page-intro">View and manage your matches in this league.</p>
+      <p class="page-intro">View and manage your matches.</p>
     </div>
     <div class="empty-msg">Loading…</div>
   </ng-template>
@@ -253,7 +230,6 @@
 <!-- REPORT SCORE MODAL -->
 <div class="modal-backdrop" *ngIf="reportDialogOpen">
   <div class="modal">
-
     <h3>Report Score</h3>
 
     <p class="modal-label">Who won?</p>
@@ -276,11 +252,22 @@
         {{ submittingReport ? 'Submitting…' : 'Submit' }}
       </button>
     </div>
-
   </div>
 </div>
 
-<!-- Action overlay: Accepting / Declining / Confirming (blocks repeat clicks) -->
+<!-- CANCEL MATCH CONFIRMATION MODAL -->
+<div class="modal-backdrop" *ngIf="cancelDialogOpen">
+  <div class="modal">
+    <h3>Cancel Match?</h3>
+    <p class="modal-body-text">Are you sure you want to cancel this match? Both players will be free to search for a new match.</p>
+    <div class="modal-actions">
+      <button class="btn cancel" (click)="closeCancelDialog()">Keep Match</button>
+      <button class="btn submit danger" (click)="confirmCancelMatch()">Cancel Match</button>
+    </div>
+  </div>
+</div>
+
+<!-- Action overlay -->
 <div class="action-overlay" *ngIf="actionOverlayMessage">
   <div class="action-overlay-content">
     <div class="action-spinner" aria-hidden="true"></div>

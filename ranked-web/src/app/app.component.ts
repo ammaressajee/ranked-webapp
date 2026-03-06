@@ -26,7 +26,7 @@ export class AppComponent {
   authService = inject(AuthService);
   router = inject(Router);
 
-  isSidebarOpen = true;
+  isSidebarOpen = false;
 
   /** Show footer ad only when ads enabled and not on excluded routes */
   get showFooterAd(): boolean {

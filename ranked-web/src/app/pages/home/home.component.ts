@@ -160,8 +160,8 @@ export class HomeComponent implements OnInit {
       const hasMatchToAccept = matches.some(m => m.status === 'pending_acceptance' && m.playerB === uid);
       const waitingForOpponent = matches.some(m => m.status === 'pending_acceptance' && m.playerA === uid);
       if (needsConfirm) messages.push('You have a match awaiting your confirmation.');
-      if (hasMatchToAccept) messages.push('You have a match request to accept.');
-      if (hasNewMatchToPlay) messages.push('You have a match ready to play.');
+      if (hasMatchToAccept) messages.push('You have a new match request — accept to start coordinating!');
+      if (hasNewMatchToPlay) messages.push('You have a match ready to play — message your opponent to coordinate.');
       if (waitingForOpponent && !hasNewMatchToPlay && !needsConfirm && !hasMatchToAccept) messages.push('A match is waiting for your opponent to accept.');
       return messages.length ? { messages, leagueId } : null;
     })

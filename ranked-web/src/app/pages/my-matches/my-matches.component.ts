@@ -1,23 +1,23 @@
 import { Component, effect, inject } from '@angular/core';
 import { combineLatest, map, Observable, of, Subscription, switchMap } from 'rxjs';
-import { LeagueService, ACCEPT_DEADLINE_MINUTES } from '../../services/league.service';
+import { LeagueService } from '../../services/league.service';
+import { ChatService } from '../../services/chat.service';
 import { Auth } from '@angular/fire/auth';
-import { AgreedSlot, AvailabilitySlot, LeagueMatch, PeriodLabel } from '../../models/LeagueMatch';
+import { LeagueMatch } from '../../models/LeagueMatch';
 import { LeagueParticipant } from '../../models/LeagueParticipant';
-import { SharedContactDisplay } from '../../models/UserContactPreferences';
 import { AuthService } from '../../services/auth.service';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { MatchChatComponent } from '../../components/match-chat/match-chat.component';
 
-/** Participant with league name resolved (from league doc if missing on participant) */
 export interface LeagueParticipantWithName extends LeagueParticipant {
   resolvedLeagueName: string;
 }
 
 @Component({
   selector: 'app-my-matches',
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, MatchChatComponent],
   templateUrl: './my-matches.component.html',
   styleUrl: './my-matches.component.scss',
 })
@@ -25,11 +25,11 @@ export class MyMatchesComponent {
   auth = inject(Auth);
   private authService = inject(AuthService);
   private ls = inject(LeagueService);
+  private chatService = inject(ChatService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
 
   userLeagues$!: Observable<LeagueParticipant[]>;
-  /** Participants with league names resolved (fetches from leagues if leagueName missing) */
   leaguesWithNames$!: Observable<LeagueParticipantWithName[]>;
   matches$!: Observable<LeagueMatch[]>;
   participants$!: Observable<LeagueParticipant[]>;
@@ -39,56 +39,36 @@ export class MyMatchesComponent {
   error: string | null = null;
 
   selectedLeagueId: string | null = null;
-  /** Latest leagues list (from leaguesWithNames$) so we can apply query param when it changes. */
   private leaguesList: LeagueParticipantWithName[] = [];
   private sub = new Subscription();
   private nameMapSub = new Subscription();
   private searchRequestSub = new Subscription();
 
-  /** True when user is in the matchmaking queue for the selected league. */
   isSeekingInLeague = false;
   leavingQueue = false;
-  /** Queue count for selected league (updated in loadMatches). */
   queueCount$: Observable<number> = of(0);
 
-  /** Ensure we only run init once (effect can run multiple times). */
   private authInitDone = false;
 
-  // Report dialog state
+  // Report dialog
   reportDialogOpen = false;
   dialogMatch: LeagueMatch | null = null;
   dialogWinnerUid: string | null = null;
   dialogScore = '';
   dialogNameMap: Record<string, string> = {};
 
-  /** Loading states to prevent double-clicks and show feedback */
+  // Cancel confirmation
+  cancelDialogOpen = false;
+  cancelDialogMatch: LeagueMatch | null = null;
+  cancellingMatchId: string | null = null;
+
   acceptingMatchId: string | null = null;
   decliningMatchId: string | null = null;
   confirmingMatchId: string | null = null;
   submittingReport = false;
-  /** Message for the action overlay (Accepting match... / Declining... / Confirming...) */
   actionOverlayMessage: string | null = null;
 
-  /** Availability grid: next 10 days (YYYY-MM-DD). */
-  readonly PERIODS: { id: PeriodLabel; label: string }[] = [
-    { id: 'morning', label: 'Morning' },
-    { id: 'afternoon', label: 'Afternoon' },
-    { id: 'evening', label: 'Evening' }
-  ];
-  /** Time options per period for exact-time dropdown. */
-  readonly TIME_OPTIONS: Record<PeriodLabel, string[]> = {
-    morning: ['8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM'],
-    afternoon: ['12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM'],
-    evening: ['5:00 PM', '6:00 PM', '7:00 PM', '8:00 PM']
-  };
-  /** When user is editing availability, we store their selection here until Save. */
-  availabilityDraft: { matchId: string; slots: AvailabilitySlot[] } | null = null;
-  savingAvailabilityMatchId: string | null = null;
-  confirmingSlotMatchId: string | null = null;
-  settingTimeMatchId: string | null = null;
-
   constructor() {
-    // When auth is ready (after reload or on first load), init once
     effect(() => {
       if (this.authInitDone) return;
       if (!this.authService.isAuthReady()) return;
@@ -106,7 +86,6 @@ export class MyMatchesComponent {
   ngOnInit() {}
 
   private initWithUser(uid: string) {
-    // Step 1 — list leagues and enrich with names
     this.userLeagues$ = this.ls.listUserLeagues(uid);
     this.leaguesWithNames$ = this.userLeagues$.pipe(
       switchMap(participants => {
@@ -124,7 +103,6 @@ export class MyMatchesComponent {
       })
     );
 
-    // Step 2 — subscribe to leagues (use leaguesWithNames$ for same leagueIds)
     this.sub.add(
       this.leaguesWithNames$.subscribe({
         next: (leagues) => {
@@ -133,19 +111,13 @@ export class MyMatchesComponent {
             this.loading = false;
             return;
           }
-
           this.leaguesList = leagues;
-
-          // Prefer league from query (e.g. from home page "Go to My Matches" alert or league detail)
           const leagueFromQuery = this.route.snapshot.queryParamMap.get('league');
           const preferredLeagueId = leagueFromQuery && leagues.some(l => l.leagueId === leagueFromQuery)
             ? leagueFromQuery
             : leagues[0].leagueId;
           this.selectedLeagueId = preferredLeagueId;
-
-          // Step 3 — load matches
           this.loadMatches(this.selectedLeagueId!);
-
           this.loading = false;
         },
         error: (err) => {
@@ -156,7 +128,6 @@ export class MyMatchesComponent {
       })
     );
 
-    // React to query param changes (e.g. user clicks "Go to My Matches" from home alert or league detail with ?league=)
     this.sub.add(
       this.route.queryParams.subscribe(params => {
         const league = params['league'];
@@ -170,14 +141,10 @@ export class MyMatchesComponent {
     );
   }
 
-  // -------------------------------------
-  //         LOAD MATCHES FOR LEAGUE
-  // -------------------------------------
   loadMatches(leagueId: string) {
     const uid = this.auth.currentUser?.uid ?? this.authService.profile()?.uid;
     if (!uid) return;
 
-    this.opponentContactCache.clear();
     this.matches$ = this.ls.listUserMatches(leagueId, uid);
     this.participants$ = this.ls.listParticipants(leagueId);
     this.matchesWithNames$ = combineLatest([this.matches$, this.participants$]).pipe(
@@ -198,13 +165,9 @@ export class MyMatchesComponent {
     );
   }
 
-  // -------------------------------------
-  //          LEAGUE CHANGE EVENT
-  // -------------------------------------
   onLeagueChange() {
     if (!this.selectedLeagueId) return;
     this.loadMatches(this.selectedLeagueId);
-    // Keep URL in sync so refresh or shared link shows this league
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: { league: this.selectedLeagueId },
@@ -212,55 +175,16 @@ export class MyMatchesComponent {
     });
   }
 
-  /** True if current user has a match in the list waiting for opponent to accept (user is playerA). */
   hasPendingAcceptanceMatch(matches: LeagueMatch[]): boolean {
     const uid = this.auth.currentUser?.uid;
     if (!uid || !matches?.length) return false;
     return matches.some(m => m.status === 'pending_acceptance' && m.playerA === uid);
   }
 
-  /** Opponent UID for a match (the other player). */
   getOpponentUid(match: LeagueMatch): string | null {
     const uid = this.auth.currentUser?.uid;
     if (!uid) return null;
     return match.playerA === uid ? match.playerB ?? null : match.playerA;
-  }
-
-  private opponentContactCache = new Map<string, Observable<SharedContactDisplay | null>>();
-
-  /** Shared contact for the opponent on this match (only visible when they've opted in). Cached per match id. */
-  getOpponentContact(match: LeagueMatch): Observable<SharedContactDisplay | null> {
-    const id = match.id;
-    if (!id) return of(null);
-    if (this.opponentContactCache.has(id)) return this.opponentContactCache.get(id)!;
-    const uid = this.auth.currentUser?.uid;
-    const opp = this.getOpponentUid(match);
-    if (!uid || !opp) return of(null);
-    const obs = this.ls.getSharedContactForUser(opp, { match, viewerUid: uid });
-    this.opponentContactCache.set(id, obs);
-    return obs;
-  }
-
-  /** True if current user has already shared their contact for this match. */
-  hasSharedMyContact(match: LeagueMatch): boolean {
-    const uid = this.auth.currentUser?.uid;
-    if (!uid) return false;
-    return !!((match.playerA === uid && match.sharedContactByPlayerA) || (match.playerB === uid && match.sharedContactByPlayerB));
-  }
-
-  sharingContactMatchId: string | null = null;
-
-  async shareMyContactWithOpponent(match: LeagueMatch) {
-    if (!match.id) return;
-    const uid = this.auth.currentUser?.uid;
-    if (!uid) return;
-    this.sharingContactMatchId = match.id;
-    try {
-      const isPlayerA = match.playerA === uid;
-      await this.ls.setMatchSharedContact(match.id, isPlayerA);
-    } finally {
-      this.sharingContactMatchId = null;
-    }
   }
 
   async leaveQueue() {
@@ -276,9 +200,45 @@ export class MyMatchesComponent {
     }
   }
 
-  // -------------------------------------
-  //               REPORTING
-  // -------------------------------------
+  // ---- Stepper logic ----
+
+  getMatchStep(match: LeagueMatch): number {
+    switch (match.status) {
+      case 'pending': return 1;
+      case 'reported':
+      case 'pendingConfirm': return 3;
+      case 'completed': return 4;
+      default: return 0;
+    }
+  }
+
+  getDaysLeft(match: LeagueMatch): number | null {
+    const deadline = match.matchDeadline;
+    if (!deadline) return null;
+    const deadlineMs = typeof deadline?.toMillis === 'function' ? deadline.toMillis()
+      : typeof deadline === 'number' ? deadline
+      : null;
+    if (deadlineMs == null) return null;
+    const diff = deadlineMs - Date.now();
+    return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+  }
+
+  getInactivityDays(match: LeagueMatch): number {
+    const lastActivity = match.lastActivityAt ?? match.acceptedAt ?? match.createdAt;
+    if (!lastActivity) return 0;
+    const ms = typeof lastActivity?.toMillis === 'function' ? lastActivity.toMillis()
+      : typeof lastActivity === 'number' ? lastActivity
+      : 0;
+    if (!ms) return 0;
+    return Math.floor((Date.now() - ms) / (1000 * 60 * 60 * 24));
+  }
+
+  shouldShowNudge(match: LeagueMatch): boolean {
+    return match.status === 'pending' && this.getInactivityDays(match) >= 3;
+  }
+
+  // ---- Reporting ----
+
   openReportDialog(match: LeagueMatch) {
     this.dialogMatch = match;
     this.dialogWinnerUid = null;
@@ -315,16 +275,14 @@ export class MyMatchesComponent {
     return nameMap[uid] ?? uid;
   }
 
+  // ---- Action handlers ----
 
-  // -------------------------------------
-  //            ACTION HANDLERS
-  // -------------------------------------
   async reportScore(match: LeagueMatch, winnerUid: string, score: string) {
     const user = this.auth.currentUser;
     if (!user) return alert('Please sign in first.');
-
     try {
       await this.ls.reportMatchResult(match.id!, match.leagueId!, user.uid, winnerUid, score);
+      await this.chatService.sendSystemMessage(match.id!, `Score reported: ${score}`);
       alert('Score reported! Your opponent has 48 hours to confirm. If they don\'t respond, the score will be accepted automatically.');
     } catch (err) {
       console.error(err);
@@ -340,7 +298,6 @@ export class MyMatchesComponent {
       await this.ls.acceptMatch(match.id);
       this.acceptingMatchId = null;
       this.actionOverlayMessage = null;
-      alert('Match accepted! Coordinate with your opponent and play.');
     } catch (err) {
       console.error(err);
       this.acceptingMatchId = null;
@@ -357,7 +314,6 @@ export class MyMatchesComponent {
       await this.ls.declineMatch(match.id);
       this.decliningMatchId = null;
       this.actionOverlayMessage = null;
-      alert('Match declined.');
     } catch (err) {
       console.error(err);
       this.decliningMatchId = null;
@@ -365,6 +321,37 @@ export class MyMatchesComponent {
       alert('Failed to decline match.');
     }
   }
+
+  // ---- Cancel match ----
+
+  openCancelDialog(match: LeagueMatch) {
+    this.cancelDialogMatch = match;
+    this.cancelDialogOpen = true;
+  }
+
+  closeCancelDialog() {
+    this.cancelDialogOpen = false;
+    this.cancelDialogMatch = null;
+  }
+
+  async confirmCancelMatch() {
+    if (!this.cancelDialogMatch?.id) return;
+    this.cancellingMatchId = this.cancelDialogMatch.id;
+    this.actionOverlayMessage = 'Cancelling match…';
+    this.closeCancelDialog();
+    try {
+      await this.ls.cancelMatch(this.cancelDialogMatch.id);
+      this.cancellingMatchId = null;
+      this.actionOverlayMessage = null;
+    } catch (err) {
+      console.error(err);
+      this.cancellingMatchId = null;
+      this.actionOverlayMessage = null;
+      alert('Failed to cancel match.');
+    }
+  }
+
+  // ---- Confirm result ----
 
   async confirmResult(match: LeagueMatch) {
     const user = this.auth.currentUser;
@@ -376,7 +363,6 @@ export class MyMatchesComponent {
       await this.ls.confirmMatchResult(match.id!, user.uid);
       this.confirmingMatchId = null;
       this.actionOverlayMessage = null;
-      alert('Result confirmed!');
     } catch (err) {
       console.error(err);
       this.confirmingMatchId = null;
@@ -385,32 +371,13 @@ export class MyMatchesComponent {
     }
   }
 
-  // -------------------------------------
-  //        TEMPLATE HELPERS
-  // -------------------------------------
-  getStatusClass(match: LeagueMatch): string {
-    switch (match.status) {
-      case 'pending_acceptance':
-        return 'status-invite';
-      case 'pending':
-        return 'status-waiting';
-      case 'reported':
-      case 'pendingConfirm':
-        return 'status-report';
-      case 'completed':
-        return 'status-final';
-      case 'cancelled':
-        return 'status-cancelled';
-      default:
-        return 'status-waiting';
-    }
-  }
+  // ---- Template helpers ----
 
   getMatchStatus(match: LeagueMatch): string {
     switch (match.status) {
       case 'pending_acceptance':
         if (!this.hasAccepted(match)) return 'Accept or decline';
-        if (!this.opponentHasAccepted(match)) return 'Waiting for opponent to accept';
+        if (!this.opponentHasAccepted(match)) return 'Waiting for opponent';
         return 'Pending';
       case 'pending':
         return 'Ready to play';
@@ -426,170 +393,32 @@ export class MyMatchesComponent {
     }
   }
 
-  /** True if the given user has accepted this pending_acceptance match. */
   hasAccepted(match: LeagueMatch, uid?: string): boolean {
     const id = uid ?? this.auth.currentUser?.uid;
     if (!id || !match.acceptances) return false;
     return match.acceptances[id] === true;
   }
 
-  /** True if the other player has accepted (for pending_acceptance). */
   opponentHasAccepted(match: LeagueMatch): boolean {
     const opp = this.getOpponentUid(match);
     return opp ? this.hasAccepted(match, opp) : false;
   }
 
-  /** True when match is pending_acceptance, current user has accepted, and we're waiting for the other player. */
   waitingForOpponentToAccept(match: LeagueMatch): boolean {
     return match.status === 'pending_acceptance' && this.hasAccepted(match) && !this.opponentHasAccepted(match);
   }
 
-  /** Short hint for reported matches: confirm within 48h. */
   getConfirmHint(match: LeagueMatch): string | null {
     if (match.status !== 'reported' && match.status !== 'pendingConfirm') return null;
     return 'Confirm or contest within 48 hours, or the reported score will stand.';
   }
 
-  /** For pending_acceptance: "Accept by 3:42 PM (8 min left)" or "Offer expired". */
-  getAcceptDeadlineText(match: LeagueMatch): string | null {
-    if (match.status !== 'pending_acceptance' || !match.createdAt) return null;
-    const createdMs = this.getCreatedAtMs(match);
-    if (createdMs == null) return null;
-    const deadlineMs = createdMs + ACCEPT_DEADLINE_MINUTES * 60 * 1000;
-    const now = Date.now();
-    if (now >= deadlineMs) return 'Offer expired — you can decline and search again.';
-    const deadlineDate = new Date(deadlineMs);
-    const timeStr = deadlineDate.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-    const minLeft = Math.max(0, Math.ceil((deadlineMs - now) / 60000));
-    return `Accept by ${timeStr} (${minLeft} min left)`;
-  }
-
-  private getCreatedAtMs(match: LeagueMatch): number | null {
-    const v = match.createdAt;
-    if (v == null) return null;
-    if (typeof v === 'number') return v;
-    if (v && typeof (v as any).toMillis === 'function') return (v as any).toMillis();
-    if (v instanceof Date) return v.getTime();
-    return null;
-  }
-
-  // ---------- Availability grid (10 days × 3 periods) ----------
-  getAvailabilityDays(): string[] {
-    const out: string[] = [];
-    const d = new Date();
-    for (let i = 0; i < 10; i++) {
-      const x = new Date(d);
-      x.setDate(x.getDate() + i);
-      out.push(x.toISOString().slice(0, 10));
-    }
-    return out;
-  }
-
-  getMyAvailability(match: LeagueMatch): AvailabilitySlot[] {
-    const uid = this.auth.currentUser?.uid;
-    if (!uid) return [];
-    if (this.availabilityDraft?.matchId === match.id) return this.availabilityDraft!.slots;
-    const arr = match.playerA === uid ? (match.availabilityA ?? []) : (match.availabilityB ?? []);
-    return [...arr];
-  }
-
-  getOpponentAvailability(match: LeagueMatch): AvailabilitySlot[] {
-    const uid = this.auth.currentUser?.uid;
-    if (!uid) return [];
-    return match.playerA === uid ? (match.availabilityB ?? []) : (match.availabilityA ?? []);
-  }
-
-  isSlotInList(slots: AvailabilitySlot[], date: string, period: PeriodLabel): boolean {
-    return slots.some(s => s.date === date && s.period === period);
-  }
-
-  getOverlappingSlots(match: LeagueMatch): AvailabilitySlot[] {
-    const mine = this.getMyAvailability(match);
-    const opp = this.getOpponentAvailability(match);
-    return mine.filter(m => opp.some(o => o.date === m.date && o.period === m.period));
-  }
-
-  startEditingAvailability(match: LeagueMatch) {
-    this.availabilityDraft = { matchId: match.id!, slots: this.getMyAvailability(match) };
-  }
-
-  cancelEditingAvailability() {
-    this.availabilityDraft = null;
-  }
-
-  toggleAvailabilitySlot(match: LeagueMatch, date: string, period: PeriodLabel) {
-    if (this.availabilityDraft?.matchId !== match.id) {
-      this.availabilityDraft = { matchId: match.id!, slots: this.getMyAvailability(match) };
-    }
-    const d = this.availabilityDraft!;
-    const idx = d.slots.findIndex(s => s.date === date && s.period === period);
-    if (idx >= 0) d.slots.splice(idx, 1);
-    else d.slots.push({ date, period });
-    d.slots.sort((a, b) => a.date.localeCompare(b.date) || a.period.localeCompare(b.period));
-  }
-
-  async saveMyAvailability(match: LeagueMatch) {
-    if (!match.id) return;
-    const uid = this.auth.currentUser?.uid;
-    if (!uid) return;
-    const isPlayerA = match.playerA === uid;
-    const slots = this.availabilityDraft?.matchId === match.id ? this.availabilityDraft.slots : this.getMyAvailability(match);
-    this.savingAvailabilityMatchId = match.id;
-    try {
-      await this.ls.setMatchAvailability(match.id, isPlayerA, slots);
-      this.availabilityDraft = null;
-    } catch (e) {
-      console.error(e);
-      alert('Failed to save availability.');
-    } finally {
-      this.savingAvailabilityMatchId = null;
-    }
-  }
-
-  async confirmSlot(match: LeagueMatch, date: string, period: PeriodLabel) {
-    if (!match.id) return;
-    this.confirmingSlotMatchId = match.id;
-    try {
-      await this.ls.setAgreedSlot(match.id, { date, period });
-    } catch (e) {
-      console.error(e);
-      alert('Failed to confirm slot.');
-    } finally {
-      this.confirmingSlotMatchId = null;
-    }
-  }
-
-  async setAgreedTime(match: LeagueMatch, time: string) {
-    if (!match.id || !match.agreedSlot) return;
-    this.settingTimeMatchId = match.id;
-    try {
-      await this.ls.setAgreedSlot(match.id, { ...match.agreedSlot, time });
-    } catch (e) {
-      console.error(e);
-      alert('Failed to set time.');
-    } finally {
-      this.settingTimeMatchId = null;
-    }
-  }
-
-  formatDayLabel(dateStr: string): string {
-    const d = new Date(dateStr + 'T12:00:00');
-    return d.toLocaleDateString(undefined, { weekday: 'short', month: 'numeric', day: 'numeric' });
-  }
-
-  /** Show Accept/Decline when either player and they haven't accepted yet. */
   shouldShowAccept(match: LeagueMatch): boolean {
     const uid = this.auth.currentUser?.uid;
     if (!uid) return false;
     if (match.status !== 'pending_acceptance') return false;
     if (match.playerA !== uid && match.playerB !== uid) return false;
     return !this.hasAccepted(match);
-  }
-
-  shouldShowDecline(match: LeagueMatch): boolean {
-    const uid = this.auth.currentUser?.uid;
-    if (!uid) return false;
-    return match.status === 'pending_acceptance' && (match.playerA === uid || match.playerB === uid);
   }
 
   shouldShowReport(match: LeagueMatch): boolean {
@@ -601,7 +430,6 @@ export class MyMatchesComponent {
   shouldShowConfirm(match: LeagueMatch): boolean {
     const uid = this.auth.currentUser?.uid;
     if (!uid) return false;
-    // Opponent reported; you need to attest/confirm
     if (match.status !== 'reported') return false;
     return match.confirmations?.[uid] !== true;
   }

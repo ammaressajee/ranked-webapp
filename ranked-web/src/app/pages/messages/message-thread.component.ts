@@ -42,8 +42,15 @@ export class MessageThreadComponent implements OnInit, OnDestroy {
   reportDialogOpen = false;
   dialogWinnerUid: string | null = null;
   dialogScore = '';
+  dialogScoreTouched = false;
   submittingReport = false;
+  submitSuccess = false;
   confirming = false;
+
+  // Toast
+  toastMessage: string | null = null;
+  toastType: 'success' | 'error' = 'success';
+  private toastTimer: any = null;
 
   allMessages: MatchMessage[] = [];
   olderMessages: MatchMessage[] = [];
@@ -67,7 +74,7 @@ export class MessageThreadComponent implements OnInit, OnDestroy {
       'When works for you?',
       'How about tomorrow?',
       'Where should we play?',
-      'I reported the score'
+      'I submitted the score'
     ];
   }
 
@@ -251,11 +258,14 @@ export class MessageThreadComponent implements OnInit, OnDestroy {
   openReportDialog() {
     this.dialogWinnerUid = null;
     this.dialogScore = '';
+    this.dialogScoreTouched = false;
     this.reportDialogOpen = true;
   }
 
   closeReportDialog() {
     this.reportDialogOpen = false;
+    this.submittingReport = false;
+    this.submitSuccess = false;
   }
 
   async confirmResult() {
@@ -275,13 +285,14 @@ export class MessageThreadComponent implements OnInit, OnDestroy {
   }
 
   async submitReport() {
+    this.dialogScoreTouched = true;
     if (!this.match?.id || !this.match?.leagueId || !this.dialogWinnerUid || !this.dialogScore.trim()) {
-      alert('Please fill out all fields.');
+      this.showToast('Please select a winner and enter the score.', 'error');
       return;
     }
     const user = this.auth.currentUser;
     if (!user) {
-      alert('Please sign in first.');
+      this.showToast('Please sign in first.', 'error');
       return;
     }
     this.submittingReport = true;
@@ -293,15 +304,19 @@ export class MessageThreadComponent implements OnInit, OnDestroy {
         this.dialogWinnerUid,
         this.dialogScore.trim()
       );
-      await this.chatService.sendSystemMessage(this.match.id, `Score reported: ${this.dialogScore.trim()}`);
-      this.closeReportDialog();
-      this.match = { ...this.match, status: 'reported' };
-      alert('Score reported! Your opponent has 48 hours to confirm. If they don\'t respond, the score will be accepted automatically.');
+      await this.chatService.sendSystemMessage(this.match.id, `Score submitted: ${this.dialogScore.trim()}`);
+      this.submitSuccess = true;
+      const matchRef = this.match;
+      setTimeout(() => {
+        this.submitSuccess = false;
+        this.closeReportDialog();
+        this.match = { ...matchRef!, status: 'reported' };
+        this.showToast('Score submitted! Your opponent has 48 hours to confirm.');
+      }, 1200);
     } catch (err) {
       console.error(err);
-      alert('Failed to report score.');
-    } finally {
       this.submittingReport = false;
+      this.showToast('Failed to submit score. Please try again.', 'error');
     }
   }
 
@@ -343,7 +358,25 @@ export class MessageThreadComponent implements OnInit, OnDestroy {
     if (el) el.scrollTop = el.scrollHeight;
   }
 
+  showToast(message: string, type: 'success' | 'error' = 'success') {
+    if (this.toastTimer) clearTimeout(this.toastTimer);
+    this.toastMessage = message;
+    this.toastType = type;
+    this.toastTimer = setTimeout(() => this.dismissToast(), 5000);
+  }
+
+  dismissToast() {
+    this.toastMessage = null;
+    if (this.toastTimer) { clearTimeout(this.toastTimer); this.toastTimer = null; }
+  }
+
+  isScoreFormatValid(score: string): boolean {
+    if (!score.trim()) return true;
+    return /^\d{1,3}\s*[-–]\s*\d{1,3}(\s*,\s*\d{1,3}\s*[-–]\s*\d{1,3})*$/.test(score.trim());
+  }
+
   ngOnDestroy() {
     this.sub.unsubscribe();
+    if (this.toastTimer) clearTimeout(this.toastTimer);
   }
 }

@@ -28,7 +28,7 @@
 
     <div class="page-header">
       <h2 class="section-title">My Matches</h2>
-      <p class="page-intro">View and manage your matches. Message opponents, report scores, and track your progress.</p>
+      <p class="page-intro">View and manage your matches. Message opponents, submit scores, and track your progress.</p>
     </div>
 
     <!-- Status: searching -->
@@ -139,7 +139,7 @@
           <div class="step-line"></div>
           <div class="step" [class.active]="getMatchStep(m) === 3" [class.done]="getMatchStep(m) > 3">
             <div class="step-number">3</div>
-            <div class="step-label">Report</div>
+            <div class="step-label">Score</div>
           </div>
           <div class="step-line"></div>
           <div class="step" [class.active]="getMatchStep(m) === 4" [class.done]="getMatchStep(m) > 4">
@@ -150,7 +150,7 @@
 
         <!-- Step guidance -->
         <div class="step-guidance">
-          <p class="guidance-text">Message your opponent to pick a time and place to play. After you play, come back here to report the score.</p>
+          <p class="guidance-text">Message your opponent to pick a time and place to play. After you play, come back here to submit the score.</p>
         </div>
 
         <!-- Chat -->
@@ -163,7 +163,7 @@
         <!-- Actions: Report + Cancel -->
         <div class="match-actions pending-match-actions">
           <button *ngIf="shouldShowReport(m)" class="btn report-btn" (click)="openReportDialog(m)">
-            Report Score
+            Submit Score
           </button>
           <button class="btn cancel-match-btn" (click)="openCancelDialog(m)">
             Cancel Match
@@ -182,7 +182,7 @@
           <div class="step-line"></div>
           <div class="step done"><div class="step-number">2</div><div class="step-label">Play</div></div>
           <div class="step-line"></div>
-          <div class="step done"><div class="step-number">3</div><div class="step-label">Report</div></div>
+          <div class="step done"><div class="step-number">3</div><div class="step-label">Score</div></div>
           <div class="step-line"></div>
           <div class="step active"><div class="step-number">4</div><div class="step-label">Confirm</div></div>
         </div>
@@ -190,7 +190,7 @@
         <div *ngIf="shouldShowConfirm(m)" class="confirm-block">
           <p class="guidance-text">{{ getConfirmHint(m) }}</p>
           <button class="btn confirm-btn" (click)="confirmResult(m)" [disabled]="confirmingMatchId !== null">
-            {{ confirmingMatchId === m.id ? 'Confirming…' : 'Confirm Result' }}
+            {{ confirmingMatchId === m.id ? 'Confirming…' : 'Looks Good' }}
           </button>
         </div>
 
@@ -208,7 +208,7 @@
           <div class="step-line"></div>
           <div class="step done"><div class="step-number">2</div><div class="step-label">Play</div></div>
           <div class="step-line"></div>
-          <div class="step done"><div class="step-number">3</div><div class="step-label">Report</div></div>
+          <div class="step done"><div class="step-number">3</div><div class="step-label">Score</div></div>
           <div class="step-line"></div>
           <div class="step done"><div class="step-number">4</div><div class="step-label">Confirm</div></div>
         </div>
@@ -239,30 +239,60 @@
   <div class="loading">Loading your matches...</div>
 </ng-template>
 
-<!-- REPORT SCORE MODAL -->
-<div class="modal-backdrop" *ngIf="reportDialogOpen">
-  <div class="modal">
-    <h3>Report Score</h3>
+<!-- SUBMIT SCORE MODAL -->
+<div class="modal-backdrop" *ngIf="reportDialogOpen" (click)="closeReportDialog()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <h3>
+      <span class="modal-title-icon material-symbols-outlined">emoji_events</span>
+      Submit Score
+    </h3>
 
     <p class="modal-label">Who won?</p>
-    <select [(ngModel)]="dialogWinnerUid">
-      <option [value]="dialogMatch?.playerA">{{ isUser(dialogMatch?.playerA) ? 'You' : displayName(dialogMatch?.playerA, dialogNameMap) }}</option>
-      <option [value]="dialogMatch?.playerB">{{ isUser(dialogMatch?.playerB) ? 'You' : displayName(dialogMatch?.playerB, dialogNameMap) }}</option>
-    </select>
+    <div class="winner-cards">
+      <button
+        type="button"
+        class="winner-card"
+        [class.selected]="dialogWinnerUid === dialogMatch?.playerA"
+        (click)="dialogWinnerUid = dialogMatch?.playerA ?? null"
+      >
+        <span class="winner-card-indicator"></span>
+        <span class="winner-card-icon material-symbols-outlined">person</span>
+        <span class="winner-card-name">{{ isUser(dialogMatch?.playerA) ? 'You' : displayName(dialogMatch?.playerA, dialogNameMap) }}</span>
+      </button>
+      <button
+        type="button"
+        class="winner-card"
+        [class.selected]="dialogWinnerUid === dialogMatch?.playerB"
+        (click)="dialogWinnerUid = dialogMatch?.playerB ?? null"
+      >
+        <span class="winner-card-indicator"></span>
+        <span class="winner-card-icon material-symbols-outlined">person</span>
+        <span class="winner-card-name">{{ isUser(dialogMatch?.playerB) ? 'You' : displayName(dialogMatch?.playerB, dialogNameMap) }}</span>
+      </button>
+    </div>
 
-    <p class="modal-label">Enter score:</p>
+    <p class="modal-label">Final score</p>
     <input
       type="text"
       class="score-input"
+      [class.invalid]="dialogScoreTouched && dialogScore && !isScoreFormatValid(dialogScore)"
       [(ngModel)]="dialogScore"
+      (blur)="dialogScoreTouched = true"
       placeholder="e.g., 21-17"
     />
+    <span class="score-hint">Format: 21-17 or 11-9, 8-11, 11-7</span>
 
-    <div class="modal-actions">
+    <div class="modal-actions" *ngIf="!submitSuccess">
       <button class="btn cancel" (click)="closeReportDialog()" [disabled]="submittingReport">Cancel</button>
-      <button class="btn submit" (click)="submitReport()" [disabled]="submittingReport">
+      <button class="btn submit" (click)="submitReport()" [disabled]="submittingReport || !dialogWinnerUid || !dialogScore.trim()">
         {{ submittingReport ? 'Submitting…' : 'Submit' }}
       </button>
+    </div>
+
+    <!-- Success state -->
+    <div class="modal-success" *ngIf="submitSuccess">
+      <span class="success-check material-symbols-outlined">check_circle</span>
+      <span class="success-text">Score submitted!</span>
     </div>
   </div>
 </div>
@@ -285,4 +315,13 @@
     <div class="action-spinner" aria-hidden="true"></div>
     <p class="action-message">{{ actionOverlayMessage }}</p>
   </div>
+</div>
+
+<!-- Toast notification -->
+<div class="toast" *ngIf="toastMessage" [class.success]="toastType === 'success'" [class.error]="toastType === 'error'" (click)="dismissToast()">
+  <span class="toast-icon material-symbols-outlined">{{ toastType === 'success' ? 'check_circle' : 'error' }}</span>
+  <span class="toast-text">{{ toastMessage }}</span>
+  <button class="toast-close" (click)="dismissToast()" aria-label="Dismiss">
+    <span class="material-symbols-outlined">close</span>
+  </button>
 </div>

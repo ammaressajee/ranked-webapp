@@ -17,7 +17,7 @@
             <input #winner placeholder="UID of winner" />
             <label>Score:</label>
             <input #score placeholder="e.g. 11-8, 9-11, 11-9" />
-            <button (click)="reportScore(m, winner.value, score.value)">Report Result</button>
+            <button (click)="reportScore(m, winner.value, score.value)">Submit Result</button>
         </div>
 
         <div *ngIf="m.status === 'reported' && !m.confirmations?.[auth.currentUser?.uid || '']">

@@ -1,5 +1,6 @@
 import { Component, effect, inject } from '@angular/core';
-import { combineLatest, map, Observable, of, Subscription, switchMap } from 'rxjs';
+import { BehaviorSubject, combineLatest, map, Observable, of, Subscription, switchMap } from 'rxjs';
+import { filter, shareReplay } from 'rxjs/operators';
 import { LeagueService } from '../../services/league.service';
 import { ChatService } from '../../services/chat.service';
 import { Auth } from '@angular/fire/auth';
@@ -31,14 +32,13 @@ export class MyMatchesComponent {
 
   userLeagues$!: Observable<LeagueParticipant[]>;
   leaguesWithNames$!: Observable<LeagueParticipantWithName[]>;
-  matches$!: Observable<LeagueMatch[]>;
-  participants$!: Observable<LeagueParticipant[]>;
   matchesWithNames$!: Observable<{ matches: LeagueMatch[]; nameMap: Record<string, string> }>;
 
   loading = true;
   error: string | null = null;
 
   selectedLeagueId: string | null = null;
+  private selectedLeagueId$ = new BehaviorSubject<string | null>(null);
   private leaguesList: LeagueParticipantWithName[] = [];
   private sub = new Subscription();
   private nameMapSub = new Subscription();
@@ -50,12 +50,13 @@ export class MyMatchesComponent {
 
   private authInitDone = false;
 
-  // Report dialog
+  // Score dialog
   reportDialogOpen = false;
   dialogMatch: LeagueMatch | null = null;
   dialogWinnerUid: string | null = null;
   dialogScore = '';
   dialogNameMap: Record<string, string> = {};
+  submitSuccess = false;
 
   // Cancel confirmation
   cancelDialogOpen = false;
@@ -67,6 +68,14 @@ export class MyMatchesComponent {
   confirmingMatchId: string | null = null;
   submittingReport = false;
   actionOverlayMessage: string | null = null;
+
+  // Toast
+  toastMessage: string | null = null;
+  toastType: 'success' | 'error' = 'success';
+  private toastTimer: any = null;
+
+  // Score validation
+  dialogScoreTouched = false;
 
   constructor() {
     effect(() => {
@@ -102,6 +111,26 @@ export class MyMatchesComponent {
         );
       })
     );
+
+    // Reactive pipeline: keep previous matches visible when switching leagues (prevents flicker)
+    this.matchesWithNames$ = this.selectedLeagueId$.pipe(
+      filter((id): id is string => !!id),
+      switchMap(leagueId =>
+        combineLatest([
+          this.ls.listUserMatches(leagueId, uid),
+          this.ls.listParticipants(leagueId)
+        ]).pipe(
+          map(([matches, participants]) => {
+            const nameMap: Record<string, string> = {};
+            for (const p of participants) nameMap[p.userId] = p.displayName || 'Unknown';
+            return { matches, nameMap };
+          })
+        )
+      ),
+      shareReplay(1)
+    );
+
+    this.nameMapSub = this.matchesWithNames$.subscribe(vm => { this.dialogNameMap = vm.nameMap; });
 
     this.sub.add(
       this.leaguesWithNames$.subscribe({
@@ -145,17 +174,7 @@ export class MyMatchesComponent {
     const uid = this.auth.currentUser?.uid ?? this.authService.profile()?.uid;
     if (!uid) return;
 
-    this.matches$ = this.ls.listUserMatches(leagueId, uid);
-    this.participants$ = this.ls.listParticipants(leagueId);
-    this.matchesWithNames$ = combineLatest([this.matches$, this.participants$]).pipe(
-      map(([matches, participants]) => {
-        const nameMap: Record<string, string> = {};
-        for (const p of participants) nameMap[p.userId] = p.displayName || 'Unknown';
-        return { matches, nameMap };
-      })
-    );
-    this.nameMapSub.unsubscribe();
-    this.nameMapSub = this.matchesWithNames$.subscribe(vm => { this.dialogNameMap = vm.nameMap; });
+    this.selectedLeagueId$.next(leagueId);
 
     this.searchRequestSub.unsubscribe();
     this.isSeekingInLeague = false;
@@ -247,23 +266,31 @@ export class MyMatchesComponent {
     this.dialogMatch = match;
     this.dialogWinnerUid = null;
     this.dialogScore = '';
+    this.dialogScoreTouched = false;
     this.reportDialogOpen = true;
   }
 
   closeReportDialog() {
     this.reportDialogOpen = false;
+    this.submittingReport = false;
+    this.submitSuccess = false;
   }
 
   async submitReport() {
+    this.dialogScoreTouched = true;
     if (!this.dialogMatch || !this.dialogWinnerUid || !this.dialogScore) {
-      alert('Please fill out all fields.');
+      this.showToast('Please select a winner and enter the score.', 'error');
       return;
     }
     this.submittingReport = true;
     try {
       await this.reportScore(this.dialogMatch, this.dialogWinnerUid, this.dialogScore);
-      this.closeReportDialog();
-    } finally {
+      this.submitSuccess = true;
+      setTimeout(() => {
+        this.submitSuccess = false;
+        this.closeReportDialog();
+      }, 1200);
+    } catch {
       this.submittingReport = false;
     }
   }
@@ -283,14 +310,14 @@ export class MyMatchesComponent {
 
   async reportScore(match: LeagueMatch, winnerUid: string, score: string) {
     const user = this.auth.currentUser;
-    if (!user) return alert('Please sign in first.');
+    if (!user) { this.showToast('Please sign in first.', 'error'); return; }
     try {
       await this.ls.reportMatchResult(match.id!, match.leagueId!, user.uid, winnerUid, score);
-      await this.chatService.sendSystemMessage(match.id!, `Score reported: ${score}`);
-      alert('Score reported! Your opponent has 48 hours to confirm. If they don\'t respond, the score will be accepted automatically.');
+      await this.chatService.sendSystemMessage(match.id!, `Score submitted: ${score}`);
+      this.showToast('Score submitted! Your opponent has 48 hours to confirm.');
     } catch (err) {
       console.error(err);
-      alert('Failed to report score.');
+      this.showToast('Failed to submit score. Please try again.', 'error');
     }
   }
 
@@ -306,7 +333,7 @@ export class MyMatchesComponent {
       console.error(err);
       this.acceptingMatchId = null;
       this.actionOverlayMessage = null;
-      alert('Failed to accept match.');
+      this.showToast('Failed to accept match.', 'error');
     }
   }
 
@@ -322,7 +349,7 @@ export class MyMatchesComponent {
       console.error(err);
       this.decliningMatchId = null;
       this.actionOverlayMessage = null;
-      alert('Failed to decline match.');
+      this.showToast('Failed to decline match.', 'error');
     }
   }
 
@@ -351,7 +378,7 @@ export class MyMatchesComponent {
       console.error(err);
       this.cancellingMatchId = null;
       this.actionOverlayMessage = null;
-      alert('Failed to cancel match.');
+      this.showToast('Failed to cancel match.', 'error');
     }
   }
 
@@ -359,7 +386,7 @@ export class MyMatchesComponent {
 
   async confirmResult(match: LeagueMatch) {
     const user = this.auth.currentUser;
-    if (!user) return alert('Please sign in first.');
+    if (!user) { this.showToast('Please sign in first.', 'error'); return; }
     if (this.confirmingMatchId) return;
     this.confirmingMatchId = match.id!;
     this.actionOverlayMessage = 'Confirming result…';
@@ -371,7 +398,7 @@ export class MyMatchesComponent {
       console.error(err);
       this.confirmingMatchId = null;
       this.actionOverlayMessage = null;
-      alert('Failed to confirm result.');
+      this.showToast('Failed to confirm result.', 'error');
     }
   }
 
@@ -414,7 +441,7 @@ export class MyMatchesComponent {
 
   getConfirmHint(match: LeagueMatch): string | null {
     if (match.status !== 'reported' && match.status !== 'pendingConfirm') return null;
-    return 'Confirm or contest within 48 hours, or the reported score will stand.';
+    return 'Your opponent submitted the score. Confirm it\'s correct within 48 hours, or it will be accepted automatically.';
   }
 
   shouldShowAccept(match: LeagueMatch): boolean {
@@ -438,9 +465,27 @@ export class MyMatchesComponent {
     return match.confirmations?.[uid] !== true;
   }
 
+  showToast(message: string, type: 'success' | 'error' = 'success') {
+    if (this.toastTimer) clearTimeout(this.toastTimer);
+    this.toastMessage = message;
+    this.toastType = type;
+    this.toastTimer = setTimeout(() => this.dismissToast(), 5000);
+  }
+
+  dismissToast() {
+    this.toastMessage = null;
+    if (this.toastTimer) { clearTimeout(this.toastTimer); this.toastTimer = null; }
+  }
+
+  isScoreFormatValid(score: string): boolean {
+    if (!score.trim()) return true;
+    return /^\d{1,3}\s*[-–]\s*\d{1,3}(\s*,\s*\d{1,3}\s*[-–]\s*\d{1,3})*$/.test(score.trim());
+  }
+
   ngOnDestroy() {
     this.sub.unsubscribe();
     this.nameMapSub.unsubscribe();
     this.searchRequestSub.unsubscribe();
+    if (this.toastTimer) clearTimeout(this.toastTimer);
   }
 }

@@ -1,38 +1,21 @@
 import { Routes } from '@angular/router';
-import { LoginComponent } from './components/login/login.component';
-import { HomeComponent } from './pages/home/home.component';
-import { LeaderboardComponent } from './components/leaderboard/leaderboard.component';
-import { PlayerProfileComponent } from './components/player-profile/player-profile.component';
-import { LeagueListComponent } from './components/league-list/league-list.component';
-import { LeagueJoinComponent } from './components/league-join/league-join.component';
-import { LeagueDetailComponent } from './components/league-detail/league-detail.component';
-import { LeagueMatchesComponent } from './components/league-matches/league-matches.component';
-import { LeagueLeaderboardComponent } from './components/league-leaderboard/league-leaderboard.component';
-import { MyMatchesComponent } from './pages/my-matches/my-matches.component';
-import { MessagesInboxComponent } from './pages/messages/messages-inbox.component';
-import { MessageThreadComponent } from './pages/messages/message-thread.component';
-import { AdminComponent } from './pages/admin/admin.component';
-import { HelpComponent } from './pages/help/help.component';
 import { adminGuard } from './guards/admin.guard';
 
 export const routes: Routes = [
-    { path: '', component: HomeComponent },
+    { path: '', loadComponent: () => import('./pages/home/home.component').then(m => m.HomeComponent) },
     { path: 'league', redirectTo: 'leagues', pathMatch: 'full' },
-    // Define a path for your login screen
-
-    { path: 'login', component: LoginComponent },
-    { path: 'leaderboard', component: LeaderboardComponent },
-    { path: 'profile/:uid', component: PlayerProfileComponent },
-    { path: 'leagues/:id/join', component: LeagueJoinComponent },
-    { path: 'leagues', component: LeagueListComponent },
-    { path: 'leagues/:id', component: LeagueDetailComponent },
-    { path: 'leagues/:id/matches', component: LeagueMatchesComponent },
-    { path: 'leagues/:id/leaderboard', component: LeagueLeaderboardComponent },
-    { path: 'my-matches', component: MyMatchesComponent },
-    { path: 'messages', component: MessagesInboxComponent },
-    { path: 'messages/:matchId', component: MessageThreadComponent },
-    { path: 'help', component: HelpComponent },
-    { path: 'admin', component: AdminComponent, canActivate: [adminGuard] },
-    // Catch-all or redirect
+    { path: 'login', loadComponent: () => import('./components/login/login.component').then(m => m.LoginComponent) },
+    { path: 'leaderboard', loadComponent: () => import('./components/leaderboard/leaderboard.component').then(m => m.LeaderboardComponent) },
+    { path: 'profile/:uid', loadComponent: () => import('./components/player-profile/player-profile.component').then(m => m.PlayerProfileComponent) },
+    { path: 'leagues/:id/join', loadComponent: () => import('./components/league-join/league-join.component').then(m => m.LeagueJoinComponent) },
+    { path: 'leagues', loadComponent: () => import('./components/league-list/league-list.component').then(m => m.LeagueListComponent) },
+    { path: 'leagues/:id', loadComponent: () => import('./components/league-detail/league-detail.component').then(m => m.LeagueDetailComponent) },
+    { path: 'leagues/:id/matches', loadComponent: () => import('./components/league-matches/league-matches.component').then(m => m.LeagueMatchesComponent) },
+    { path: 'leagues/:id/leaderboard', loadComponent: () => import('./components/league-leaderboard/league-leaderboard.component').then(m => m.LeagueLeaderboardComponent) },
+    { path: 'my-matches', loadComponent: () => import('./pages/my-matches/my-matches.component').then(m => m.MyMatchesComponent) },
+    { path: 'messages', loadComponent: () => import('./pages/messages/messages-inbox.component').then(m => m.MessagesInboxComponent) },
+    { path: 'messages/:matchId', loadComponent: () => import('./pages/messages/message-thread.component').then(m => m.MessageThreadComponent) },
+    { path: 'help', loadComponent: () => import('./pages/help/help.component').then(m => m.HelpComponent) },
+    { path: 'admin', loadComponent: () => import('./pages/admin/admin.component').then(m => m.AdminComponent), canActivate: [adminGuard] },
     { path: '**', redirectTo: '' }
 ];

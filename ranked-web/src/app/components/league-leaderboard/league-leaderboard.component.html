@@ -1,5 +1,11 @@
 <div class="leaderboard page">
-    <h2>Leaderboard</h2>
+    <div class="leaderboard-header">
+        <h2>Leaderboard</h2>
+        <button type="button" class="share-btn" (click)="shareLeague()">
+            <span class="share-btn-icon material-symbols-outlined">share</span>
+            <span class="share-btn-text">Share to socials</span>
+        </button>
+    </div>
     <table>
         <tr>
             <th>Rank</th>
@@ -20,8 +26,5 @@
             <td>{{ p.losses }}</td>
             <td>{{ p.currentRank }}</td>
         </tr>
-
     </table>
 </div>
-
-<button (click)="shareLeague()">📢 Share This League</button>

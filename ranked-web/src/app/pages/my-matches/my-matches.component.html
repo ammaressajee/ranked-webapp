@@ -54,7 +54,8 @@
       <a *ngIf="selectedLeagueId" [routerLink]="['/leagues', selectedLeagueId]" class="btn btn-empty-cta">Find a match</a>
     </div>
 
-    <div class="match-card" *ngFor="let m of vm.matches; trackBy: trackByMatchId">
+    <div class="match-card" *ngFor="let m of vm.matches; trackBy: trackByMatchId"
+         [ngClass]="{'match-won': didUserWin(m), 'match-lost': didUserLose(m)}">
 
       <!-- Match Header -->
       <div class="match-header">

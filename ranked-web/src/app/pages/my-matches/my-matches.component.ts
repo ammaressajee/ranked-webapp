@@ -314,6 +314,14 @@ export class MyMatchesComponent {
     return user.uid === uid;
   }
 
+  didUserWin(match: LeagueMatch): boolean {
+    return match.status === 'completed' && !!match.result?.winner && this.isUser(match.result.winner);
+  }
+
+  didUserLose(match: LeagueMatch): boolean {
+    return match.status === 'completed' && !!match.result?.winner && !this.isUser(match.result.winner);
+  }
+
   displayName(uid: string | null | undefined, nameMap: Record<string, string>): string {
     if (!uid) return '—';
     return nameMap[uid] ?? uid;

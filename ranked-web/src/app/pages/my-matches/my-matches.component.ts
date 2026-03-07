@@ -123,7 +123,8 @@ export class MyMatchesComponent {
           map(([matches, participants]) => {
             const nameMap: Record<string, string> = {};
             for (const p of participants) nameMap[p.userId] = p.displayName || 'Unknown';
-            return { matches, nameMap };
+            const sorted = [...(matches ?? [])].sort((a, b) => this.compareMatchOrder(a, b));
+            return { matches: sorted, nameMap };
           })
         )
       ),
@@ -208,6 +209,18 @@ export class MyMatchesComponent {
 
   trackByMatchId(_: number, m: LeagueMatch): string {
     return m.id ?? '';
+  }
+
+  /** Active matches first, then completed, then cancelled. Within each group, most recent first. */
+  private compareMatchOrder(a: LeagueMatch, b: LeagueMatch): number {
+    const priority = (m: LeagueMatch) =>
+      ['pending_acceptance', 'pending', 'reported', 'pendingConfirm', 'disputed'].includes(m.status ?? '') ? 0
+        : m.status === 'completed' ? 1 : 2;
+    const pa = priority(a);
+    const pb = priority(b);
+    if (pa !== pb) return pa - pb;
+    const ts = (m: LeagueMatch) => m.lastActivityAt?.toMillis?.() ?? m.acceptedAt?.toMillis?.() ?? m.createdAt?.toMillis?.() ?? 0;
+    return ts(b) - ts(a);
   }
 
   async leaveQueue() {

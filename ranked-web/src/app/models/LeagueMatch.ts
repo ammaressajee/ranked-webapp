@@ -41,4 +41,8 @@ export interface LeagueMatch {
   lastActivityAt?: any;
   /** 7 days after both accept; match auto-cancels if no score reported by this time. */
   matchDeadline?: any;
+
+  /** Denormalized from the latest chat message for inbox preview. */
+  lastMessageText?: string;
+  lastMessageSenderUid?: string;
 }

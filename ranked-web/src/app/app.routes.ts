@@ -9,6 +9,8 @@ import { LeagueDetailComponent } from './components/league-detail/league-detail.
 import { LeagueMatchesComponent } from './components/league-matches/league-matches.component';
 import { LeagueLeaderboardComponent } from './components/league-leaderboard/league-leaderboard.component';
 import { MyMatchesComponent } from './pages/my-matches/my-matches.component';
+import { MessagesInboxComponent } from './pages/messages/messages-inbox.component';
+import { MessageThreadComponent } from './pages/messages/message-thread.component';
 import { AdminComponent } from './pages/admin/admin.component';
 import { HelpComponent } from './pages/help/help.component';
 import { adminGuard } from './guards/admin.guard';
@@ -27,6 +29,8 @@ export const routes: Routes = [
     { path: 'leagues/:id/matches', component: LeagueMatchesComponent },
     { path: 'leagues/:id/leaderboard', component: LeagueLeaderboardComponent },
     { path: 'my-matches', component: MyMatchesComponent },
+    { path: 'messages', component: MessagesInboxComponent },
+    { path: 'messages/:matchId', component: MessageThreadComponent },
     { path: 'help', component: HelpComponent },
     { path: 'admin', component: AdminComponent, canActivate: [adminGuard] },
     // Catch-all or redirect

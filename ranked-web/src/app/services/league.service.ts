@@ -426,6 +426,49 @@ export class LeagueService {
     );
   }
 
+  /**
+   * All active matches for a user across every league (for the messages inbox / unread badge).
+   * Active = pending_acceptance | pending | reported | pendingConfirm
+   */
+  listAllActiveUserMatches(uid: string): Observable<LeagueMatch[]> {
+    const ACTIVE_STATUSES = ['pending_acceptance', 'pending', 'reported', 'pendingConfirm'];
+    const qA = query(
+      collection(this.fs, 'leagueMatches'),
+      where('playerA', '==', uid),
+      orderBy('createdAt', 'desc')
+    );
+    const qB = query(
+      collection(this.fs, 'leagueMatches'),
+      where('playerB', '==', uid),
+      orderBy('createdAt', 'desc')
+    );
+    const a$ = collectionData(qA, { idField: 'id' }) as Observable<LeagueMatch[]>;
+    const b$ = collectionData(qB, { idField: 'id' }) as Observable<LeagueMatch[]>;
+
+    return combineLatest([a$, b$]).pipe(
+      map(([a, b]) => {
+        const seen = new Set<string>();
+        const merged: LeagueMatch[] = [];
+        for (const m of [...a, ...b]) {
+          if (m?.id && !seen.has(m.id) && ACTIVE_STATUSES.includes(m.status)) {
+            seen.add(m.id);
+            merged.push(m);
+          }
+        }
+        merged.sort((x, y) => {
+          const tx = (x as any).lastActivityAt?.toMillis?.() ?? (x as any).createdAt?.toMillis?.() ?? 0;
+          const ty = (y as any).lastActivityAt?.toMillis?.() ?? (y as any).createdAt?.toMillis?.() ?? 0;
+          return ty - tx;
+        });
+        return merged;
+      })
+    );
+  }
+
+  getUserProfile$(uid: string): Observable<any> {
+    return docData(doc(this.fs, 'users', uid));
+  }
+
   // Optional helper: report & confirm in one click
   async reportAndConfirm(matchId: string, leagueId: string, winnerUid: string, userId: string) {
     await this.reportMatchResult(matchId, leagueId, userId, winnerUid);

@@ -51,6 +51,21 @@
         .nav-label {
           white-space: nowrap;
         }
+
+        .nav-badge {
+          margin-left: auto;
+          min-width: 18px;
+          height: 18px;
+          padding: 0 5px;
+          border-radius: 9px;
+          background: var(--accent);
+          color: #0f0f14;
+          font-size: 0.7rem;
+          font-weight: 700;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
       }
     }
   }

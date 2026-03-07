@@ -1,0 +1,104 @@
+<div class="thread-page">
+  <!-- Header -->
+  <div class="thread-header">
+    <a routerLink="/messages" class="back-btn" aria-label="Back to messages">
+      <span class="material-symbols-outlined">arrow_back</span>
+    </a>
+    <div class="header-info">
+      <span class="header-name">{{ opponentName }}</span>
+      <span class="header-league">{{ leagueName }}</span>
+    </div>
+    <a *ngIf="match" [routerLink]="['/my-matches']" [queryParams]="{ league: match.leagueId }" class="match-link" aria-label="View match details">
+      <span class="material-symbols-outlined">open_in_new</span>
+    </a>
+  </div>
+
+  <!-- Loading -->
+  <div class="thread-loading" *ngIf="loading">
+    <span class="loading-text">Loading…</span>
+  </div>
+
+  <!-- Status banner -->
+  <div class="status-banner" *ngIf="!loading && match">
+    <div class="status-banner pending-acceptance" *ngIf="match.status === 'pending_acceptance'">
+      <p>This match is waiting for acceptance. Accept to start coordinating!</p>
+      <div class="banner-actions">
+        <button type="button" class="btn-accept" (click)="acceptMatch()" [disabled]="accepting">
+          {{ accepting ? 'Accepting…' : 'Accept' }}
+        </button>
+        <button type="button" class="btn-decline" (click)="declineMatch()" [disabled]="declining">
+          {{ declining ? 'Declining…' : 'Decline' }}
+        </button>
+      </div>
+    </div>
+    <div class="status-banner pending" *ngIf="match.status === 'pending'">
+      <p>Coordinate with your opponent to schedule and play your match.</p>
+    </div>
+    <div class="status-banner reported" *ngIf="match.status === 'reported' || match.status === 'pendingConfirm'">
+      <p>A score has been reported. Waiting for confirmation.</p>
+    </div>
+  </div>
+
+  <!-- Messages area -->
+  <div class="message-area" *ngIf="!loading">
+    <div class="message-list" #messageList>
+      <ng-container *ngIf="messages$ | async as messages">
+        <div *ngIf="messages.length === 0" class="empty-chat">
+          <span class="empty-icon material-symbols-outlined">chat_bubble_outline</span>
+          <p *ngIf="match?.status === 'pending_acceptance'">You've been matched! Accept the match above, then send a message to start coordinating.</p>
+          <p *ngIf="match && match.status !== 'pending_acceptance'">You've been matched! Send a message to start coordinating your match with {{ opponentName }}.</p>
+          <p *ngIf="!match">No messages yet. Say hi to {{ opponentName }}!</p>
+        </div>
+
+        <div
+          *ngFor="let msg of messages; trackBy: trackByMsg"
+          class="message-row"
+          [class.mine]="isMe(msg.senderUid)"
+          [class.theirs]="!isMe(msg.senderUid) && msg.type !== 'system'"
+          [class.system]="msg.type === 'system'"
+        >
+          <div class="bubble-wrapper">
+            <span class="sender-label" *ngIf="msg.type !== 'system'">
+              {{ isMe(msg.senderUid) ? 'You' : opponentName }}
+            </span>
+            <div class="bubble">{{ msg.text }}</div>
+            <span class="msg-time" *ngIf="msg.type !== 'system'">{{ formatTime(msg.createdAt) }}</span>
+          </div>
+        </div>
+      </ng-container>
+    </div>
+  </div>
+
+  <!-- Quick actions -->
+  <div class="quick-actions" *ngIf="!loading">
+    <button
+      *ngFor="let action of quickActions"
+      type="button"
+      class="chip"
+      (click)="sendQuickAction(action)"
+      [disabled]="sending"
+    >{{ action }}</button>
+  </div>
+
+  <!-- Send error -->
+  <div class="send-error" *ngIf="sendError">
+    <span class="material-symbols-outlined">error</span>
+    {{ sendError }}
+  </div>
+
+  <!-- Input bar -->
+  <div class="input-bar" *ngIf="!loading">
+    <input
+      type="text"
+      class="msg-input"
+      [(ngModel)]="newMessage"
+      (keydown)="onKeydown($event)"
+      placeholder="Type a message…"
+      [disabled]="sending"
+      maxlength="500"
+    />
+    <button type="button" class="send-btn" (click)="send()" [disabled]="sending || !newMessage.trim()">
+      <span class="material-symbols-outlined">send</span>
+    </button>
+  </div>
+</div>

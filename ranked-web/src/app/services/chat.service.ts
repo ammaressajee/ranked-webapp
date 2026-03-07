@@ -6,6 +6,7 @@ import {
 import { Auth } from '@angular/fire/auth';
 import { map, Observable, of } from 'rxjs';
 import { MatchMessage } from '../models/MatchMessage';
+import { LeagueMatch } from '../models/LeagueMatch';
 
 @Injectable({ providedIn: 'root' })
 export class ChatService {
@@ -26,25 +27,48 @@ export class ChatService {
     const uid = this.auth.currentUser?.uid;
     if (!uid || !text.trim()) return;
 
-    await addDoc(this.messagesColl(matchId), {
-      matchId,
-      senderUid: uid,
-      text: text.trim(),
-      createdAt: serverTimestamp(),
-      type: 'text'
-    });
+    try {
+      await addDoc(this.messagesColl(matchId), {
+        matchId,
+        senderUid: uid,
+        text: text.trim(),
+        createdAt: serverTimestamp(),
+        type: 'text'
+      });
+    } catch (err) {
+      console.error(`[ChatService] addDoc to matchMessages/${matchId}/messages failed (uid=${uid}):`, err);
+      throw err;
+    }
 
-    const matchRef = doc(this.fs, 'leagueMatches', matchId);
-    await updateDoc(matchRef, { lastActivityAt: serverTimestamp() });
+    try {
+      const matchRef = doc(this.fs, 'leagueMatches', matchId);
+      await updateDoc(matchRef, {
+        lastActivityAt: serverTimestamp(),
+        lastMessageText: text.trim().slice(0, 100),
+        lastMessageSenderUid: uid
+      });
+    } catch (err) {
+      console.error(`[ChatService] updateDoc on leagueMatches/${matchId} failed (uid=${uid}):`, err);
+    }
   }
 
   async sendSystemMessage(matchId: string, text: string): Promise<void> {
+    const uid = this.auth.currentUser?.uid;
+    if (!uid) return;
+
     await addDoc(this.messagesColl(matchId), {
       matchId,
-      senderUid: 'system',
+      senderUid: uid,
       text,
       createdAt: serverTimestamp(),
       type: 'system'
+    });
+
+    const matchRef = doc(this.fs, 'leagueMatches', matchId);
+    await updateDoc(matchRef, {
+      lastActivityAt: serverTimestamp(),
+      lastMessageText: text.slice(0, 100),
+      lastMessageSenderUid: uid
     });
   }
 
@@ -72,5 +96,20 @@ export class ChatService {
         }).length;
       })
     );
+  }
+
+  /**
+   * Count how many of the given matches have unread messages for the user.
+   * Uses denormalized lastActivityAt vs lastReadBy on the match doc itself,
+   * so we don't need to query every message subcollection.
+   */
+  countUnreadMatches(matches: LeagueMatch[], uid: string): number {
+    return matches.filter(m => {
+      if (m.lastMessageSenderUid === uid || m.lastMessageSenderUid === 'system') return false;
+      const lastRead = m.lastReadBy?.[uid];
+      const lastReadMs = typeof lastRead?.toMillis === 'function' ? lastRead.toMillis() : 0;
+      const lastActivityMs = typeof m.lastActivityAt?.toMillis === 'function' ? m.lastActivityAt.toMillis() : 0;
+      return lastActivityMs > lastReadMs;
+    }).length;
   }
 }

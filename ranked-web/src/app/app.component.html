@@ -14,7 +14,11 @@
       </a>
     </div>
     <div class="right-section">
-      <a routerLink="/help" class="topbar-help" aria-label="Help">
+      <a routerLink="/messages" class="topbar-icon-btn" aria-label="Messages" *ngIf="authService.isAuthReady() && authService.isLoggedIn()">
+        <span class="material-symbols-outlined">chat</span>
+        <span class="topbar-badge" *ngIf="totalUnread() > 0">{{ totalUnread() > 9 ? '9+' : totalUnread() }}</span>
+      </a>
+      <a routerLink="/help" class="topbar-icon-btn" aria-label="Help">
         <span class="material-symbols-outlined">help</span>
       </a>
       <!-- Wait for auth to restore on reload before showing signed-out state -->
@@ -36,7 +40,7 @@
     <div class="sidebar-backdrop" [class.visible]="isSidebarOpen" (click)="closeSidebar()" aria-hidden="true"></div>
     <!-- Sidebar -->
     <app-sidebar class="sidebar" [class.open]="isSidebarOpen" [isSidebarOpen]="isSidebarOpen"
-      [class.collapsed]="!isSidebarOpen" (clickOutside)="closeSidebar()" (toggleEvent)="toggleSidebar()"></app-sidebar>
+      [class.collapsed]="!isSidebarOpen" [messagesUnreadCount]="totalUnread()" (clickOutside)="closeSidebar()" (toggleEvent)="toggleSidebar()"></app-sidebar>
 
     <!-- Main content -->
     <main class="main-content" [class.sidebar-open]="isSidebarOpen">

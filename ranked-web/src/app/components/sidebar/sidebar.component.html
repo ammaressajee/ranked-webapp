@@ -5,6 +5,7 @@
                 <a [routerLink]="item.route" routerLinkActive="active-link" [routerLinkActiveOptions]="item.route === '/' ? { exact: true } : { exact: false }" class="nav-item" (click)="handleNavClick()">
                     <span class="nav-icon material-symbols-outlined">{{ item.icon }}</span>
                     <span class="nav-label">{{ item.label }}</span>
+                    <span class="nav-badge" *ngIf="item.route === '/messages' && messagesUnreadCount > 0">{{ messagesUnreadCount > 9 ? '9+' : messagesUnreadCount }}</span>
                 </a>
             </li>
         </ul>

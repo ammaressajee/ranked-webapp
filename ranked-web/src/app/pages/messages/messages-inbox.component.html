@@ -1,0 +1,51 @@
+<div class="inbox-page">
+  <div class="inbox-header">
+    <h1 class="inbox-title">Messages</h1>
+  </div>
+
+  <div class="inbox-loading" *ngIf="loading">
+    <span class="loading-text">Loading conversations…</span>
+  </div>
+
+  <ng-container *ngIf="!loading">
+    <!-- Empty state -->
+    <div class="empty-state" *ngIf="threads.length === 0">
+      <span class="empty-icon material-symbols-outlined">chat</span>
+      <p class="empty-title">No active conversations</p>
+      <p class="empty-subtitle">Join a league and find a match to start chatting with opponents.</p>
+      <div class="empty-cta-row">
+        <a routerLink="/leagues" class="empty-cta">Browse Leagues</a>
+        <a routerLink="/my-matches" class="empty-cta secondary">My Matches</a>
+      </div>
+    </div>
+
+    <!-- Thread list -->
+    <div class="thread-list" *ngIf="threads.length > 0">
+      <a
+        *ngFor="let t of threads"
+        class="thread-card"
+        [class.unread]="t.unread"
+        [routerLink]="['/messages', t.match.id]"
+      >
+        <div class="thread-avatar" [attr.data-initial]="getInitial(t.opponentName)">
+          <span class="avatar-letter">{{ getInitial(t.opponentName) }}</span>
+          <span class="unread-dot" *ngIf="t.unread"></span>
+        </div>
+
+        <div class="thread-content">
+          <div class="thread-top-row">
+            <span class="thread-name">{{ t.opponentName }}</span>
+            <span class="thread-time">{{ t.lastActivityAgo }}</span>
+          </div>
+          <div class="thread-bottom-row">
+            <span class="thread-league">{{ t.leagueName }}</span>
+            <span class="thread-status" [ngClass]="t.match.status">{{ getStatusLabel(t.match.status) }}</span>
+          </div>
+          <p class="thread-preview" [class.unread-text]="t.unread">{{ t.lastMessagePreview }}</p>
+        </div>
+
+        <span class="thread-chevron material-symbols-outlined">chevron_right</span>
+      </a>
+    </div>
+  </ng-container>
+</div>

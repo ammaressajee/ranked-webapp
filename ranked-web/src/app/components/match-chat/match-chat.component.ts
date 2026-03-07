@@ -27,8 +27,11 @@ export class MatchChatComponent implements OnChanges, OnDestroy {
   expanded = false;
   newMessage = '';
   sending = false;
+  sendError = '';
+  sentConfirmation = '';
   private sub = new Subscription();
   private messageCount = 0;
+  private sentTimer: any;
 
   readonly quickActions = [
     'When works for you?',
@@ -63,14 +66,27 @@ export class MatchChatComponent implements OnChanges, OnDestroy {
     }
   }
 
+  private showSentConfirmation() {
+    this.sentConfirmation = 'Sent!';
+    clearTimeout(this.sentTimer);
+    this.sentTimer = setTimeout(() => { this.sentConfirmation = ''; }, 2000);
+  }
+
   async send() {
     if (!this.newMessage.trim() || this.sending) return;
     this.sending = true;
+    this.sendError = '';
     const text = this.newMessage;
-    this.newMessage = '';
     try {
       await this.chatService.sendMessage(this.matchId, text);
+      this.newMessage = '';
       this.chatService.markRead(this.matchId);
+      this.showSentConfirmation();
+      if (!this.expanded) this.expanded = true;
+      setTimeout(() => this.scrollToBottom(), 50);
+    } catch (err) {
+      this.sendError = 'Failed to send. Try again.';
+      console.error('Chat send failed:', err);
     } finally {
       this.sending = false;
     }
@@ -79,11 +95,16 @@ export class MatchChatComponent implements OnChanges, OnDestroy {
   async sendQuickAction(text: string) {
     if (this.sending) return;
     this.sending = true;
+    this.sendError = '';
     try {
       await this.chatService.sendMessage(this.matchId, text);
       this.chatService.markRead(this.matchId);
+      this.showSentConfirmation();
       if (!this.expanded) this.expanded = true;
       setTimeout(() => this.scrollToBottom(), 50);
+    } catch (err) {
+      this.sendError = 'Failed to send. Try again.';
+      console.error('Chat send failed:', err);
     } finally {
       this.sending = false;
     }
@@ -111,5 +132,6 @@ export class MatchChatComponent implements OnChanges, OnDestroy {
 
   ngOnDestroy() {
     this.sub.unsubscribe();
+    clearTimeout(this.sentTimer);
   }
 }

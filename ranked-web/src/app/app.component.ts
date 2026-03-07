@@ -1,7 +1,11 @@
-import { Component, HostListener, inject } from '@angular/core';
+import { Component, HostListener, inject, OnDestroy, signal } from '@angular/core';
 import { Router, RouterLink, RouterOutlet } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { Subscription, switchMap, of, map } from 'rxjs';
+import { toObservable } from '@angular/core/rxjs-interop';
 import { AuthService } from './services/auth.service';
+import { LeagueService } from './services/league.service';
+import { ChatService } from './services/chat.service';
 import { SidebarComponent } from './components/sidebar/sidebar.component';
 import { AdSlotComponent } from './components/ad-slot/ad-slot.component';
 import { environment } from '../environments/environment';
@@ -22,11 +26,16 @@ function shouldShowFooterAd(url: string): boolean {
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss'
 })
-export class AppComponent {
+export class AppComponent implements OnDestroy {
   authService = inject(AuthService);
+  private leagueService = inject(LeagueService);
+  private chatService = inject(ChatService);
   router = inject(Router);
 
   isSidebarOpen = false;
+  totalUnread = signal(0);
+
+  private unreadSub: Subscription;
 
   /** Show footer ad only when ads enabled and not on excluded routes */
   get showFooterAd(): boolean {
@@ -34,8 +43,23 @@ export class AppComponent {
   }
   adSlotFooter = environment.adSlotFooter;
 
+  constructor() {
+    this.unreadSub = toObservable(this.authService.profile).pipe(
+      switchMap(profile => {
+        if (!profile?.uid) return of(0);
+        return this.leagueService.listAllActiveUserMatches(profile.uid).pipe(
+          map(matches => this.chatService.countUnreadMatches(matches, profile.uid))
+        );
+      })
+    ).subscribe(count => this.totalUnread.set(count));
+  }
+
   ngOnInit() {
     this.updateBodyScrollLock();
+  }
+
+  ngOnDestroy() {
+    this.unreadSub.unsubscribe();
   }
 
   @HostListener('window:resize')

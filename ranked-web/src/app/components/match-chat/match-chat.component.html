@@ -11,6 +11,16 @@
     </span>
   </button>
 
+  <!-- Status bar: sent confirmation or error -->
+  <div class="chat-status sent" *ngIf="sentConfirmation">
+    <span class="material-symbols-outlined">check_circle</span>
+    {{ sentConfirmation }}
+  </div>
+  <div class="chat-status error" *ngIf="sendError">
+    <span class="material-symbols-outlined">error</span>
+    {{ sendError }}
+  </div>
+
   <!-- Quick action chips (always visible when not expanded) -->
   <div class="quick-actions" *ngIf="!expanded">
     <button
@@ -63,7 +73,7 @@
         maxlength="500"
       />
       <button type="button" class="send-btn" (click)="send()" [disabled]="sending || !newMessage.trim()">
-        Send
+        {{ sending ? 'Sending…' : 'Send' }}
       </button>
     </div>
   </div>

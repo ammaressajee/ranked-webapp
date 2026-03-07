@@ -24,15 +24,22 @@ export class SidebarComponent implements OnInit {
   isAdmin$ = this.adminService.isAdmin$;
 
   @Input() isSidebarOpen: boolean = true;
+  @Input() messagesUnreadCount = 0;
   @Output() toggleEvent = new EventEmitter<void>();
 
 
   // --- TOP NAVIGATION ITEMS ---
 
-  navItems: Signal<NavItem[]> = computed(() => [
-    { icon: 'home', label: 'Home', route: '/', requiresAuth: false },
-    { icon: 'sports_esports', label: 'Browse Leagues', route: '/leagues', requiresAuth: false }
-  ]);
+  navItems: Signal<NavItem[]> = computed(() => {
+    const items: NavItem[] = [
+      { icon: 'home', label: 'Home', route: '/', requiresAuth: false },
+      { icon: 'sports_esports', label: 'Browse Leagues', route: '/leagues', requiresAuth: false }
+    ];
+    if (this.authService.isLoggedIn()) {
+      items.push({ icon: 'chat', label: 'Messages', route: '/messages', requiresAuth: false });
+    }
+    return items;
+  });
 
   /** Profile and Help — shown below "Climb the Ladder" section. */
   secondaryNavItems: Signal<NavItem[]> = computed(() => {

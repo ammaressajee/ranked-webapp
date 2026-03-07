@@ -1,0 +1,253 @@
+.inbox-page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem;
+}
+
+.inbox-header {
+  margin-bottom: 1.25rem;
+
+  .inbox-title {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+  }
+}
+
+.inbox-loading {
+  text-align: center;
+  padding: 3rem 1rem;
+
+  .loading-text {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+  }
+}
+
+// Empty state
+.empty-state {
+  text-align: center;
+  padding: 3rem 1.5rem;
+  background: var(--bg-card);
+  border-radius: 16px;
+  border: 1px solid var(--border);
+
+  .empty-icon {
+    font-size: 3rem;
+    color: var(--text-muted);
+    margin-bottom: 0.75rem;
+    display: block;
+  }
+
+  .empty-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 0.35rem;
+  }
+
+  .empty-subtitle {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin: 0 0 1.25rem;
+    line-height: 1.5;
+  }
+
+  .empty-cta-row {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .empty-cta {
+    display: inline-block;
+    padding: 0.6rem 1.5rem;
+    background: var(--gradient-accent);
+    color: #0f0f14;
+    font-weight: 600;
+    font-size: 0.9rem;
+    border-radius: 10px;
+    text-decoration: none;
+    transition: all 0.2s;
+
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(0, 212, 170, 0.3);
+    }
+
+    &.secondary {
+      background: transparent;
+      color: var(--accent);
+      border: 1px solid var(--accent);
+
+      &:hover {
+        background: var(--accent-muted);
+        box-shadow: none;
+      }
+    }
+  }
+}
+
+// Thread list
+.thread-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--bg-card);
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.thread-card {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.875rem 1rem;
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.15s;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover {
+    background: rgba(0, 212, 170, 0.04);
+  }
+
+  &.unread {
+    background: rgba(0, 212, 170, 0.06);
+
+    &:hover {
+      background: rgba(0, 212, 170, 0.1);
+    }
+  }
+}
+
+.thread-avatar {
+  position: relative;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--accent-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  .avatar-letter {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+
+  .unread-dot {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--bg-card);
+  }
+}
+
+.thread-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.thread-top-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.15rem;
+}
+
+.thread-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.thread-time {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.thread-bottom-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.thread-league {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.thread-status {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+
+  &.pending {
+    color: var(--accent);
+    background: var(--accent-muted);
+  }
+
+  &.pending_acceptance {
+    color: #f0ad4e;
+    background: rgba(240, 173, 78, 0.15);
+  }
+
+  &.reported,
+  &.pendingConfirm {
+    color: #5bc0de;
+    background: rgba(91, 192, 222, 0.15);
+  }
+}
+
+.thread-preview {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+
+  &.unread-text {
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+}
+
+.thread-chevron {
+  flex-shrink: 0;
+  font-size: 1.2rem;
+  color: var(--text-muted);
+  opacity: 0.5;
+}

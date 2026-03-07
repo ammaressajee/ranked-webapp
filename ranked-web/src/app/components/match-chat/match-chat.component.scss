@@ -65,6 +65,29 @@
   }
 }
 
+.chat-status {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 1rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+
+  .material-symbols-outlined {
+    font-size: 1rem;
+  }
+
+  &.sent {
+    color: var(--accent);
+    background: rgba(0, 212, 170, 0.08);
+  }
+
+  &.error {
+    color: #f44336;
+    background: rgba(244, 67, 54, 0.08);
+  }
+}
+
 .quick-actions {
   display: flex;
   flex-wrap: wrap;

@@ -48,5 +48,59 @@
         <span class="thread-chevron material-symbols-outlined">chevron_right</span>
       </a>
     </div>
+
+    <!-- Inactive chats toggle -->
+    <div class="inactive-section">
+      <button type="button" class="inactive-toggle" (click)="toggleInactiveChats()">
+        <span class="material-symbols-outlined">{{ showInactiveChats ? 'expand_less' : 'history' }}</span>
+        {{ showInactiveChats ? 'Hide inactive chats' : 'View inactive chats' }}
+      </button>
+
+      <ng-container *ngIf="showInactiveChats">
+        <div class="inactive-loading" *ngIf="inactiveLoading && inactiveThreads.length === 0">
+          <span class="loading-text">Loading past conversations…</span>
+        </div>
+
+        <div class="thread-list inactive-list" *ngIf="inactiveThreads.length > 0">
+          <a
+            *ngFor="let t of inactiveThreads"
+            class="thread-card inactive"
+            [routerLink]="['/messages', t.match.id]"
+          >
+            <div class="thread-avatar" [attr.data-initial]="getInitial(t.opponentName)">
+              <span class="avatar-letter">{{ getInitial(t.opponentName) }}</span>
+            </div>
+
+            <div class="thread-content">
+              <div class="thread-top-row">
+                <span class="thread-name">{{ t.opponentName }}</span>
+                <span class="thread-time">{{ t.lastActivityAgo }}</span>
+              </div>
+              <div class="thread-bottom-row">
+                <span class="thread-league">{{ t.leagueName }}</span>
+                <span class="thread-status completed">{{ getStatusLabel(t.match.status) }}</span>
+              </div>
+              <p class="thread-preview">{{ t.lastMessagePreview }}</p>
+            </div>
+
+            <span class="thread-chevron material-symbols-outlined">chevron_right</span>
+          </a>
+        </div>
+
+        <div class="inactive-empty" *ngIf="!inactiveLoading && inactiveThreads.length === 0">
+          <p>No completed matches in the last 30 days.</p>
+        </div>
+
+        <button
+          *ngIf="inactiveHasMore && inactiveThreads.length > 0"
+          type="button"
+          class="load-more-btn"
+          (click)="loadMoreInactive()"
+          [disabled]="inactiveLoading"
+        >
+          {{ inactiveLoading ? 'Loading…' : 'Load more' }}
+        </button>
+      </ng-container>
+    </div>
   </ng-container>
 </div>

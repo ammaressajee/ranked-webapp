@@ -33,7 +33,7 @@ export class SidebarComponent implements OnInit {
   navItems: Signal<NavItem[]> = computed(() => {
     const items: NavItem[] = [
       { icon: 'home', label: 'Home', route: '/', requiresAuth: false },
-      { icon: 'sports_esports', label: 'Browse Leagues', route: '/leagues', requiresAuth: false }
+      { icon: 'sports_esports', label: 'Leagues', route: '/leagues', requiresAuth: false }
     ];
     if (this.authService.isLoggedIn()) {
       items.push({ icon: 'chat', label: 'Messages', route: '/messages', requiresAuth: false });

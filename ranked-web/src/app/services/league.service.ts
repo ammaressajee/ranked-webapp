@@ -1,5 +1,5 @@
 import { inject, Injectable, NgZone } from '@angular/core';
-import { addDoc, collection, collectionData, deleteDoc, doc, docData, endAt, Firestore, getDoc, getDocs, limit, orderBy, query, serverTimestamp, startAt, setDoc, updateDoc, where } from '@angular/fire/firestore';
+import { addDoc, collection, collectionData, deleteDoc, doc, docData, endAt, Firestore, getDoc, getDocs, limit, orderBy, query, serverTimestamp, startAt, setDoc, Timestamp, updateDoc, where } from '@angular/fire/firestore';
 import { combineLatest, firstValueFrom, from, map, Observable, of } from 'rxjs';
 import { catchError, switchMap } from 'rxjs/operators';
 import { League } from '../models/League';
@@ -16,6 +16,10 @@ import { environment } from '../../environments/environment';
 /** 50 miles in km - leagues within this radius of user's location */
 export const LEAGUE_RADIUS_MILES = 50;
 export const DEFAULT_LEAGUE_RADIUS_KM = LEAGUE_RADIUS_MILES * 1.60934;
+
+export const INACTIVE_CHAT_RETENTION_DAYS = 30;
+export const INACTIVE_PAGE_SIZE = 15;
+export const MESSAGE_PAGE_SIZE = 50;
 
 /** Normalized city list so "austin" and "austin tx" match the same option */
 export const DEFAULT_CITIES: string[] = [
@@ -465,8 +469,69 @@ export class LeagueService {
     );
   }
 
+  /**
+   * Paginated one-shot fetch of completed matches within the retention window.
+   * Returns matches + a flag indicating whether there are more pages.
+   */
+  async listInactiveUserMatches(
+    uid: string,
+    pageSize: number = INACTIVE_PAGE_SIZE,
+    beforeTimestamp?: Timestamp
+  ): Promise<{ matches: LeagueMatch[]; hasMore: boolean }> {
+    const cutoff = Timestamp.fromMillis(Date.now() - INACTIVE_CHAT_RETENTION_DAYS * 24 * 60 * 60 * 1000);
+
+    const constraints = (playerField: string) => {
+      const parts: any[] = [
+        where(playerField, '==', uid),
+        where('status', '==', 'completed'),
+        where('completedAt', '>=', cutoff),
+        orderBy('completedAt', 'desc'),
+        limit(pageSize + 1)
+      ];
+      if (beforeTimestamp) {
+        parts.splice(4, 0, where('completedAt', '<', beforeTimestamp));
+      }
+      return parts;
+    };
+
+    const qA = query(collection(this.fs, 'leagueMatches'), ...constraints('playerA'));
+    const qB = query(collection(this.fs, 'leagueMatches'), ...constraints('playerB'));
+    const [snapA, snapB] = await Promise.all([getDocs(qA), getDocs(qB)]);
+
+    const seen = new Set<string>();
+    const all: LeagueMatch[] = [];
+    for (const d of [...snapA.docs, ...snapB.docs]) {
+      if (!seen.has(d.id)) {
+        seen.add(d.id);
+        all.push({ id: d.id, ...d.data() } as LeagueMatch);
+      }
+    }
+    all.sort((a, b) => {
+      const ta = (a as any).completedAt?.toMillis?.() ?? 0;
+      const tb = (b as any).completedAt?.toMillis?.() ?? 0;
+      return tb - ta;
+    });
+
+    const hasMore = all.length > pageSize;
+    return { matches: all.slice(0, pageSize), hasMore };
+  }
+
   getUserProfile$(uid: string): Observable<any> {
     return docData(doc(this.fs, 'users', uid));
+  }
+
+  /** Get display name from users doc, with fallback to league participant if leagueId provided. */
+  async getDisplayName(uid: string, leagueId?: string): Promise<string> {
+    const userSnap = await getDoc(doc(this.fs, 'users', uid));
+    const fromUser = userSnap.exists() ? (userSnap.data() as any).displayName : null;
+    if (fromUser) return fromUser;
+    if (leagueId) {
+      const participantId = `${leagueId}_${uid}`;
+      const partSnap = await getDoc(doc(this.fs, 'leagueParticipants', participantId));
+      const fromPart = partSnap.exists() ? (partSnap.data() as any).displayName : null;
+      if (fromPart) return fromPart;
+    }
+    return 'Unknown';
   }
 
   // Optional helper: report & confirm in one click

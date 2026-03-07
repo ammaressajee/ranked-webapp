@@ -1,7 +1,8 @@
 import { Component, effect, inject, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { Subscription, combineLatest, map, switchMap, startWith, of } from 'rxjs';
+import { Subscription, combineLatest, map, switchMap, from, of } from 'rxjs';
+import { Timestamp } from '@angular/fire/firestore';
 import { AuthService } from '../../services/auth.service';
 import { LeagueService } from '../../services/league.service';
 import { ChatService } from '../../services/chat.service';
@@ -33,6 +34,14 @@ export class MessagesInboxComponent implements OnDestroy {
   loading = true;
   private authInitDone = false;
   private threadsSub?: Subscription;
+  private currentUid = '';
+
+  showInactiveChats = false;
+  inactiveThreads: ThreadItem[] = [];
+  inactiveLoading = false;
+  inactiveHasMore = true;
+  inactiveCursor: Timestamp | null = null;
+  private inactiveLoaded = false;
 
   constructor() {
     effect(() => {
@@ -44,6 +53,7 @@ export class MessagesInboxComponent implements OnDestroy {
         this.loading = false;
         return;
       }
+      this.currentUid = profile.uid;
       this.initThreads(profile.uid);
     });
   }
@@ -59,22 +69,25 @@ export class MessagesInboxComponent implements OnDestroy {
 
         const opponentUids = [...new Set(matches.map(m => m.playerA === uid ? m.playerB : m.playerA))];
         const leagueIds = [...new Set(matches.map(m => m.leagueId))];
+        const opponentToLeague: Record<string, string> = {};
+        for (const m of matches) {
+          const ouid = m.playerA === uid ? m.playerB : m.playerA;
+          if (!opponentToLeague[ouid]) opponentToLeague[ouid] = m.leagueId;
+        }
 
         const names$ = opponentUids.length > 0
           ? combineLatest(opponentUids.map(ouid =>
-              this.leagueService.getUserProfile$(ouid).pipe(startWith(null))
+              from(this.leagueService.getDisplayName(ouid, opponentToLeague[ouid]))
             ))
           : of([]);
         const leagues$ = leagueIds.length > 0
-          ? combineLatest(leagueIds.map(lid =>
-              this.leagueService.getLeague(lid).pipe(startWith(null))
-            ))
+          ? combineLatest(leagueIds.map(lid => this.leagueService.getLeague(lid)))
           : of([]);
 
         return combineLatest([names$, leagues$]).pipe(
-          map(([users, leagues]) => {
+          map(([names, leagues]) => {
             const nameMap: Record<string, string> = {};
-            users.forEach((u: any, i: number) => { nameMap[opponentUids[i]] = u?.displayName || 'Unknown'; });
+            (names as string[]).forEach((name: string, i: number) => { nameMap[opponentUids[i]] = name || 'Unknown'; });
             const leagueMap: Record<string, string> = {};
             leagues.forEach((l: any, i: number) => { leagueMap[leagueIds[i]] = l?.name || 'League'; });
 
@@ -110,6 +123,65 @@ export class MessagesInboxComponent implements OnDestroy {
     });
   }
 
+  toggleInactiveChats() {
+    this.showInactiveChats = !this.showInactiveChats;
+    if (this.showInactiveChats && !this.inactiveLoaded) {
+      this.loadInactivePage();
+    }
+  }
+
+  async loadInactivePage() {
+    if (!this.currentUid || this.inactiveLoading) return;
+    this.inactiveLoading = true;
+    try {
+      const { matches, hasMore } = await this.leagueService.listInactiveUserMatches(
+        this.currentUid,
+        15,
+        this.inactiveCursor ?? undefined
+      );
+      this.inactiveHasMore = hasMore;
+      this.inactiveLoaded = true;
+
+      if (matches.length > 0) {
+        const last = matches[matches.length - 1];
+        this.inactiveCursor = (last as any).completedAt ?? null;
+      }
+
+      const matchesWithMessages = matches.filter(m => m.lastMessageText);
+      const newThreads = await Promise.all(
+        matchesWithMessages.map(async m => {
+          const opponentUid = m.playerA === this.currentUid ? m.playerB : m.playerA;
+          const [opponentName, league] = await Promise.all([
+            this.leagueService.getDisplayName(opponentUid, m.leagueId),
+            new Promise<any>(resolve => this.leagueService.getLeague(m.leagueId).subscribe(l => resolve(l)))
+          ]);
+          const lastActivityMs = typeof m.lastActivityAt?.toMillis === 'function' ? m.lastActivityAt.toMillis()
+            : typeof m.completedAt?.toMillis === 'function' ? m.completedAt.toMillis()
+            : typeof m.createdAt?.toMillis === 'function' ? m.createdAt.toMillis()
+            : Date.now();
+          return {
+            match: m,
+            opponentName: opponentName || 'Unknown',
+            opponentUid,
+            leagueName: league?.name || 'League',
+            lastMessagePreview: m.lastMessageText || 'No messages',
+            lastActivityAgo: this.timeAgo(lastActivityMs),
+            unread: false
+          } as ThreadItem;
+        })
+      );
+      this.inactiveThreads = [...this.inactiveThreads, ...newThreads];
+    } catch (err) {
+      console.error('Failed to load inactive chats:', err);
+    } finally {
+      this.inactiveLoading = false;
+    }
+  }
+
+  loadMoreInactive() {
+    this.loadInactivePage();
+  }
+
   timeAgo(ms: number): string {
     if (!ms) return '';
     const diff = Date.now() - ms;
@@ -133,6 +205,8 @@ export class MessagesInboxComponent implements OnDestroy {
       case 'pending': return 'Active';
       case 'reported':
       case 'pendingConfirm': return 'Awaiting confirmation';
+      case 'completed': return 'Completed';
+      case 'cancelled': return 'Cancelled';
       default: return status;
     }
   }

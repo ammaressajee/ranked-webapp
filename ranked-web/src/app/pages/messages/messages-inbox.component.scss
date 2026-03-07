@@ -259,3 +259,102 @@
   color: var(--text-muted);
   opacity: 0.5;
 }
+
+// Completed status badge
+.thread-status.completed {
+  color: var(--accent);
+  background: var(--accent-muted);
+}
+
+.thread-status.cancelled {
+  color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.15);
+}
+
+// Inactive chats section
+.inactive-section {
+  margin-top: 1.25rem;
+}
+
+.inactive-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.7rem 1rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+
+  .material-symbols-outlined {
+    font-size: 1.15rem;
+  }
+
+  &:hover {
+    background: rgba(0, 212, 170, 0.06);
+    border-color: rgba(0, 212, 170, 0.2);
+    color: var(--accent);
+  }
+}
+
+.inactive-loading {
+  text-align: center;
+  padding: 1.5rem 1rem;
+
+  .loading-text {
+    color: var(--text-muted);
+    font-size: 0.88rem;
+  }
+}
+
+.inactive-list {
+  margin-top: 0.75rem;
+}
+
+.thread-card.inactive {
+  opacity: 0.8;
+}
+
+.inactive-empty {
+  text-align: center;
+  padding: 1.25rem 1rem;
+
+  p {
+    color: var(--text-muted);
+    font-size: 0.88rem;
+    margin: 0;
+  }
+}
+
+.load-more-btn {
+  display: block;
+  width: 100%;
+  margin-top: 0.75rem;
+  padding: 0.6rem 1rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--accent);
+  font-size: 0.88rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+  text-align: center;
+
+  &:hover:not(:disabled) {
+    background: rgba(0, 212, 170, 0.06);
+    border-color: rgba(0, 212, 170, 0.2);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}

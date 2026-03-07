@@ -26,8 +26,9 @@
   <!-- Status banner -->
   <div class="status-banner" *ngIf="!loading && match">
     <div class="status-banner pending-acceptance" *ngIf="match.status === 'pending_acceptance'">
-      <p>This match is waiting for acceptance. Accept to start coordinating!</p>
-      <div class="banner-actions">
+      <p *ngIf="shouldShowAccept()">This match is waiting for acceptance. Accept to start coordinating!</p>
+      <p *ngIf="waitingForOpponentToAccept()">Waiting for {{ opponentName }} to accept the match.</p>
+      <div class="banner-actions" *ngIf="shouldShowAccept()">
         <button type="button" class="btn-accept" (click)="acceptMatch()" [disabled]="accepting">
           {{ accepting ? 'Accepting…' : 'Accept' }}
         </button>
@@ -38,16 +39,21 @@
     </div>
     <div class="status-banner pending" *ngIf="match.status === 'pending'">
       <p>Coordinate with your opponent to schedule and play your match.</p>
-      <a class="banner-cta" [routerLink]="['/my-matches']" [queryParams]="{ league: match.leagueId }">
+      <button type="button" class="banner-cta" (click)="openReportDialog()">
         <span class="material-symbols-outlined">scoreboard</span>
         Report Score
-      </a>
+      </button>
     </div>
     <div class="status-banner reported" *ngIf="match.status === 'reported' || match.status === 'pendingConfirm'">
-      <p>A score has been reported. Waiting for confirmation.</p>
-      <a class="banner-cta" [routerLink]="['/my-matches']" [queryParams]="{ league: match.leagueId }">
+      <p *ngIf="shouldShowConfirm()">A score has been reported. Confirm the result to finalize.</p>
+      <p *ngIf="!shouldShowConfirm()">You reported the score. Waiting for {{ opponentName }} to confirm.</p>
+      <button *ngIf="shouldShowConfirm()" type="button" class="banner-cta" (click)="confirmResult()" [disabled]="confirming">
         <span class="material-symbols-outlined">check_circle</span>
-        Confirm Result
+        {{ confirming ? 'Confirming…' : 'Confirm Result' }}
+      </button>
+      <a *ngIf="!shouldShowConfirm()" class="banner-cta" [routerLink]="['/my-matches']" [queryParams]="{ league: match.leagueId }">
+        <span class="material-symbols-outlined">scoreboard</span>
+        View match
       </a>
     </div>
   </div>
@@ -55,30 +61,40 @@
   <!-- Messages area -->
   <div class="message-area" *ngIf="!loading">
     <div class="message-list" #messageList>
-      <ng-container *ngIf="messages$ | async as messages">
-        <div *ngIf="messages.length === 0" class="empty-chat">
-          <span class="empty-icon material-symbols-outlined">chat_bubble_outline</span>
-          <p *ngIf="match?.status === 'pending_acceptance'">You've been matched! Accept the match above, then send a message to start coordinating.</p>
-          <p *ngIf="match && match.status !== 'pending_acceptance'">You've been matched! Send a message to start coordinating your match with {{ opponentName }}.</p>
-          <p *ngIf="!match">No messages yet. Say hi to {{ opponentName }}!</p>
-        </div>
+      <!-- Load older messages -->
+      <button
+        *ngIf="hasOlderMessages && allMessages.length > 0"
+        type="button"
+        class="load-older-btn"
+        (click)="loadOlderMessages()"
+        [disabled]="loadingOlder"
+      >
+        {{ loadingOlder ? 'Loading…' : 'Load older messages' }}
+      </button>
 
-        <div
-          *ngFor="let msg of messages; trackBy: trackByMsg"
-          class="message-row"
-          [class.mine]="isMe(msg.senderUid)"
-          [class.theirs]="!isMe(msg.senderUid) && msg.type !== 'system'"
-          [class.system]="msg.type === 'system'"
-        >
-          <div class="bubble-wrapper">
-            <span class="sender-label" *ngIf="msg.type !== 'system'">
-              {{ isMe(msg.senderUid) ? 'You' : opponentName }}
-            </span>
-            <div class="bubble">{{ msg.text }}</div>
-            <span class="msg-time" *ngIf="msg.type !== 'system'">{{ formatTime(msg.createdAt) }}</span>
-          </div>
+      <div *ngIf="allMessages.length === 0" class="empty-chat">
+        <span class="empty-icon material-symbols-outlined">chat_bubble_outline</span>
+        <p *ngIf="match?.status === 'pending_acceptance' && shouldShowAccept()">You've been matched! Accept the match above, then send a message to start coordinating.</p>
+        <p *ngIf="match?.status === 'pending_acceptance' && waitingForOpponentToAccept()">You've accepted! Waiting for {{ opponentName }} to accept, then you can start coordinating.</p>
+        <p *ngIf="match && match.status !== 'pending_acceptance'">You've been matched! Send a message to start coordinating your match with {{ opponentName }}.</p>
+        <p *ngIf="!match">No messages yet. Say hi to {{ opponentName }}!</p>
+      </div>
+
+      <div
+        *ngFor="let msg of allMessages; trackBy: trackByMsg"
+        class="message-row"
+        [class.mine]="isMe(msg.senderUid)"
+        [class.theirs]="!isMe(msg.senderUid) && msg.type !== 'system'"
+        [class.system]="msg.type === 'system'"
+      >
+        <div class="bubble-wrapper">
+          <span class="sender-label" *ngIf="msg.type !== 'system'">
+            {{ isMe(msg.senderUid) ? 'You' : opponentName }}
+          </span>
+          <div class="bubble">{{ msg.text }}</div>
+          <span class="msg-time" *ngIf="msg.type !== 'system'">{{ formatTime(msg.createdAt) }}</span>
         </div>
-      </ng-container>
+      </div>
     </div>
   </div>
 
@@ -101,6 +117,34 @@
   <div class="send-error" *ngIf="sendError">
     <span class="material-symbols-outlined">error</span>
     {{ sendError }}
+  </div>
+
+  <!-- Report Score Modal -->
+  <div class="modal-backdrop" *ngIf="reportDialogOpen">
+    <div class="modal">
+      <h3>Report Score</h3>
+
+      <p class="modal-label">Who won?</p>
+      <select [(ngModel)]="dialogWinnerUid">
+        <option [value]="match?.playerA">{{ isMe(match?.playerA) ? 'You' : opponentName }}</option>
+        <option [value]="match?.playerB">{{ isMe(match?.playerB) ? 'You' : opponentName }}</option>
+      </select>
+
+      <p class="modal-label">Enter score:</p>
+      <input
+        type="text"
+        class="score-input"
+        [(ngModel)]="dialogScore"
+        placeholder="e.g., 21-17"
+      />
+
+      <div class="modal-actions">
+        <button class="btn cancel" (click)="closeReportDialog()" [disabled]="submittingReport">Cancel</button>
+        <button class="btn submit" (click)="submitReport()" [disabled]="submittingReport">
+          {{ submittingReport ? 'Submitting…' : 'Submit' }}
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- Input bar -->

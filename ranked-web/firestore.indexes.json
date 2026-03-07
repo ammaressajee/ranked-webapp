@@ -9,7 +9,9 @@
     {"collectionGroup":"leagueMatches","queryScope":"COLLECTION","fields":[{"fieldPath":"playerB","order":"ASCENDING"},{"fieldPath":"createdAt","order":"DESCENDING"}]},
     {"collectionGroup":"searchRequests","queryScope":"COLLECTION","fields":[{"fieldPath":"leagueId","order":"ASCENDING"},{"fieldPath":"seeking","order":"ASCENDING"}]},
     {"collectionGroup":"matches","queryScope":"COLLECTION","fields":[{"fieldPath":"players","arrayConfig":"CONTAINS"},{"fieldPath":"createdAt","order":"DESCENDING"}]},
-    {"collectionGroup":"leagueRequests","queryScope":"COLLECTION","fields":[{"fieldPath":"status","order":"ASCENDING"},{"fieldPath":"createdAt","order":"DESCENDING"}]}
+    {"collectionGroup":"leagueRequests","queryScope":"COLLECTION","fields":[{"fieldPath":"status","order":"ASCENDING"},{"fieldPath":"createdAt","order":"DESCENDING"}]},
+    {"collectionGroup":"leagueMatches","queryScope":"COLLECTION","fields":[{"fieldPath":"playerA","order":"ASCENDING"},{"fieldPath":"status","order":"ASCENDING"},{"fieldPath":"completedAt","order":"DESCENDING"}]},
+    {"collectionGroup":"leagueMatches","queryScope":"COLLECTION","fields":[{"fieldPath":"playerB","order":"ASCENDING"},{"fieldPath":"status","order":"ASCENDING"},{"fieldPath":"completedAt","order":"DESCENDING"}]}
   ],
   "fieldOverrides": []
 }

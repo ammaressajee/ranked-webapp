@@ -1,12 +1,13 @@
 import { inject, Injectable } from '@angular/core';
 import {
-  addDoc, collection, collectionData, doc, Firestore,
-  orderBy, query, serverTimestamp, updateDoc
+  addDoc, collection, collectionData, doc, endBefore, Firestore,
+  getDocs, limit, orderBy, query, serverTimestamp, Timestamp, updateDoc
 } from '@angular/fire/firestore';
 import { Auth } from '@angular/fire/auth';
 import { map, Observable, of } from 'rxjs';
 import { MatchMessage } from '../models/MatchMessage';
 import { LeagueMatch } from '../models/LeagueMatch';
+import { MESSAGE_PAGE_SIZE } from './league.service';
 
 @Injectable({ providedIn: 'root' })
 export class ChatService {
@@ -17,10 +18,29 @@ export class ChatService {
     return collection(this.fs, 'matchMessages', matchId, 'messages');
   }
 
-  getMessages$(matchId: string): Observable<MatchMessage[]> {
+  getMessages$(matchId: string, pageSize = MESSAGE_PAGE_SIZE): Observable<MatchMessage[]> {
     if (!matchId) return of([]);
-    const q = query(this.messagesColl(matchId), orderBy('createdAt', 'asc'));
-    return collectionData(q, { idField: 'id' }) as Observable<MatchMessage[]>;
+    const q = query(
+      this.messagesColl(matchId),
+      orderBy('createdAt', 'desc'),
+      limit(pageSize)
+    );
+    return (collectionData(q, { idField: 'id' }) as Observable<MatchMessage[]>).pipe(
+      map(msgs => [...msgs].reverse())
+    );
+  }
+
+  async loadOlderMessages(matchId: string, beforeTimestamp: Timestamp, pageSize = MESSAGE_PAGE_SIZE): Promise<MatchMessage[]> {
+    const q = query(
+      this.messagesColl(matchId),
+      orderBy('createdAt', 'desc'),
+      endBefore(beforeTimestamp),
+      limit(pageSize)
+    );
+    const snap = await getDocs(q);
+    return snap.docs
+      .map(d => ({ id: d.id, ...d.data() } as MatchMessage))
+      .reverse();
   }
 
   async sendMessage(matchId: string, text: string): Promise<void> {

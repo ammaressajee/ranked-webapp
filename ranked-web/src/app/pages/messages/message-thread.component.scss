@@ -424,7 +424,7 @@
   .msg-input {
     flex: 1;
     padding: 0.6rem 0.85rem;
-    font-size: 0.9rem;
+    font-size: 16px; /* Prevents iOS zoom on focus (requires >= 16px) */
     background: var(--bg-elevated);
     color: var(--text-primary);
     border: 1px solid var(--border);

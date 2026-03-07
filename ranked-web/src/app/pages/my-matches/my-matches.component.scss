@@ -241,6 +241,18 @@
     color: var(--accent);
     font-weight: 600;
   }
+
+  .opponent-link {
+    color: var(--text-primary);
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.15s;
+
+    &:hover {
+      color: var(--accent);
+      text-decoration: underline;
+    }
+  }
 }
 
 .status-badge {

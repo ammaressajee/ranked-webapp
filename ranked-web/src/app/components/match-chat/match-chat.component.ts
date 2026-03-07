@@ -18,6 +18,7 @@ export class MatchChatComponent implements OnChanges, OnDestroy {
   @Input() lastReadBy: any;
   @Input() opponentName = 'Opponent';
   @ViewChild('messageList') messageList!: ElementRef<HTMLDivElement>;
+  @ViewChild('chatContainer') chatContainer!: ElementRef<HTMLDivElement>;
 
   private auth = inject(Auth);
   private chatService = inject(ChatService);
@@ -28,10 +29,9 @@ export class MatchChatComponent implements OnChanges, OnDestroy {
   newMessage = '';
   sending = false;
   sendError = '';
-  sentConfirmation = '';
+  sentActions = new Set<string>();
   private sub = new Subscription();
   private messageCount = 0;
-  private sentTimer: any;
 
   readonly quickActions = [
     'When works for you?',
@@ -47,6 +47,7 @@ export class MatchChatComponent implements OnChanges, OnDestroy {
     if (changes['matchId'] && this.matchId) {
       this.messages$ = this.chatService.getMessages$(this.matchId);
       this.unreadCount$ = this.chatService.getUnreadCount$(this.matchId, this.messages$, this.lastReadBy);
+      this.sentActions.clear();
       this.sub.unsubscribe();
       this.sub = this.messages$.subscribe(msgs => {
         const shouldScroll = msgs.length > this.messageCount;
@@ -66,12 +67,6 @@ export class MatchChatComponent implements OnChanges, OnDestroy {
     }
   }
 
-  private showSentConfirmation() {
-    this.sentConfirmation = 'Sent!';
-    clearTimeout(this.sentTimer);
-    this.sentTimer = setTimeout(() => { this.sentConfirmation = ''; }, 2000);
-  }
-
   async send() {
     if (!this.newMessage.trim() || this.sending) return;
     this.sending = true;
@@ -81,7 +76,6 @@ export class MatchChatComponent implements OnChanges, OnDestroy {
       await this.chatService.sendMessage(this.matchId, text);
       this.newMessage = '';
       this.chatService.markRead(this.matchId);
-      this.showSentConfirmation();
       if (!this.expanded) this.expanded = true;
       setTimeout(() => this.scrollToBottom(), 50);
     } catch (err) {
@@ -93,13 +87,13 @@ export class MatchChatComponent implements OnChanges, OnDestroy {
   }
 
   async sendQuickAction(text: string) {
-    if (this.sending) return;
+    if (this.sending || this.sentActions.has(text)) return;
     this.sending = true;
     this.sendError = '';
     try {
       await this.chatService.sendMessage(this.matchId, text);
       this.chatService.markRead(this.matchId);
-      this.showSentConfirmation();
+      this.sentActions.add(text);
       if (!this.expanded) this.expanded = true;
       setTimeout(() => this.scrollToBottom(), 50);
     } catch (err) {
@@ -108,6 +102,12 @@ export class MatchChatComponent implements OnChanges, OnDestroy {
     } finally {
       this.sending = false;
     }
+  }
+
+  onInputFocus() {
+    setTimeout(() => {
+      this.chatContainer?.nativeElement?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }, 300);
   }
 
   onKeydown(event: KeyboardEvent) {
@@ -132,6 +132,5 @@ export class MatchChatComponent implements OnChanges, OnDestroy {
 
   ngOnDestroy() {
     this.sub.unsubscribe();
-    clearTimeout(this.sentTimer);
   }
 }

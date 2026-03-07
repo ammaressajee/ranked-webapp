@@ -42,6 +42,7 @@
             <span class="thread-status" [ngClass]="t.match.status">{{ getStatusLabel(t.match.status) }}</span>
           </div>
           <p class="thread-preview" [class.unread-text]="t.unread">{{ t.lastMessagePreview }}</p>
+          <p class="thread-action-hint" *ngIf="getActionHint(t) as hint">{{ hint }}</p>
         </div>
 
         <span class="thread-chevron material-symbols-outlined">chevron_right</span>

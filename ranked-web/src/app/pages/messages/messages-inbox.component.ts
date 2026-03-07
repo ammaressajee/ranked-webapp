@@ -137,6 +137,14 @@ export class MessagesInboxComponent implements OnDestroy {
     }
   }
 
+  getActionHint(thread: ThreadItem): string {
+    const status = thread.match.status;
+    if (status === 'pending_acceptance') return 'Action needed: Accept this match';
+    if (status === 'pending') return 'Coordinate a time to play';
+    if (status === 'reported' || status === 'pendingConfirm') return 'Action needed: Confirm the score';
+    return '';
+  }
+
   ngOnDestroy() {
     this.threadsSub?.unsubscribe();
   }

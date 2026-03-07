@@ -28,6 +28,7 @@ export class MessageThreadComponent implements OnInit, OnDestroy {
 
   matchId = '';
   match: LeagueMatch | null = null;
+  opponentUid = '';
   opponentName = 'Opponent';
   leagueName = '';
   messages$: Observable<MatchMessage[]> = of([]);
@@ -37,6 +38,7 @@ export class MessageThreadComponent implements OnInit, OnDestroy {
   sendError = '';
   accepting = false;
   declining = false;
+  sentActions = new Set<string>();
 
   private sub = new Subscription();
   private messageCount = 0;
@@ -74,7 +76,8 @@ export class MessageThreadComponent implements OnInit, OnDestroy {
       const matchSnap = await getDoc(doc(this.fs, 'leagueMatches', this.matchId));
       if (matchSnap.exists()) {
         this.match = { id: matchSnap.id, ...matchSnap.data() } as LeagueMatch;
-        const opponentUid = this.match.playerA === this.uid ? this.match.playerB : this.match.playerA;
+        this.opponentUid = this.match.playerA === this.uid ? this.match.playerB : this.match.playerA;
+        const opponentUid = this.opponentUid;
 
         const [userSnap, leagueSnap] = await Promise.all([
           getDoc(doc(this.fs, 'users', opponentUid)),
@@ -119,12 +122,13 @@ export class MessageThreadComponent implements OnInit, OnDestroy {
   }
 
   async sendQuickAction(text: string) {
-    if (this.sending) return;
+    if (this.sending || this.sentActions.has(text)) return;
     this.sending = true;
     this.sendError = '';
     try {
       await this.chatService.sendMessage(this.matchId, text);
       this.chatService.markRead(this.matchId);
+      this.sentActions.add(text);
       setTimeout(() => this.scrollToBottom(), 50);
     } catch (err) {
       this.sendError = 'Failed to send. Please try again.';

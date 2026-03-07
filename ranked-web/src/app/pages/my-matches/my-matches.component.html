@@ -54,14 +54,26 @@
       <a *ngIf="selectedLeagueId" [routerLink]="['/leagues', selectedLeagueId]" class="btn btn-empty-cta">Find a match</a>
     </div>
 
-    <div class="match-card" *ngFor="let m of vm.matches">
+    <div class="match-card" *ngFor="let m of vm.matches; trackBy: trackByMatchId">
 
       <!-- Match Header -->
       <div class="match-header">
         <div class="players">
-          <span [class.me]="isUser(m.playerA)">{{ isUser(m.playerA) ? 'You' : displayName(m.playerA, vm.nameMap) }}</span>
+          <ng-container *ngIf="isUser(m.playerA); else playerALink">
+            <span class="me">You</span>
+          </ng-container>
+          <ng-template #playerALink>
+            <a class="opponent-link" [routerLink]="['/profile', m.playerA]">{{ displayName(m.playerA, vm.nameMap) }}</a>
+          </ng-template>
+
           <span class="vs">vs</span>
-          <span [class.me]="isUser(m.playerB)">{{ isUser(m.playerB) ? 'You' : displayName(m.playerB, vm.nameMap) }}</span>
+
+          <ng-container *ngIf="isUser(m.playerB); else playerBLink">
+            <span class="me">You</span>
+          </ng-container>
+          <ng-template #playerBLink>
+            <a class="opponent-link" [routerLink]="['/profile', m.playerB]">{{ displayName(m.playerB, vm.nameMap) }}</a>
+          </ng-template>
         </div>
         <div class="status-badge" [ngClass]="m.status">
           {{ getMatchStatus(m) }}

@@ -8,9 +8,14 @@
       <span class="header-name">{{ opponentName }}</span>
       <span class="header-league">{{ leagueName }}</span>
     </div>
-    <a *ngIf="match" [routerLink]="['/my-matches']" [queryParams]="{ league: match.leagueId }" class="match-link" aria-label="View match details">
-      <span class="material-symbols-outlined">open_in_new</span>
-    </a>
+    <div class="header-actions" *ngIf="match">
+      <a [routerLink]="['/profile', opponentUid]" class="header-action-btn" title="View player profile" aria-label="View player profile">
+        <span class="material-symbols-outlined">person</span>
+      </a>
+      <a [routerLink]="['/my-matches']" [queryParams]="{ league: match.leagueId }" class="header-action-btn" title="Go to match" aria-label="Go to match">
+        <span class="material-symbols-outlined">scoreboard</span>
+      </a>
+    </div>
   </div>
 
   <!-- Loading -->
@@ -33,9 +38,17 @@
     </div>
     <div class="status-banner pending" *ngIf="match.status === 'pending'">
       <p>Coordinate with your opponent to schedule and play your match.</p>
+      <a class="banner-cta" [routerLink]="['/my-matches']" [queryParams]="{ league: match.leagueId }">
+        <span class="material-symbols-outlined">scoreboard</span>
+        Report Score
+      </a>
     </div>
     <div class="status-banner reported" *ngIf="match.status === 'reported' || match.status === 'pendingConfirm'">
       <p>A score has been reported. Waiting for confirmation.</p>
+      <a class="banner-cta" [routerLink]="['/my-matches']" [queryParams]="{ league: match.leagueId }">
+        <span class="material-symbols-outlined">check_circle</span>
+        Confirm Result
+      </a>
     </div>
   </div>
 
@@ -75,9 +88,13 @@
       *ngFor="let action of quickActions"
       type="button"
       class="chip"
+      [class.sent]="sentActions.has(action)"
       (click)="sendQuickAction(action)"
-      [disabled]="sending"
-    >{{ action }}</button>
+      [disabled]="sending || sentActions.has(action)"
+    >
+      <span class="material-symbols-outlined chip-check" *ngIf="sentActions.has(action)">check</span>
+      {{ action }}
+    </button>
   </div>
 
   <!-- Send error -->

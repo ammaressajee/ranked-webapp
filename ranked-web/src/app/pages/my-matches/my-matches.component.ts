@@ -187,6 +187,10 @@ export class MyMatchesComponent {
     return match.playerA === uid ? match.playerB ?? null : match.playerA;
   }
 
+  trackByMatchId(_: number, m: LeagueMatch): string {
+    return m.id ?? '';
+  }
+
   async leaveQueue() {
     const uid = this.auth.currentUser?.uid ?? this.authService.profile()?.uid;
     if (!this.selectedLeagueId || !uid || this.leavingQueue) return;

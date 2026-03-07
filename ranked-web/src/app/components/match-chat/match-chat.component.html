@@ -1,39 +1,36 @@
-<div class="match-chat">
-  <!-- Toggle bar -->
-  <button type="button" class="chat-toggle" (click)="toggleChat()">
-    <span class="chat-toggle-label">
-      <span class="chat-icon">💬</span>
-      Messages
-    </span>
-    <span class="chat-toggle-right">
-      <span class="unread-badge" *ngIf="(unreadCount$ | async) as count">{{ count }}</span>
-      <span class="expand-arrow" [class.open]="expanded">▾</span>
+<div class="match-chat" #chatContainer>
+
+  <!-- Collapsed: prominent open button -->
+  <button *ngIf="!expanded" type="button" class="chat-open-btn" (click)="toggleChat()">
+    <span class="material-symbols-outlined chat-btn-icon">chat</span>
+    <span class="chat-open-label">Message {{ opponentName }}</span>
+    <span class="chat-open-right">
+      <span class="unread-badge" *ngIf="(unreadCount$ | async) as count">{{ count }} new</span>
+      <span class="material-symbols-outlined chevron">chevron_right</span>
     </span>
   </button>
 
-  <!-- Status bar: sent confirmation or error -->
-  <div class="chat-status sent" *ngIf="sentConfirmation">
-    <span class="material-symbols-outlined">check_circle</span>
-    {{ sentConfirmation }}
-  </div>
-  <div class="chat-status error" *ngIf="sendError">
-    <span class="material-symbols-outlined">error</span>
-    {{ sendError }}
-  </div>
-
-  <!-- Quick action chips (always visible when not expanded) -->
-  <div class="quick-actions" *ngIf="!expanded">
-    <button
-      *ngFor="let action of quickActions"
-      type="button"
-      class="chip"
-      (click)="sendQuickAction(action)"
-      [disabled]="sending"
-    >{{ action }}</button>
-  </div>
-
   <!-- Expanded chat -->
   <div class="chat-body" *ngIf="expanded">
+
+    <!-- Header with minimize affordance -->
+    <div class="chat-header">
+      <span class="chat-header-label">
+        <span class="material-symbols-outlined">chat</span>
+        Messages
+      </span>
+      <button type="button" class="minimize-btn" (click)="toggleChat()" title="Minimize chat" aria-label="Minimize chat">
+        <span class="material-symbols-outlined">expand_more</span>
+      </button>
+    </div>
+
+    <!-- Error banner -->
+    <div class="chat-status error" *ngIf="sendError">
+      <span class="material-symbols-outlined">error</span>
+      {{ sendError }}
+    </div>
+
+    <!-- Message list -->
     <div class="message-list" #messageList>
       <ng-container *ngIf="messages$ | async as messages">
         <div *ngIf="messages.length === 0" class="empty-chat">
@@ -51,23 +48,29 @@
       </ng-container>
     </div>
 
-    <!-- Quick action chips inside expanded view -->
-    <div class="quick-actions in-chat">
+    <!-- Quick action chips -->
+    <div class="quick-actions">
       <button
         *ngFor="let action of quickActions"
         type="button"
         class="chip"
+        [class.sent]="sentActions.has(action)"
         (click)="sendQuickAction(action)"
-        [disabled]="sending"
-      >{{ action }}</button>
+        [disabled]="sending || sentActions.has(action)"
+      >
+        <span class="material-symbols-outlined chip-check" *ngIf="sentActions.has(action)">check</span>
+        {{ action }}
+      </button>
     </div>
 
+    <!-- Input row -->
     <div class="chat-input-row">
       <input
         type="text"
         class="chat-input"
         [(ngModel)]="newMessage"
         (keydown)="onKeydown($event)"
+        (focus)="onInputFocus()"
         placeholder="Type a message…"
         [disabled]="sending"
         maxlength="500"

@@ -48,7 +48,7 @@
               <span class="stats">{{ stats.wins }}W · {{ stats.losses }}L</span>
             </div>
             @if (selectedParticipant$ | async; as participant) {
-              <a [routerLink]="['/leagues', participant.leagueId]" class="btn-primary">Find Match</a>
+              <a [routerLink]="['/leagues', participant.leagueId]" [queryParams]="{ find: 'true' }" class="btn-primary">Find Match</a>
             } @else {
               <a [routerLink]="['/leagues']" class="btn-primary">Find Match</a>
             }

@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { LeagueService } from '../../services/league.service';
 import { AdminService } from '../../services/admin.service';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -15,7 +15,7 @@ import { Auth, authState } from '@angular/fire/auth';
   templateUrl: './league-detail.component.html',
   styleUrl: './league-detail.component.scss',
 })
-export class LeagueDetailComponent {
+export class LeagueDetailComponent implements OnInit {
   ls = inject(LeagueService);
   adminService = inject(AdminService);
   route = inject(ActivatedRoute);
@@ -65,6 +65,29 @@ export class LeagueDetailComponent {
         this.isInLeague.set(true);
       }
     });
+  }
+
+  ngOnInit() {
+    const findParam = this.route.snapshot.queryParamMap.get('find');
+    if (findParam !== 'true') return;
+
+    // Remove param so refresh doesn't re-trigger
+    this.router.navigate([], { relativeTo: this.route, queryParams: { find: null }, queryParamsHandling: 'merge' });
+
+    const tryFind = (attempts = 0) => {
+      if (attempts > 20) return; // ~2s max wait
+      const inLeague = this.isInLeague();
+      if (inLeague === true) {
+        firstValueFrom(this.isSeekingInLeague$).then(seeking => {
+          if (!seeking && !this.findMatchResult) this.findMatch();
+        });
+      } else if (inLeague === false) {
+        // Not in league, can't auto-find
+      } else {
+        setTimeout(() => tryFind(attempts + 1), 100);
+      }
+    };
+    setTimeout(() => tryFind(), 150);
   }
 
   async findMatch() {

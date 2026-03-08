@@ -54,6 +54,11 @@
         <app-ad-slot placement="footer" [adSlotId]="adSlotFooter"></app-ad-slot>
       </div>
     }
-    <span class="footer-notice">© 2025 Ammar Essajee. All rights reserved.</span>
+    <div class="footer-links">
+      <a routerLink="/terms">Terms</a>
+      <a routerLink="/privacy">Privacy</a>
+      <a routerLink="/help">Help</a>
+    </div>
+    <span class="footer-notice">© {{ currentYear }} Ammar Essajee. All rights reserved.</span>
   </footer>
 </div>

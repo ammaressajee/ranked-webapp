@@ -1,4 +1,5 @@
 <div class="league-detail page">
+    <app-breadcrumb [items]="breadcrumbs"></app-breadcrumb>
     <header class="league-header">
         <h1>🏓 {{ (league$ | async)?.name || leagueId }}</h1>
         <div class="header-badges">
@@ -7,6 +8,9 @@
                 {{ leaving ? 'Leaving…' : 'Leave league' }}
             </button>
             <a *ngIf="isInLeague() === false" [routerLink]="['/leagues', leagueId, 'join']" class="join-link">Join this league</a>
+            <button type="button" class="btn-share" (click)="shareLeague()">
+                {{ linkCopied ? '✓ Link copied!' : 'Invite to League' }}
+            </button>
             <a [routerLink]="['/leagues']" class="browse-link">Browse leagues</a>
             <button *ngIf="isAdmin$ | async" type="button" class="btn-delete-league" (click)="deleteLeague()" [disabled]="deleting">
                 {{ deleting ? 'Deleting…' : 'Delete league' }}
@@ -17,9 +21,13 @@
     <section class="cta-section">
         <h2>Find a match</h2>
         <p class="cta-hint">Get paired with an opponent in your league</p>
-        <p *ngIf="!(isSeekingInLeague$ | async) && isInLeague() === true && !findingMatch && (queueCount$ | async) as qc" class="queue-visibility">
-            <span *ngIf="qc === 0">Be the first to search — others will see when they open this league.</span>
-            <span *ngIf="qc > 0">{{ qc }} {{ qc === 1 ? 'person is' : 'people are' }} looking for a match.</span>
+        <p *ngIf="!(isSeekingInLeague$ | async) && isInLeague() === true && !findingMatch" class="queue-visibility">
+            <ng-container *ngIf="(queueCount$ | async) as qc">
+                <span *ngIf="qc > 0" class="queue-active">{{ qc }} {{ qc === 1 ? 'player is' : 'players are' }} searching right now — find a match instantly!</span>
+            </ng-container>
+            <ng-container *ngIf="(queueCount$ | async) === 0">
+                <span>No one is searching yet. Hit Find Match and we'll notify you when an opponent joins!</span>
+            </ng-container>
         </p>
         <p *ngIf="isInLeague() === false && !findingMatch" class="find-hint">
             <a [routerLink]="['/leagues', leagueId, 'join']">Join this league</a> first to find a match.
@@ -29,10 +37,14 @@
         <!-- In queue (from Firestore or just after find): don't allow Find Match again -->
         <div *ngIf="((findMatchResult === 'queued') || (isSeekingInLeague$ | async)) && !findingMatch" class="find-result-box">
             <p class="find-result-queued">
-                You're in the queue<span *ngIf="(queueCount$ | async) as c"> ({{ c }} in total)</span>. When another player in this league clicks Find Match, you'll be paired. Check My Matches for updates.
+                You're in the queue<span *ngIf="(queueCount$ | async) as c"> ({{ c }} searching)</span>. We'll pair you as soon as another player searches. You'll get a notification when matched!
             </p>
+            <p class="invite-nudge">Know someone who plays? Invite them to speed things up!</p>
             <div class="buttons primary">
                 <button class="btn-primary" (click)="openMatches()">Go to My Matches</button>
+                <button class="btn-share-sm" (click)="shareLeague()">
+                    {{ linkCopied ? '✓ Copied!' : 'Invite a Friend' }}
+                </button>
                 <button class="btn-secondary" (click)="leaveQueue()" [disabled]="leavingQueue">
                     {{ leavingQueue ? 'Exiting…' : 'Exit queue' }}
                 </button>

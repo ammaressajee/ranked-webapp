@@ -1,5 +1,26 @@
-<div class="profile-container" *ngIf="player() as p">
-  <!-- Header: avatar + name + tier -->
+<div class="profile-loading" *ngIf="loading()">
+  <div class="skeleton-header">
+    <div class="skeleton-avatar"></div>
+    <div class="skeleton-lines">
+      <div class="skeleton-line wide"></div>
+      <div class="skeleton-line narrow"></div>
+    </div>
+  </div>
+  <div class="skeleton-cards">
+    <div class="skeleton-card"></div>
+    <div class="skeleton-card"></div>
+  </div>
+</div>
+
+<div class="profile-not-found" *ngIf="!loading() && notFound()">
+  <span class="material-symbols-outlined not-found-icon">person_off</span>
+  <h2>Player not found</h2>
+  <p>This player profile doesn't exist or may have been removed.</p>
+  <a routerLink="/leaderboard" class="btn-primary">Browse Leaderboard</a>
+</div>
+
+<div class="profile-container" *ngIf="!loading() && !notFound() && player() as p">
+  <app-breadcrumb [items]="breadcrumbs"></app-breadcrumb>
   <header class="profile-header">
     <img [src]="p.photoURL" alt="" class="profile-avatar" />
     <div class="profile-info">
@@ -11,7 +32,6 @@
     </div>
   </header>
 
-  <!-- Row: stats (left) | recent matches (right) -->
   <div class="profile-cards-row">
     <div class="profile-card profile-card-stats" *ngIf="overallStats()">
       <h2 class="section-title">Across all leagues</h2>
@@ -39,7 +59,7 @@
       <h2 class="section-title">Recent Matches</h2>
       <ul *ngIf="recentMatches().length; else noMatches">
         <li *ngFor="let match of recentMatches()">
-          <span class="match-vs">vs opponent</span>
+          <span class="match-vs">vs {{ getOpponentName(match) }}</span>
           <span class="result" [class.win]="isMatchCompleted(match) && isWinner(match, profileUid())" [class.loss]="isMatchCompleted(match) && !isWinner(match, profileUid())" [class.pending]="!isMatchCompleted(match)">
             {{ getMatchResultLabel(match) }}
           </span>

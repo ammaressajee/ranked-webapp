@@ -9,11 +9,12 @@ import { ChatService } from '../../services/chat.service';
 import { LeagueService } from '../../services/league.service';
 import { MatchMessage } from '../../models/MatchMessage';
 import { LeagueMatch } from '../../models/LeagueMatch';
+import { BreadcrumbComponent, BreadcrumbItem } from '../../components/breadcrumb/breadcrumb.component';
 
 @Component({
   selector: 'app-message-thread',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, BreadcrumbComponent],
   templateUrl: './message-thread.component.html',
   styleUrl: './message-thread.component.scss'
 })
@@ -28,6 +29,10 @@ export class MessageThreadComponent implements OnInit, OnDestroy {
 
   matchId = '';
   match: LeagueMatch | null = null;
+  breadcrumbs: BreadcrumbItem[] = [
+    { label: 'Messages', route: '/messages' },
+    { label: 'Chat' }
+  ];
   opponentUid = '';
   opponentName = 'Opponent';
   leagueName = '';
@@ -132,6 +137,10 @@ export class MessageThreadComponent implements OnInit, OnDestroy {
         ]);
         this.opponentName = opponentName;
         this.leagueName = leagueSnap.exists() ? (leagueSnap.data() as any).name || 'League' : 'League';
+        this.breadcrumbs = [
+          { label: 'Messages', route: '/messages' },
+          { label: opponentName }
+        ];
       }
     } catch (err) {
       console.error('Failed to load match:', err);

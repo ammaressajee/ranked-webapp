@@ -217,6 +217,23 @@
     margin: 0 auto 0.75rem;
   }
 
+  .footer-links {
+    display: flex;
+    justify-content: center;
+    gap: 1.25rem;
+    margin-bottom: 0.35rem;
+
+    a {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-decoration: none;
+
+      &:hover {
+        color: var(--accent);
+      }
+    }
+  }
+
   .footer-notice {
     font-size: 0.75rem;
     color: var(--text-muted);

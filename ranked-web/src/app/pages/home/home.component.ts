@@ -4,24 +4,27 @@ import { RouterLink } from '@angular/router';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../services/auth.service';
 import { LeagueService } from '../../services/league.service';
-import { combineLatest, filter, forkJoin, map, Observable, of, switchMap, take } from 'rxjs';
+import { combineLatest, filter, forkJoin, from, map, Observable, of, switchMap, take } from 'rxjs';
 import { LeagueParticipant } from '../../models/LeagueParticipant';
 import { LeagueMatch } from '../../models/LeagueMatch';
 import { League } from '../../models/League';
 import { FormsModule } from '@angular/forms';
 import { AdSlotComponent } from '../../components/ad-slot/ad-slot.component';
 import { environment } from '../../../environments/environment';
+import { NotificationService } from '../../services/notification.service';
+import { OnboardingComponent } from '../../components/onboarding/onboarding.component';
 
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule, RouterLink, FormsModule, AdSlotComponent],
+  imports: [CommonModule, RouterLink, FormsModule, AdSlotComponent, OnboardingComponent],
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss'
 })
 export class HomeComponent implements OnInit {
   private authService = inject(AuthService);
   private leagueService = inject(LeagueService);
+  private notificationService = inject(NotificationService);
 
   /** Reactive to profile so league data appears after auth restores on reload. */
   userLeagues$: Observable<LeagueParticipant[]> = toObservable(this.authService.profile).pipe(
@@ -145,6 +148,23 @@ export class HomeComponent implements OnInit {
     map(matches => matches.slice(0, 5))
   );
 
+  recentMatchNames$: Observable<Record<string, string>> = combineLatest([
+    this.recentMatches$,
+    toObservable(this.authService.profile)
+  ]).pipe(
+    switchMap(([matches, profile]) => {
+      const uid = profile?.uid;
+      if (!uid || !matches.length) return of({} as Record<string, string>);
+      const opponentUids = [...new Set(
+        matches.map(m => m.playerA === uid ? m.playerB : m.playerA).filter(Boolean)
+      )];
+      if (!opponentUids.length) return of({} as Record<string, string>);
+      return from(
+        Promise.all(opponentUids.map(id => this.leagueService.getDisplayName(id).then(name => [id, name] as const)))
+      ).pipe(map(pairs => Object.fromEntries(pairs)));
+    })
+  );
+
   /** Alerts for banner: match awaiting confirmation, new match to play, or match request to accept. Includes leagueId so "Go to My Matches" can open the right league. */
   matchAlerts$: Observable<{ messages: string[]; leagueId: string } | null> = combineLatest([
     this.selectedLeagueMatches$,
@@ -218,6 +238,13 @@ export class HomeComponent implements OnInit {
     return 'Bronze';
   }
 
+  getOpponentName(match: LeagueMatch, nameMap: Record<string, string>): string {
+    const uid = this.user?.uid;
+    if (!uid) return 'opponent';
+    const oppUid = match.playerA === uid ? match.playerB : match.playerA;
+    return nameMap[oppUid] || 'opponent';
+  }
+
   getMatchStatus(match: LeagueMatch): string {
     switch (match.status) {
       case 'pending_acceptance': return 'Pending';
@@ -228,5 +255,34 @@ export class HomeComponent implements OnInit {
       case 'cancelled': return 'Cancelled';
       default: return match.status || '—';
     }
+  }
+
+  get showNotificationPrompt(): boolean {
+    if (typeof window === 'undefined' || !('Notification' in window)) return false;
+    if (Notification.permission !== 'default') return false;
+    return !localStorage.getItem('notif_prompt_dismissed');
+  }
+
+  async enableNotifications() {
+    await this.notificationService.requestPermissionAndRegister();
+  }
+
+  dismissNotificationPrompt() {
+    localStorage.setItem('notif_prompt_dismissed', '1');
+  }
+
+  showOnboarding = false;
+
+  private checkOnboarding = effect(() => {
+    if (!this.authService.isAuthReady() || !this.authService.isLoggedIn()) return;
+    const leagues = this.userLeagues();
+    if (leagues === undefined) return;
+    if (leagues.length === 0 && !localStorage.getItem('onboarding_complete')) {
+      this.showOnboarding = true;
+    }
+  });
+
+  dismissOnboarding() {
+    this.showOnboarding = false;
   }
 }

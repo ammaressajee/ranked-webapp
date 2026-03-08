@@ -3,7 +3,7 @@ from google.cloud import firestore
 from datetime import datetime, timezone, timedelta
 import uuid
 import firebase_admin
-from firebase_admin import auth as fb_auth
+from firebase_admin import auth as fb_auth, messaging
 from flask import jsonify, Request, make_response
 
 # Initialize Firebase Admin only once
@@ -167,6 +167,37 @@ def _try_match_league_after_decline(league_id: str, excluded_uid_1: str, exclude
         txn(db.transaction())
     except Exception:
         pass
+
+def _send_push_notification(uid: str, title: str, body: str, url: str = "/") -> None:
+    """Send a push notification to a user via FCM if they have a registered token."""
+    try:
+        token_doc = db.collection("userTokens").document(uid).get()
+        if not token_doc.exists:
+            return
+        token_data = token_doc.to_dict()
+        fcm_token = token_data.get("fcmToken")
+        if not fcm_token:
+            return
+        message = messaging.Message(
+            notification=messaging.Notification(title=title, body=body),
+            data={"url": url},
+            token=fcm_token,
+        )
+        messaging.send(message)
+    except Exception as e:
+        print(f"FCM send failed for {uid}: {e}")
+
+
+def _get_display_name(uid: str) -> str:
+    """Look up display name from users collection."""
+    try:
+        user_doc = db.collection("users").document(uid).get()
+        if user_doc.exists:
+            return user_doc.to_dict().get("displayName") or "An opponent"
+    except Exception:
+        pass
+    return "An opponent"
+
 
 def _send_system_message(match_id: str, text: str) -> None:
     """Write a system message into the match chat subcollection."""
@@ -501,9 +532,16 @@ def find_match(request: Request):
     try:
         txn_create_match(db.transaction())
     except Exception as e:
-        # If transaction fails (e.g., "already matched"), return queued status
         resp = jsonify({"matchId": None, "status": "queued", "reason": str(e)})
         return resp, 200, response_headers
+
+    searcher_name = _get_display_name(user_id)
+    _send_push_notification(
+        opponent_id,
+        "New Match Found!",
+        f"{searcher_name} wants to play. Accept or decline the match.",
+        "/my-matches"
+    )
 
     resp = jsonify({"matchId": match_id, "status": "matched", "opponentUid": opponent_id})
     return resp, 200, response_headers
@@ -583,9 +621,25 @@ def accept_match(request: Request):
             "lastActivityAt": firestore.SERVER_TIMESTAMP,
             "matchDeadline": deadline,
         })
-        # System message in match chat
         _send_system_message(match_id, "Match accepted! Message your opponent to coordinate a time and place to play.")
+        opponent_uid = player_b if user_id == player_a else player_a
+        accepter_name = _get_display_name(user_id)
+        _send_push_notification(
+            opponent_uid,
+            "Match Accepted!",
+            f"{accepter_name} accepted your match. Coordinate a time to play!",
+            "/my-matches"
+        )
         return jsonify({"status": "accepted", "matchId": match_id, "ready": True}), 200, response_headers
+
+    opponent_uid = player_b if user_id == player_a else player_a
+    accepter_name = _get_display_name(user_id)
+    _send_push_notification(
+        opponent_uid,
+        "Match Waiting",
+        f"{accepter_name} accepted the match. Your turn to accept!",
+        "/my-matches"
+    )
     return jsonify({"status": "accepted", "matchId": match_id, "ready": False}), 200, response_headers
 
 
@@ -660,7 +714,14 @@ def decline_match(request: Request):
             sr_ref = db.collection("searchRequests").document(f"{league_id}_{uid}")
             sr_ref.set({"seeking": True}, merge=True)
 
-    # Re-run matchmaking so other seekers in the league can get paired (never re-pair the two who declined)
+    opponent_uid = player_b if user_id == player_a else player_a
+    _send_push_notification(
+        opponent_uid,
+        "Match Declined",
+        "Your opponent declined the match. You've been placed back in the queue.",
+        "/my-matches"
+    )
+
     if league_id and player_a and player_b:
         _try_match_league_after_decline(league_id, player_a, player_b)
 

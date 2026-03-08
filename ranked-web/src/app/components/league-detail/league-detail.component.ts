@@ -8,10 +8,11 @@ import { firstValueFrom, Observable, of } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
 import { LeagueParticipant } from '../../models/LeagueParticipant';
 import { Auth, authState } from '@angular/fire/auth';
+import { BreadcrumbComponent, BreadcrumbItem } from '../breadcrumb/breadcrumb.component';
 
 @Component({
   selector: 'app-league-detail',
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, BreadcrumbComponent],
   templateUrl: './league-detail.component.html',
   styleUrl: './league-detail.component.scss',
 })
@@ -25,6 +26,10 @@ export class LeagueDetailComponent implements OnInit {
   leagueId = this.route.snapshot.paramMap.get('id')!;
   league$ = this.ls.getLeague(this.leagueId);
   participants$: Observable<LeagueParticipant[]> = this.ls.listParticipants(this.leagueId);
+  breadcrumbs: BreadcrumbItem[] = [
+    { label: 'Leagues', route: '/leagues' },
+    { label: 'Loading...' }
+  ];
 
   findingMatch = false;
   findMatchError: string | null = null;
@@ -35,6 +40,7 @@ export class LeagueDetailComponent implements OnInit {
   leaving = false;
   leavingQueue = false;
   deleting = false;
+  linkCopied = false;
   /** true = in league, false = not in league, null = still loading */
   isInLeague = signal<boolean | null>(null);
   isAdmin$ = this.adminService.isAdmin$;
@@ -68,6 +74,15 @@ export class LeagueDetailComponent implements OnInit {
   }
 
   ngOnInit() {
+    this.league$.subscribe(league => {
+      if (league?.name) {
+        this.breadcrumbs = [
+          { label: 'Leagues', route: '/leagues' },
+          { label: league.name }
+        ];
+      }
+    });
+
     const findParam = this.route.snapshot.queryParamMap.get('find');
     if (findParam !== 'true') return;
 
@@ -182,6 +197,30 @@ export class LeagueDetailComponent implements OnInit {
       alert('Could not leave league. Please try again.');
     } finally {
       this.leaving = false;
+    }
+  }
+
+  async shareLeague() {
+    const url = `${window.location.origin}/leagues/${this.leagueId}/join`;
+    try {
+      if (navigator.share) {
+        const league = await firstValueFrom(this.league$);
+        await navigator.share({
+          title: `Join ${league?.name || 'this league'} on Ladders`,
+          text: 'Join my league and find competitive matches!',
+          url
+        });
+      } else {
+        await navigator.clipboard.writeText(url);
+        this.linkCopied = true;
+        setTimeout(() => this.linkCopied = false, 3000);
+      }
+    } catch {
+      try {
+        await navigator.clipboard.writeText(url);
+        this.linkCopied = true;
+        setTimeout(() => this.linkCopied = false, 3000);
+      } catch { /* user cancelled share */ }
     }
   }
 

@@ -318,6 +318,14 @@
   </div>
 </div>
 
+<!-- Rank change celebration -->
+<app-rank-change
+  *ngIf="showRankChange"
+  [oldRank]="rankChangeOld"
+  [newRank]="rankChangeNew"
+  (dismissed)="dismissRankChange()"
+></app-rank-change>
+
 <!-- Toast notification -->
 <div class="toast" *ngIf="toastMessage" [class.success]="toastType === 'success'" [class.error]="toastType === 'error'" (click)="dismissToast()">
   <span class="toast-icon material-symbols-outlined">{{ toastType === 'success' ? 'check_circle' : 'error' }}</span>

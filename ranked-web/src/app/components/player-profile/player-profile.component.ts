@@ -2,15 +2,16 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { Auth } from '@angular/fire/auth';
 import { doc, Firestore, getDoc } from '@angular/fire/firestore';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { LeagueService } from '../../services/league.service';
 import { UserContactPreferences } from '../../models/UserContactPreferences';
 import { FormsModule } from '@angular/forms';
+import { BreadcrumbComponent, BreadcrumbItem } from '../breadcrumb/breadcrumb.component';
 
 @Component({
   selector: 'app-player-profile',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink, BreadcrumbComponent],
   templateUrl: './player-profile.component.html',
   styleUrl: './player-profile.component.scss',
 })
@@ -21,11 +22,15 @@ export class PlayerProfileComponent {
   private leagueService = inject(LeagueService);
 
   player = signal<any>(null);
+  loading = signal(true);
+  notFound = signal(false);
   /** Profile uid (from route or current user) - used for isWinner etc */
   profileUid = signal<string | null>(null);
   /** Overall stats across all leagues: total wins, total losses, average ELO */
   overallStats = signal<{ totalWins: number; totalLosses: number; avgElo: number; leagueCount: number } | null>(null);
   recentMatches = signal<any[]>([]);
+  matchNameMap = signal<Record<string, string>>({});
+  breadcrumbs: BreadcrumbItem[] = [{ label: 'Profile' }];
 
   /** Contact preferences for own profile edit */
   contactPrefs = signal<Partial<UserContactPreferences>>({});
@@ -39,16 +44,27 @@ export class PlayerProfileComponent {
 
   async ngOnInit() {
     const uid = this.route.snapshot.paramMap.get('uid') || this.auth.currentUser?.uid;
-    if (!uid) return;
+    if (!uid) {
+      this.loading.set(false);
+      this.notFound.set(true);
+      return;
+    }
     this.profileUid.set(uid);
 
-    // Load player info from users (display name, photo fallback)
     const userRef = doc(this.firestore, 'users', uid);
     const userSnap = await getDoc(userRef);
     if (userSnap.exists()) {
-      this.player.set({ ...userSnap.data(), uid });
+      const data = userSnap.data();
+      this.player.set({ ...data, uid });
+      this.breadcrumbs = [
+        { label: 'Leaderboard', route: '/leaderboard' },
+        { label: (data as any).displayName || 'Player' }
+      ];
     } else {
-      this.player.set({ displayName: 'Unknown', rank: 1000, wins: 0, losses: 0, uid });
+      this.player.set(null);
+      this.loading.set(false);
+      this.notFound.set(true);
+      return;
     }
 
     // Aggregate across ALL leagues: wait for first emission so stats are set before/during first render
@@ -77,8 +93,19 @@ export class PlayerProfileComponent {
       this.overallStats.set(null);
     }
 
-    // Load recent league matches
-    this.leagueService.listRecentLeagueMatchesForUser(uid, 10).subscribe(data => this.recentMatches.set(data));
+    this.leagueService.listRecentLeagueMatchesForUser(uid, 10).subscribe(async data => {
+      this.recentMatches.set(data);
+      const opponentUids = [...new Set(
+        data.map(m => m.playerA === uid ? m.playerB : m.playerA).filter(Boolean)
+      )];
+      if (opponentUids.length) {
+        const pairs = await Promise.all(
+          opponentUids.map(id => this.leagueService.getDisplayName(id).then(name => [id, name] as const))
+        );
+        this.matchNameMap.set(Object.fromEntries(pairs));
+      }
+      this.loading.set(false);
+    });
 
     // Load contact preferences when viewing own profile
     if (this.auth.currentUser?.uid === uid) {
@@ -119,6 +146,13 @@ export class PlayerProfileComponent {
   displayLosses(p: any): number {
     const os = this.overallStats();
     return os?.totalLosses ?? p?.losses ?? 0;
+  }
+
+  getOpponentName(match: any): string {
+    const uid = this.profileUid();
+    if (!uid) return 'opponent';
+    const oppUid = match.playerA === uid ? match.playerB : match.playerA;
+    return this.matchNameMap()[oppUid] || 'opponent';
   }
 
   isWinner(match: any, uid: string | null): boolean {

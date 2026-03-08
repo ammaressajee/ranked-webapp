@@ -12,6 +12,22 @@
       <p class="hero-subtitle">Find matches and climb the ranks</p>
     </section>
 
+    @if (showNotificationPrompt) {
+      <section class="notification-prompt">
+        <div class="notification-prompt-inner">
+          <span class="material-symbols-outlined">notifications</span>
+          <div class="notification-prompt-text">
+            <strong>Stay in the loop</strong>
+            <span>Get notified when you're matched, your opponent responds, or scores are submitted.</span>
+          </div>
+          <button class="btn-enable-notif" (click)="enableNotifications()">Enable</button>
+          <button class="btn-dismiss-notif" (click)="dismissNotificationPrompt()" aria-label="Dismiss">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+      </section>
+    }
+
     @if (matchAlerts$ | async; as alerts) {
       <section class="match-alerts" aria-label="Match alerts">
         <div class="match-alerts-inner">
@@ -69,14 +85,16 @@
         <div class="recent-card">
           <h3>Recent Matches</h3>
           <div class="match-list">
-            @for (m of recentMatches$ | async; track m.id) {
-              <a [routerLink]="['/my-matches']" [queryParams]="selectedLeagueId() ? { league: selectedLeagueId() } : {}" class="match-row">
-                <span class="match-status" [attr.data-status]="m.status">{{ getMatchStatus(m) }}</span>
-                <span class="match-meta">vs opponent</span>
-              </a>
-            }
-            @empty {
-              <p class="empty">No matches yet</p>
+            @if (recentMatchNames$ | async; as nameMap) {
+              @for (m of recentMatches$ | async; track m.id) {
+                <a [routerLink]="['/my-matches']" [queryParams]="selectedLeagueId() ? { league: selectedLeagueId() } : {}" class="match-row">
+                  <span class="match-status" [attr.data-status]="m.status">{{ getMatchStatus(m) }}</span>
+                  <span class="match-meta">vs {{ getOpponentName(m, nameMap) }}</span>
+                </a>
+              }
+              @empty {
+                <p class="empty">No matches yet</p>
+              }
             }
           </div>
           <a [routerLink]="['/my-matches']" [queryParams]="selectedLeagueId() ? { league: selectedLeagueId() } : {}" class="link-more">View all matches</a>
@@ -131,16 +149,79 @@
       }
     }
   } @else {
-    <!-- Logged-out landing (only after auth is ready) -->
+    <!-- Logged-out landing -->
     <section class="hero">
       <h1>Climb the Ladder</h1>
-      <p class="hero-subtitle">Join local leagues. Find matches. Record wins. Rise in the ranks.</p>
+      <p class="hero-subtitle">The competitive ranking platform for local sports. Join a league, find opponents at your level, and prove you're the best.</p>
       <div class="hero-actions">
-        <a routerLink="/leagues" class="btn-primary">Leagues</a>
-        <a routerLink="/login" class="btn-secondary">Get Started</a>
+        <a routerLink="/login" class="btn-primary">Get Started Free</a>
+        <a routerLink="/leagues" class="btn-secondary">Browse Leagues</a>
+      </div>
+      <p class="hero-sports">Perfect for tennis, pickleball, table tennis, chess, badminton, and more</p>
+    </section>
+
+    <!-- How it works -->
+    <section class="how-it-works">
+      <h2>How It Works</h2>
+      <div class="steps-grid">
+        <div class="how-step">
+          <div class="how-step-icon">
+            <span class="material-symbols-outlined">groups</span>
+          </div>
+          <h3>1. Join a League</h3>
+          <p>Find a local league for your sport and join with one tap. No fees, no paperwork.</p>
+        </div>
+        <div class="how-step">
+          <div class="how-step-icon">
+            <span class="material-symbols-outlined">sports_tennis</span>
+          </div>
+          <h3>2. Get Matched</h3>
+          <p>Hit "Find Match" and our skill-based system pairs you with an opponent at your level.</p>
+        </div>
+        <div class="how-step">
+          <div class="how-step-icon">
+            <span class="material-symbols-outlined">leaderboard</span>
+          </div>
+          <h3>3. Climb the Ranks</h3>
+          <p>Play, report your score, and watch your ELO rating rise. Compete for the top of the leaderboard.</p>
+        </div>
       </div>
     </section>
 
+    <!-- Features -->
+    <section class="features-section">
+      <div class="feature-cards">
+        <div class="feature-card">
+          <span class="material-symbols-outlined">equalizer</span>
+          <h3>Skill-Based Matchmaking</h3>
+          <p>Our ELO system ensures fair matches by pairing you with similarly-ranked opponents.</p>
+        </div>
+        <div class="feature-card">
+          <span class="material-symbols-outlined">chat</span>
+          <h3>Built-In Messaging</h3>
+          <p>Coordinate time and place with your opponent directly in the app.</p>
+        </div>
+        <div class="feature-card">
+          <span class="material-symbols-outlined">notifications_active</span>
+          <h3>Instant Notifications</h3>
+          <p>Get notified when you're matched, when opponents respond, and when scores are submitted.</p>
+        </div>
+        <div class="feature-card">
+          <span class="material-symbols-outlined">location_on</span>
+          <h3>Local Leagues</h3>
+          <p>Find leagues near you. Play in-person matches with real opponents in your area.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="landing-cta">
+      <h2>Ready to compete?</h2>
+      <p>Join a league and find your first match in minutes.</p>
+      <a routerLink="/login" class="btn-primary">Get Started Free</a>
+    </section>
+
+    <!-- Top Players -->
     <section class="leaderboard-section">
       <h2>Top Players</h2>
       <div class="table-card">
@@ -191,5 +272,9 @@
     <section class="home-ad-section" aria-label="Sponsored">
       <app-ad-slot placement="card" [adSlotId]="adSlotInContent"></app-ad-slot>
     </section>
+  }
+
+  @if (showOnboarding) {
+    <app-onboarding (completed)="dismissOnboarding()"></app-onboarding>
   }
 </div>

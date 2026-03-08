@@ -67,6 +67,23 @@
     }
   }
 
+  .btn-share {
+    font-size: 0.9rem;
+    padding: 0.4rem 0.75rem;
+    background: var(--accent-muted);
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s;
+
+    &:hover {
+      background: var(--accent);
+      color: #0f0f14;
+    }
+  }
+
   .btn-delete-league {
     font-size: 0.9rem;
     padding: 0.4rem 0.75rem;
@@ -130,6 +147,34 @@
   .find-result-matched {
     color: var(--success, #22c55e);
     font-weight: 500;
+  }
+}
+
+.queue-active {
+  color: var(--accent) !important;
+  font-weight: 500;
+}
+
+.invite-nudge {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0.5rem 0 1rem;
+}
+
+.btn-share-sm {
+  padding: 0.75rem 1.25rem;
+  background: var(--accent-muted);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: all 0.2s;
+
+  &:hover {
+    background: var(--accent);
+    color: #0f0f14;
   }
 }
 

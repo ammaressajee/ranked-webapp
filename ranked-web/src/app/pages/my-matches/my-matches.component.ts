@@ -11,6 +11,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatchChatComponent } from '../../components/match-chat/match-chat.component';
+import { RankChangeComponent } from '../../components/rank-change/rank-change.component';
 
 export interface LeagueParticipantWithName extends LeagueParticipant {
   resolvedLeagueName: string;
@@ -18,7 +19,7 @@ export interface LeagueParticipantWithName extends LeagueParticipant {
 
 @Component({
   selector: 'app-my-matches',
-  imports: [CommonModule, FormsModule, RouterLink, MatchChatComponent],
+  imports: [CommonModule, FormsModule, RouterLink, MatchChatComponent, RankChangeComponent],
   templateUrl: './my-matches.component.html',
   styleUrl: './my-matches.component.scss',
 })
@@ -77,6 +78,12 @@ export class MyMatchesComponent {
   // Score validation
   dialogScoreTouched = false;
 
+  // Rank celebration
+  showRankChange = false;
+  rankChangeOld = 1000;
+  rankChangeNew = 1000;
+  private previousMatchStatuses = new Map<string, string>();
+
   constructor() {
     effect(() => {
       if (this.authInitDone) return;
@@ -131,7 +138,10 @@ export class MyMatchesComponent {
       shareReplay(1)
     );
 
-    this.nameMapSub = this.matchesWithNames$.subscribe(vm => { this.dialogNameMap = vm.nameMap; });
+    this.nameMapSub = this.matchesWithNames$.subscribe(vm => {
+      this.dialogNameMap = vm.nameMap;
+      this.detectRankChanges(vm.matches, uid);
+    });
 
     this.sub.add(
       this.leaguesWithNames$.subscribe({
@@ -496,6 +506,29 @@ export class MyMatchesComponent {
   dismissToast() {
     this.toastMessage = null;
     if (this.toastTimer) { clearTimeout(this.toastTimer); this.toastTimer = null; }
+  }
+
+  private detectRankChanges(matches: LeagueMatch[], uid: string) {
+    for (const m of matches) {
+      if (!m.id) continue;
+      const prev = this.previousMatchStatuses.get(m.id);
+      if (prev && prev !== 'completed' && m.status === 'completed') {
+        const matchAny = m as any;
+        const isPlayerA = m.playerA === uid;
+        const oldRank = isPlayerA ? matchAny.playerA_rank_before : matchAny.playerB_rank_before;
+        const newRank = isPlayerA ? matchAny.playerA_rank_after : matchAny.playerB_rank_after;
+        if (oldRank != null && newRank != null && oldRank !== newRank) {
+          this.rankChangeOld = oldRank;
+          this.rankChangeNew = newRank;
+          this.showRankChange = true;
+        }
+      }
+      this.previousMatchStatuses.set(m.id, m.status);
+    }
+  }
+
+  dismissRankChange() {
+    this.showRankChange = false;
   }
 
   isScoreFormatValid(score: string): boolean {

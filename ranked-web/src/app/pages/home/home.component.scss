@@ -90,6 +90,70 @@
   }
 }
 
+.notification-prompt {
+  max-width: 900px;
+  margin: 0.75rem auto;
+  padding: 0 1.5rem;
+}
+
+.notification-prompt-inner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+
+  > .material-symbols-outlined {
+    font-size: 1.5rem;
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+}
+
+.notification-prompt-text {
+  flex: 1;
+  min-width: 0;
+
+  strong {
+    display: block;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+  }
+
+  span {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+}
+
+.btn-enable-notif {
+  padding: 0.4rem 1rem;
+  background: var(--gradient-accent);
+  color: #0f0f14;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.btn-dismiss-notif {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.2rem;
+  flex-shrink: 0;
+
+  .material-symbols-outlined {
+    font-size: 1.1rem;
+    color: var(--text-muted);
+  }
+}
+
 .match-alerts {
   max-width: 900px;
   margin: 1rem auto 1.5rem;
@@ -447,6 +511,151 @@
   color: var(--text-muted);
 }
 
+// Landing page sections
+.hero-sports {
+  margin-top: 1rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  opacity: 0.8;
+}
+
+.how-it-works {
+  max-width: 900px;
+  margin: 2.5rem auto;
+  padding: 0 1.5rem;
+
+  h2 {
+    text-align: center;
+    font-size: 1.35rem;
+    color: var(--text-primary);
+    margin: 0 0 1.5rem;
+  }
+}
+
+.steps-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+}
+
+.how-step {
+  text-align: center;
+  padding: 1.5rem 1rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+
+  .how-step-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    background: var(--accent-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+
+    .material-symbols-outlined {
+      font-size: 1.6rem;
+      color: var(--accent);
+    }
+  }
+
+  h3 {
+    font-size: 1.05rem;
+    color: var(--text-primary);
+    margin: 0 0 0.4rem;
+  }
+
+  p {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin: 0;
+    line-height: 1.45;
+  }
+}
+
+.features-section {
+  max-width: 900px;
+  margin: 2rem auto;
+  padding: 0 1.5rem;
+}
+
+.feature-cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.feature-card {
+  padding: 1.25rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+
+  .material-symbols-outlined {
+    font-size: 1.5rem;
+    color: var(--accent);
+    margin-bottom: 0.5rem;
+  }
+
+  h3 {
+    font-size: 1rem;
+    color: var(--text-primary);
+    margin: 0 0 0.3rem;
+    font-weight: 600;
+  }
+
+  p {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin: 0;
+    line-height: 1.4;
+  }
+}
+
+.landing-cta {
+  max-width: 900px;
+  margin: 2.5rem auto;
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 700px;
+
+  h2 {
+    font-size: 1.5rem;
+    color: var(--text-primary);
+    margin: 0 0 0.4rem;
+  }
+
+  p {
+    color: var(--text-muted);
+    margin: 0 0 1.25rem;
+    font-size: 1rem;
+  }
+
+  .btn-primary {
+    display: inline-block;
+    padding: 0.75rem 2rem;
+    background: var(--gradient-accent);
+    color: #0f0f14;
+    font-weight: 600;
+    font-size: 1rem;
+    border-radius: 12px;
+    text-decoration: none;
+    box-shadow: 0 4px 16px rgba(0, 212, 170, 0.3);
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 24px rgba(0, 212, 170, 0.4);
+    }
+  }
+}
+
 @media (max-width: 768px) {
   .hero {
     padding: 2rem 1rem 3rem;
@@ -460,5 +669,26 @@
   .leaderboard-table td {
     padding: 0.75rem 0.5rem;
     font-size: 0.85rem;
+  }
+
+  .steps-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .how-step {
+    display: flex;
+    text-align: left;
+    gap: 1rem;
+    padding: 1rem;
+
+    .how-step-icon {
+      margin: 0;
+      flex-shrink: 0;
+    }
+  }
+
+  .feature-cards {
+    grid-template-columns: 1fr;
   }
 }

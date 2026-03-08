@@ -6,9 +6,12 @@ import { toObservable } from '@angular/core/rxjs-interop';
 import { AuthService } from './services/auth.service';
 import { LeagueService } from './services/league.service';
 import { ChatService } from './services/chat.service';
+import { NotificationService } from './services/notification.service';
 import { SidebarComponent } from './components/sidebar/sidebar.component';
 import { AdSlotComponent } from './components/ad-slot/ad-slot.component';
 import { environment } from '../environments/environment';
+import { getApp } from 'firebase/app';
+import { getAnalytics, isSupported } from 'firebase/analytics';
 
 const MOBILE_BREAKPOINT = 768;
 
@@ -30,10 +33,12 @@ export class AppComponent implements OnDestroy {
   authService = inject(AuthService);
   private leagueService = inject(LeagueService);
   private chatService = inject(ChatService);
+  private notificationService = inject(NotificationService);
   router = inject(Router);
 
   isSidebarOpen = false;
   totalUnread = signal(0);
+  currentYear = new Date().getFullYear();
 
   private unreadSub: Subscription;
 
@@ -44,6 +49,12 @@ export class AppComponent implements OnDestroy {
   adSlotFooter = environment.adSlotFooter;
 
   constructor() {
+    if (environment.production && typeof window !== 'undefined') {
+      isSupported().then(supported => {
+        if (supported) getAnalytics(getApp());
+      });
+    }
+
     this.unreadSub = toObservable(this.authService.profile).pipe(
       switchMap(profile => {
         if (!profile?.uid) return of(0);
@@ -56,6 +67,7 @@ export class AppComponent implements OnDestroy {
 
   ngOnInit() {
     this.updateBodyScrollLock();
+    this.notificationService.init();
   }
 
   ngOnDestroy() {
